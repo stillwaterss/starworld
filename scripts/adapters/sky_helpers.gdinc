@@ -1,0 +1,5 @@
+// Web Compatibility expects sky output in sRGB, while Forward+ uses linear.
+uniform bool web_color_space = false;
+uniform vec3 web_night_lift = vec3(0.0);
+vec3 web_linear(vec3 c) { return mix(c/12.92,pow((c+vec3(.055))/1.055,vec3(2.4)),step(vec3(.04045),c)); }
+vec3 web_srgb(vec3 c) { return mix(c*12.92,1.055*pow(max(c,vec3(0.0)),vec3(1.0/2.4))-.055,step(vec3(.0031308),c)); }

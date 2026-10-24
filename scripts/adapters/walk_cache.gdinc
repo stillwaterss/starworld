@@ -1,0 +1,35 @@
+func save_web_cache(path: String) -> bool:
+	var points := []
+	var edges := PackedInt32Array()
+	for id in astar.get_point_ids():
+		points.append([id, astar.get_point_position(id), astar.get_point_weight_scale(id)])
+		for other in astar.get_point_connections(id):
+			if id < other:
+				edges.append(id)
+				edges.append(other)
+	var file := FileAccess.open_compressed(path, FileAccess.WRITE, FileAccess.COMPRESSION_ZSTD)
+	if file == null:return false
+	file.store_var({"version": 1, "heights": heights, "normals": normals, "walkable": walkable, "component": component, "tight": tight, "hops": hops, "component_size": component_size, "main_component": main_component, "points": points, "edges": edges})
+	file.close()
+	return true
+
+func load_web_cache(path: String) -> bool:
+	if not FileAccess.file_exists(path):return false
+	var file := FileAccess.open_compressed(path, FileAccess.READ, FileAccess.COMPRESSION_ZSTD)
+	if file == null:return false
+	var data = file.get_var()
+	if not data is Dictionary or data.get("version") != 1:return false
+	heights = data.heights
+	normals = data.normals
+	walkable = data.walkable
+	component = data.component
+	tight = data.tight
+	hops = data.hops
+	component_size = data.component_size
+	main_component = data.main_component
+	astar.clear()
+	for point in data.points:astar.add_point(point[0], point[1], point[2])
+	for i in range(0, data.edges.size(), 2):astar.connect_points(data.edges[i], data.edges[i + 1])
+	ready = true
+	return true
+
