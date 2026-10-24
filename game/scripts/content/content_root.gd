@@ -83,7 +83,8 @@ func _bake() -> void:
 	registry.refresh()
 	var ignore: Array[RID] = [world.player.get_rid()]
 	for npc in world.interactions.npcs:ignore.append(npc.get_rid())
-	grid.bake(world.get_world_3d().direct_space_state, ignore)
+	if not (OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")):
+		grid.bake(world.get_world_3d().direct_space_state, ignore)
 	director.evaluate()
 	guide.refresh_route(true)
 	ui.refresh()

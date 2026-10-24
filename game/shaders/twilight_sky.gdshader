@@ -3,12 +3,18 @@ render_mode disable_fog;
 uniform sampler2D panorama : source_color, filter_linear, repeat_enable;
 uniform sampler2D galaxy_detail : source_color, filter_linear, repeat_disable;
 uniform vec3 time_weights = vec3(0.0,0.0,1.0);
+// Web Compatibility expects sky output in sRGB, while Forward+ uses linear.
+uniform bool web_color_space = false;
+uniform vec3 web_night_lift = vec3(0.0);
+vec3 web_linear(vec3 c) { return mix(c/12.92,pow((c+vec3(.055))/1.055,vec3(2.4)),step(vec3(.04045),c)); }
+vec3 web_srgb(vec3 c) { return mix(c*12.92,1.055*pow(max(c,vec3(0.0)),vec3(1.0/2.4))-.055,step(vec3(.0031308),c)); }
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
 void sky() {
     vec3 d=normalize(EYEDIR);
     vec2 uv=vec2(atan(d.z,d.x)/6.2831853+.5,.5-asin(clamp(d.y,-1.0,1.0))/3.1415926);
     vec3 color=texture(panorama,uv).rgb;
+    if(web_color_space) color=web_linear(color);
     vec3 gd=normalize(vec3(.55,.38,-.78));
     vec3 gx=normalize(cross(vec3(0,1,0),gd));
     vec3 gy=cross(gd,gx);
@@ -17,7 +23,9 @@ void sky() {
     float edge=max(abs(gp.x),abs(gp.y));
     if (facing>.5 && edge<.36) {
         vec2 patch=vec2(gp.x/.72+.5,.5-gp.y/.72);
-        color=mix(color,texture(galaxy_detail,patch).rgb,1.0-smoothstep(.29,.36,edge));
+        vec3 detail_color=texture(galaxy_detail,patch).rgb;
+        if(web_color_space) detail_color=web_linear(detail_color);
+        color=mix(color,detail_color,1.0-smoothstep(.29,.36,edge));
     }
     float elevation=pow(max(d.y,0.0),.48);
     vec3 day=mix(vec3(.46,.70,.88),vec3(.09,.34,.65),elevation);
@@ -43,4 +51,5 @@ void sky() {
     dusk=mix(dusk,sea_dusk,below);
     color=mix(color,sea_night,below*.9)+vec3(.003,.005,.010);
     COLOR=day*time_weights.x+dusk*time_weights.y+color*time_weights.z;
+    if(web_color_space) COLOR=web_srgb(COLOR+web_night_lift*time_weights.z);
 }

@@ -31,6 +31,9 @@ func _ready() -> void:
 	name = "AudioDirector"
 	persistent = not "--test-session" in OS.get_cmdline_user_args()
 	load_settings()
+	if OS.has_feature("web"):
+		_web_sound_callback = JavaScriptBridge.create_callback(_enable_web_sound)
+		JavaScriptBridge.get_interface("window").starworldEnableSound = _web_sound_callback
 	for bus in BUSES:
 		if AudioServer.get_bus_index(bus) < 0:
 			AudioServer.add_bus()
@@ -77,6 +80,7 @@ func bind_scene() -> void:
 func _player(id: String, bus: String) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
 	player.name = id
+	if OS.has_feature("web"):player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	player.bus = bus
 	player.stream = _stream(id)
 	player.volume_db = -80
@@ -177,3 +181,15 @@ func report() -> Dictionary:
 	out["music_db"] = music.map(func(p): return snappedf(p.volume_db, .1))
 	out["playing"] = music.map(func(p): return p.playing)
 	return out
+
+# The browser must receive an actual gesture after initialization to unlock audio.
+# This callback also handles the explicit HTML sound button without touching story saves.
+var _web_sound_callback: JavaScriptObject
+
+func _enable_web_sound(_args: Array) -> void:
+	settings.muted = false
+	if settings.music <= 0.0:settings.music = .8
+	if settings.ambience <= 0.0:settings.ambience = .7
+	apply_settings()
+	for player in music + ambience:
+		if player.stream and not player.playing:player.play()

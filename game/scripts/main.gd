@@ -140,8 +140,9 @@ func _setup_environment() -> void:
 	env.sky = Sky.new()
 	var sky_material := ShaderMaterial.new()
 	sky_material.shader = preload("res://shaders/twilight_sky.gdshader")
-	sky_material.set_shader_parameter("panorama",preload("res://assets/night_sky_2k.exr"))
-	sky_material.set_shader_parameter("galaxy_detail",preload("res://assets/galaxy_detail_2k.exr"))
+	sky_material.set_shader_parameter("web_color_space",true)
+	sky_material.set_shader_parameter("panorama",preload("res://assets/night_sky_2k_web.png"))
+	sky_material.set_shader_parameter("galaxy_detail",preload("res://assets/galaxy_detail_2k_web.png"))
 	env.sky.sky_material = sky_material
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.66, 0.72, 0.91)

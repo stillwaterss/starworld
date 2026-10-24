@@ -29,3 +29,7 @@ file_logging/enable_file_logging=false
 [gui]
 
 theme/custom_font="res://assets/fonts/NotoSansSC.ttf"
+
+[audio]
+
+general/default_playback_type.web=1

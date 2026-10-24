@@ -49,6 +49,7 @@ func _apply(value: Vector3) -> void:
 	key.light_energy=Vector3(1.25,.95,.88).dot(weights)
 	env.fog_density=Vector3(.00065,.00085,.0010).dot(weights)
 	key.rotation_degrees=Vector3(-48,-38,0)*weights.x+Vector3(-13,-66,0)*weights.y+Vector3(-46,-34,0)*weights.z
+	preload("res://scripts/web_visual_profile.gd").apply(self)
 
 func sun_color(colors: Array) -> Color:
 	return colors[0]*weights.x+colors[1]*weights.y+colors[2]*weights.z
