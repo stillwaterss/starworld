@@ -41,7 +41,9 @@ def apply(root):
     changes[path] = s
     path = 'scripts/content/content_root.gd'
     s = read(path)
-    changes[path] = replace(s, '\tgrid.bake(world.get_world_3d().direct_space_state, ignore)', '\tif not (OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")):\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)')
+    s = replace(s, '\tgrid.bake(world.get_world_3d().direct_space_state, ignore)', '\tif not (OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")):\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)')
+    s = replace(s, '\tguide.refresh_route(true)\n\tui.refresh()', '\tguide.refresh_route(true)\n\tui.refresh()\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")')
+    changes[path] = s
     path = 'scripts/content/audio_director.gd'
     s = read(path)
     s = replace(s, '\tplayer.name = id', '\tplayer.name = id\n\tif OS.has_feature("web"):player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM')

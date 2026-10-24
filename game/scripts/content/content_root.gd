@@ -88,6 +88,8 @@ func _bake() -> void:
 	director.evaluate()
 	guide.refresh_route(true)
 	ui.refresh()
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.starworldSceneReady = true")
 
 ## Uses a fresh story save at `path` (tests, or a second profile). Never touches the real save.
 func use_save(path: String) -> void:
