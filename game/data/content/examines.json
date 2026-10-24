@@ -1,0 +1,881 @@
+{
+  "version": 1,
+  "note": "E-interactions. 'at' is a registry target or [x,y,z]; first matching variant is used. Conditions share the story vocabulary.",
+  "examines": [
+    {
+      "id": "fallen_star",
+      "at": "loc:fallen_star",
+      "radius": 1.8,
+      "when": {
+        "not": {
+          "flag": "xiaoguang"
+        }
+      },
+      "variants": [
+        {
+          "id": "find",
+          "prompt": "看看草丛里的光",
+          "perform": "cup",
+          "seconds": 2.4,
+          "cam_height": 0.9,
+          "look_height": 0.3,
+          "sets": [
+            "xiaoguang"
+          ],
+          "special": "find_xiaoguang",
+          "event": "xiaoguang_found",
+          "note": {
+            "title": "草丛里",
+            "lines": [
+              "草叶下面，有一颗很小很小的星星，光暗暗的，像刚哭过。",
+              "你把它捧起来。它很轻，有一点暖。",
+              "你把它放进了小灯里。"
+            ]
+          },
+          "whisper": "……你好。我好像，掉下来了。"
+        }
+      ]
+    },
+    {
+      "id": "tree_window",
+      "at": [
+        0.0,
+        0.9,
+        0.75
+      ],
+      "radius": 1.6,
+      "height": 2.2,
+      "when": {
+        "flag": "xiaoguang"
+      },
+      "variants": [
+        {
+          "id": "ending",
+          "when": {
+            "stage": "c5_window"
+          },
+          "prompt": "推开小圆窗",
+          "special": "ending"
+        },
+        {
+          "id": "polish",
+          "when": {
+            "not": {
+              "flag": "window_polished"
+            }
+          },
+          "prompt": "擦一擦门上的小圆窗",
+          "perform": "polish",
+          "seconds": 2.6,
+          "cam_distance": 2.6,
+          "cam_height": 1.1,
+          "look_height": 1.7,
+          "sets": [
+            "window_polished"
+          ],
+          "special": "polish_window",
+          "event": "window_polished",
+          "text": "你用袖子把小圆窗擦了一遍又一遍。玻璃后面，暖暖地亮了一下。",
+          "whisper": "这是……我的窗户吗？从这里能看见天。"
+        },
+        {
+          "id": "shine",
+          "prompt": "看看小圆窗",
+          "text": "小圆窗很亮。夜里，它是这条街上最暖的一盏。"
+        }
+      ]
+    },
+    {
+      "id": "tree_door",
+      "at": [
+        -1.2,
+        0.9,
+        0.9
+      ],
+      "radius": 1.2,
+      "height": 2.2,
+      "when": {
+        "flag": "xiaoguang"
+      },
+      "variants": [
+        {
+          "id": "open",
+          "prompt": "推开树屋的门",
+          "perform": "knock",
+          "door": "treehouse",
+          "text": "屋里很小：一张床，一张书桌，一只装满种子的罐子。小光说，这里像一个口袋。"
+        }
+      ]
+    },
+    {
+      "id": "shop",
+      "at": "loc:star_roof_shop",
+      "radius": 2.4,
+      "variants": [
+        {
+          "id": "paper",
+          "when": {
+            "stage": "c2_shop"
+          },
+          "prompt": "看看小摊",
+          "perform": "knock",
+          "door": "shop",
+          "event": "shop_visited",
+          "text": "门没锁。柜台上压着一沓带星星水印的信纸。你拿了一张，在本子上留了个记号。",
+          "whisper": "你留了记号。那他回来的时候，就知道有人来过了。"
+        },
+        {
+          "id": "thread",
+          "when": {
+            "stage": "c4_dock"
+          },
+          "prompt": "看看小摊",
+          "text": "柜台上还是没人。牌子上写着：“先拿，回头再说。”"
+        },
+        {
+          "id": "later",
+          "when": {
+            "flag": "ev_shop_visited"
+          },
+          "prompt": "看看小摊",
+          "text": "小摊的灯笼轻轻晃着。摊主还没回来。可柜台上那沓信纸，好像每天都会多出一张。"
+        },
+        {
+          "id": "first",
+          "prompt": "看看小摊",
+          "text": "小摊上摆着灯纸、种子袋和几颗糖。摊主不在，牌子上写着：“先拿，回头再说。”"
+        }
+      ]
+    },
+    {
+      "id": "airship",
+      "at": "loc:dock",
+      "radius": 3.2,
+      "when": {
+        "not": {
+          "flag": "airship_at_keeper"
+        }
+      },
+      "variants": [
+        {
+          "id": "inspect",
+          "when": {
+            "stage": "c4_dock"
+          },
+          "prompt": "看看飞艇",
+          "event": "airship_inspected",
+          "note": {
+            "title": "舵上的字条",
+            "lines": [
+              "“风铃在傍晚响三下，风就会来。”",
+              "“船灯要亮着，云才看得见路。”",
+              "“——守灯人”"
+            ]
+          },
+          "whisper": "船灯……我可以试试吗？"
+        },
+        {
+          "id": "lamp",
+          "when": {
+            "all": [
+              {
+                "stage": "c4_lamp"
+              },
+              {
+                "not": {
+                  "flag": "ship_lamp_lit"
+                }
+              }
+            ]
+          },
+          "prompt": "让小光点亮船灯",
+          "perform": "hold_up",
+          "seconds": 2.0,
+          "special": "ship_lamp",
+          "text": "小光从灯里探出一点光，船灯“噗”地亮了。",
+          "whisper": "我做到了！……原来我还能点亮别的东西。"
+        },
+        {
+          "id": "lamp_wait",
+          "when": {
+            "stage": "c4_wind"
+          },
+          "prompt": "看看飞艇",
+          "text": "绳子在风里轻轻响。还差一阵风。"
+        },
+        {
+          "id": "board",
+          "when": {
+            "flag": "ship_lamp_lit"
+          },
+          "prompt": "登上飞艇",
+          "special": "airship_board"
+        },
+        {
+          "id": "old",
+          "prompt": "看看飞艇",
+          "text": "飞艇的绳子系得很牢，好像很多年没飞了。船舱里堆着几箱种子。"
+        }
+      ]
+    },
+    {
+      "id": "airship_keeper",
+      "at": "loc:keeper_dock",
+      "radius": 3.0,
+      "when": {
+        "flag": "airship_at_keeper"
+      },
+      "variants": [
+        {
+          "id": "board_back",
+          "prompt": "登上飞艇回小镇",
+          "special": "airship_board"
+        }
+      ]
+    },
+    {
+      "id": "keeper_door",
+      "at": "loc:keeper_house",
+      "radius": 1.6,
+      "variants": [
+        {
+          "id": "open",
+          "when": {
+            "not": {
+              "flag": "keeper_door_open"
+            }
+          },
+          "prompt": "推开守灯人的小屋",
+          "perform": "knock",
+          "door": "keeper",
+          "event": "keeper_door_opened",
+          "text": "门轴响了一声。屋里有灯油和旧纸的味道。",
+          "whisper": "没有人……可是好像一直有人在等。"
+        },
+        {
+          "id": "inside",
+          "prompt": "看看小屋",
+          "text": "床铺得很整齐，像主人只是出门一小会儿。"
+        }
+      ]
+    },
+    {
+      "id": "keeper_letters",
+      "at": "loc:keeper_desk",
+      "radius": 1.4,
+      "when": {
+        "flag": "keeper_door_open"
+      },
+      "variants": [
+        {
+          "id": "one",
+          "when": {
+            "not": {
+              "flag": "letter_1"
+            }
+          },
+          "prompt": "读第一封信",
+          "sets": [
+            "letter_1"
+          ],
+          "note": {
+            "title": "第一封",
+            "lines": [
+              "今天也没有船来。",
+              "可灯还是要点的。万一有一艘迷了路呢。"
+            ]
+          }
+        },
+        {
+          "id": "two",
+          "when": {
+            "not": {
+              "flag": "letter_2"
+            }
+          },
+          "prompt": "读第二封信",
+          "sets": [
+            "letter_2"
+          ],
+          "note": {
+            "title": "第二封",
+            "lines": [
+              "有人问我，点给看不见的人，有什么意义。",
+              "我说，灯又不是为了被看见才亮的。",
+              "就像花不是为了被夸才开的。"
+            ]
+          },
+          "whisper": "灯不是为了被看见才亮的……"
+        },
+        {
+          "id": "three",
+          "when": {
+            "not": {
+              "flag": "letter_3"
+            }
+          },
+          "prompt": "读第三封信",
+          "sets": [
+            "letter_3"
+          ],
+          "note": {
+            "title": "给下一个点灯的人",
+            "lines": [
+              "楼梯第七级会响，别怕。灯油在柜子里。",
+              "如果你也觉得孤单，就抬头看看——",
+              "有一些光，已经在往你这儿走了。走了很久很久。"
+            ]
+          },
+          "whisper": "他说的那些光……是不是也包括我？"
+        },
+        {
+          "id": "done",
+          "prompt": "看看书桌",
+          "text": "三封信叠在一起。最下面压着一片干了的花瓣。"
+        }
+      ]
+    },
+    {
+      "id": "keeper_bed",
+      "at": [
+        43.1,
+        14.2,
+        23.2
+      ],
+      "radius": 1.1,
+      "when": {
+        "flag": "keeper_door_open"
+      },
+      "variants": [
+        {
+          "id": "rest",
+          "prompt": "坐在床边歇一会儿",
+          "perform": "listen",
+          "seconds": 2.5,
+          "text": "窗外的云慢慢地走。这里安静得能听见自己想事情。"
+        }
+      ]
+    },
+    {
+      "id": "tower_up",
+      "at": "loc:keeper_tower",
+      "radius": 1.6,
+      "variants": [
+        {
+          "id": "climb",
+          "prompt": "爬上灯塔",
+          "special": "climb_tower",
+          "text": "楼梯一圈一圈往上。第七级果然响了一下。"
+        }
+      ]
+    },
+    {
+      "id": "tower_lamp",
+      "at": "loc:keeper_lamp",
+      "radius": 2.0,
+      "height": 2.5,
+      "when": {
+        "not": {
+          "flag": "reaction_lighthouse_lit"
+        }
+      },
+      "variants": [
+        {
+          "id": "light",
+          "when": {
+            "not": {
+              "flag": "reaction_lighthouse_lit"
+            }
+          },
+          "prompt": "点亮灯塔",
+          "perform": "hold_up",
+          "seconds": 2.2,
+          "cam_distance": 3.4,
+          "cam_height": 0.8,
+          "look_height": 1.4,
+          "special": "light_lighthouse",
+          "event": "lighthouse_lit",
+          "text": "灯芯“嗤”地一下亮了。光转过云海，转过很远很远的小镇。",
+          "whisper": "我看见了。云海那边，有人在抬头。"
+        }
+      ]
+    },
+    {
+      "id": "tower_down",
+      "at": "loc:keeper_lamp",
+      "radius": 2.4,
+      "height": 2.5,
+      "when": {
+        "flag": "reaction_lighthouse_lit"
+      },
+      "variants": [
+        {
+          "id": "down",
+          "when": {
+            "flag": "reaction_lighthouse_lit"
+          },
+          "prompt": "从灯塔下去",
+          "special": "descend_tower",
+          "text": "灯在慢慢地转。光扫过云海的时候，没有一艘船在那里。可它还是亮着。"
+        }
+      ]
+    },
+    {
+      "id": "door_baker",
+      "at": "loc:door_baker",
+      "radius": 1.4,
+      "when": {
+        "side_state": "s_neighbors",
+        "is": "active"
+      },
+      "variants": [
+        {
+          "id": "meet",
+          "when": {
+            "not": {
+              "flag": "door_baker"
+            }
+          },
+          "prompt": "敲敲面包店的门",
+          "perform": "knock",
+          "door": "baker",
+          "sets": [
+            "door_baker"
+          ],
+          "note": {
+            "title": "门缝里的面包师",
+            "lines": [
+              "谁呀？……哦，新来的星星人。",
+              "我在做云面包。可面团发不起来——它要晴天的风。",
+              "你能在晴天拨一下树屋前的风铃吗？风听见了，就会往这边吹。"
+            ]
+          }
+        },
+        {
+          "id": "help",
+          "when": {
+            "all": [
+              {
+                "flag": "chime_day"
+              },
+              {
+                "not": {
+                  "flag": "help_baker"
+                }
+              }
+            ]
+          },
+          "prompt": "再敲敲面包店的门",
+          "perform": "knock",
+          "door": "baker",
+          "sets": [
+            "help_baker"
+          ],
+          "note": {
+            "title": "门缝里的面包师",
+            "lines": [
+              "发起来了！你闻闻。",
+              "门口那个是留给你的。面包要分着吃，才会觉得多。"
+            ]
+          }
+        },
+        {
+          "id": "wait",
+          "when": {
+            "not": {
+              "flag": "help_baker"
+            }
+          },
+          "prompt": "敲敲面包店的门",
+          "text": "门里传来揉面的声音：“晴天的风还没来呢。”"
+        },
+        {
+          "id": "done",
+          "prompt": "敲敲面包店的门",
+          "text": "门缝里飘出一点甜味。"
+        }
+      ]
+    },
+    {
+      "id": "door_child",
+      "at": "loc:door_child",
+      "radius": 1.4,
+      "when": {
+        "side_state": "s_neighbors",
+        "is": "active"
+      },
+      "variants": [
+        {
+          "id": "meet",
+          "when": {
+            "not": {
+              "flag": "door_child"
+            }
+          },
+          "prompt": "敲敲高台小屋的门",
+          "perform": "knock",
+          "door": "child",
+          "sets": [
+            "door_child"
+          ],
+          "note": {
+            "title": "门缝里的孩子",
+            "lines": [
+              "嘘……我在数星星。数到一百就会忘了前面的。",
+              "你能帮我在望远镜里记一张星图吗？我想知道，一张星图里有几颗。"
+            ]
+          }
+        },
+        {
+          "id": "help",
+          "when": {
+            "all": [
+              {
+                "stars": 1
+              },
+              {
+                "not": {
+                  "flag": "help_child"
+                }
+              }
+            ]
+          },
+          "prompt": "再敲敲高台小屋的门",
+          "perform": "knock",
+          "door": "child",
+          "sets": [
+            "help_child"
+          ],
+          "note": {
+            "title": "门缝里的孩子",
+            "lines": [
+              "才七颗？我还以为要数一整夜。",
+              "原来不用全部数完。记住一张，就够看很久了。"
+            ]
+          }
+        },
+        {
+          "id": "wait",
+          "when": {
+            "not": {
+              "flag": "help_child"
+            }
+          },
+          "prompt": "敲敲高台小屋的门",
+          "text": "门里小声地数：“……四十一，四十二……”"
+        },
+        {
+          "id": "done",
+          "prompt": "敲敲高台小屋的门",
+          "text": "门里有人在哼歌，调子像一张星图。"
+        }
+      ]
+    },
+    {
+      "id": "door_grandma",
+      "at": "loc:door_grandma",
+      "radius": 1.4,
+      "when": {
+        "side_state": "s_neighbors",
+        "is": "active"
+      },
+      "variants": [
+        {
+          "id": "meet",
+          "when": {
+            "not": {
+              "flag": "door_grandma"
+            }
+          },
+          "prompt": "敲敲写信奶奶的门",
+          "perform": "knock",
+          "door": "grandma",
+          "sets": [
+            "door_grandma"
+          ],
+          "note": {
+            "title": "门缝里的奶奶",
+            "lines": [
+              "进来坐？不了不了，屋里全是信纸。",
+              "这一封，你帮我放进东边小岛的信箱吧。",
+              "地址？没有地址。写给一个很远的人。"
+            ]
+          }
+        },
+        {
+          "id": "help",
+          "when": {
+            "all": [
+              {
+                "flag": "grandma_letter_posted"
+              },
+              {
+                "not": {
+                  "flag": "help_grandma"
+                }
+              }
+            ]
+          },
+          "prompt": "再敲敲写信奶奶的门",
+          "perform": "knock",
+          "door": "grandma",
+          "sets": [
+            "help_grandma"
+          ],
+          "note": {
+            "title": "门缝里的奶奶",
+            "lines": [
+              "放进去了？谢谢你。",
+              "他不会回信的，我知道。",
+              "可我写的时候，就已经在和他说话了。这就够了。"
+            ]
+          }
+        },
+        {
+          "id": "wait",
+          "when": {
+            "not": {
+              "flag": "help_grandma"
+            }
+          },
+          "prompt": "敲敲写信奶奶的门",
+          "text": "门里传来写字的沙沙声：“东边小岛，信箱是蓝色的。”"
+        },
+        {
+          "id": "done",
+          "prompt": "敲敲写信奶奶的门",
+          "text": "门里有人在念一封信，念着念着笑了。"
+        }
+      ]
+    },
+    {
+      "id": "door_lamplighter",
+      "at": "loc:door_lamplighter",
+      "radius": 1.4,
+      "when": {
+        "side_state": "s_neighbors",
+        "is": "active"
+      },
+      "variants": [
+        {
+          "id": "meet",
+          "when": {
+            "not": {
+              "flag": "door_lamplighter"
+            }
+          },
+          "prompt": "敲敲点灯人的门",
+          "perform": "knock",
+          "door": "lamplighter",
+          "sets": [
+            "door_lamplighter"
+          ],
+          "note": {
+            "title": "门缝里的点灯人",
+            "lines": [
+              "每天傍晚，我都把街灯点一遍。",
+              "这么多年，从来没人看见我点灯。",
+              "你下次傍晚坐在西北小岛的椅子上看看，灯是不是一盏一盏亮起来的？"
+            ]
+          }
+        },
+        {
+          "id": "help",
+          "when": {
+            "all": [
+              {
+                "flag": "dusk_watched"
+              },
+              {
+                "not": {
+                  "flag": "help_lamplighter"
+                }
+              }
+            ]
+          },
+          "prompt": "再敲敲点灯人的门",
+          "perform": "knock",
+          "door": "lamplighter",
+          "sets": [
+            "help_lamplighter"
+          ],
+          "note": {
+            "title": "门缝里的点灯人",
+            "lines": [
+              "你看见了？一盏一盏的？",
+              "……那就够了。有一个人看见过，就够了。"
+            ]
+          }
+        },
+        {
+          "id": "wait",
+          "when": {
+            "not": {
+              "flag": "help_lamplighter"
+            }
+          },
+          "prompt": "敲敲点灯人的门",
+          "text": "门里有火柴盒轻轻摇晃的声音。"
+        },
+        {
+          "id": "done",
+          "prompt": "敲敲点灯人的门",
+          "text": "门缝下透出一点光，暖暖的。"
+        }
+      ]
+    },
+    {
+      "id": "islet_nw_thing",
+      "at": "loc:islet_nw_thing",
+      "radius": 1.6,
+      "variants": [
+        {
+          "id": "read",
+          "prompt": "看看木牌",
+          "sets": [
+            "islet_nw_read"
+          ],
+          "note": {
+            "title": "西北小岛的木牌",
+            "lines": [
+              "坐下来的人，才看得见全部。"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "islet_e_thing",
+      "at": "loc:islet_e_thing",
+      "radius": 1.6,
+      "variants": [
+        {
+          "id": "post",
+          "when": {
+            "all": [
+              {
+                "flag": "door_grandma"
+              },
+              {
+                "not": {
+                  "flag": "grandma_letter_posted"
+                }
+              }
+            ]
+          },
+          "prompt": "把奶奶的信放进信箱",
+          "perform": "knock",
+          "sets": [
+            "grandma_letter_posted",
+            "islet_e_read"
+          ],
+          "text": "信落进去，轻轻一声。信箱里还有一封没写地址的信：“给任何一个路过的人：今天辛苦了。”"
+        },
+        {
+          "id": "read",
+          "prompt": "看看蓝色信箱",
+          "sets": [
+            "islet_e_read"
+          ],
+          "note": {
+            "title": "东边小岛的信箱",
+            "lines": [
+              "信箱里有一封没写地址的信：",
+              "“给任何一个路过的人：今天辛苦了。”"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "islet_sw_thing",
+      "at": "loc:islet_sw_thing",
+      "radius": 1.6,
+      "variants": [
+        {
+          "id": "ring",
+          "prompt": "摇一摇小铃",
+          "perform": "reach_up",
+          "seconds": 1.2,
+          "after": "ring_bell",
+          "sets": [
+            "islet_sw_read"
+          ],
+          "text": "铃声落进云里，很久都没有回音。离云最近的地方，最安静。"
+        }
+      ]
+    },
+    {
+      "id": "isle_south_l_thing",
+      "at": "loc:isle_south_l_thing",
+      "radius": 1.8,
+      "variants": [
+        {
+          "id": "look",
+          "prompt": "看看小泉",
+          "perform": "cup",
+          "seconds": 1.8,
+          "sets": [
+            "isle_south_l_read"
+          ],
+          "text": "一眼很小的泉。水面上漂着一片叶子，叶子上写着：小的东西，也能盛住整片天空。"
+        }
+      ]
+    },
+    {
+      "id": "isle_south_r_thing",
+      "at": "loc:isle_south_r_thing",
+      "radius": 1.6,
+      "variants": [
+        {
+          "id": "light",
+          "when": {
+            "not": {
+              "flag": "isle_south_r_read"
+            }
+          },
+          "prompt": "点亮木桩上的小灯",
+          "perform": "hold_up",
+          "seconds": 1.5,
+          "after": "light_small_lamp",
+          "sets": [
+            "isle_south_r_read"
+          ],
+          "text": "小灯亮了。原来大灯塔的守灯人，也是从一盏小灯开始的。"
+        },
+        {
+          "id": "lit",
+          "prompt": "看看小灯",
+          "text": "小灯亮着，很小，可是在云海边上看得很清楚。"
+        }
+      ]
+    },
+    {
+      "id": "islet_door_nw",
+      "at": "loc:door_islet_nw",
+      "radius": 1.4,
+      "variants": [
+        {
+          "id": "knock",
+          "prompt": "推开小屋的门",
+          "perform": "knock",
+          "door": "islet_nw",
+          "text": "门没有锁，里面是空的。窗台上落着一层很薄的星尘。"
+        }
+      ]
+    },
+    {
+      "id": "islet_door_ne",
+      "at": "loc:door_islet_ne",
+      "radius": 1.4,
+      "variants": [
+        {
+          "id": "knock",
+          "prompt": "敲敲眠眠的小屋",
+          "perform": "knock",
+          "text": "门上贴着一张纸条：“白天勿扰。晚上欢迎。”"
+        }
+      ]
+    }
+  ]
+}

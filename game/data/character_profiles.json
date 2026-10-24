@@ -1,0 +1,5 @@
+{
+  "player": {"model": "res://assets/characters/player.glb", "height": 1.55, "yaw_degrees": 180, "color": "#f4c666"},
+  "gardener": {"model": "res://assets/characters/gardener.glb", "height": 1.48, "yaw_degrees": 180, "color": "#f4c666"},
+  "astronomer": {"model": "res://assets/characters/astronomer.glb", "height": 1.48, "yaw_degrees": 180, "color": "#8d9cda"}
+}

@@ -1,0 +1,12 @@
+game/.godot/
+game/save/
+game/tests/
+game/handoff_reports/
+game/assets/characters/*_basecolor.png
+game/assets/characters/*_normal.png
+game/assets/characters/*_rm.png
+game/assets/fonts/*.woff2
+*.import
+site/play/*
+!site/play/.gitkeep
+*.log
