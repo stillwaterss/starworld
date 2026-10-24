@@ -103,6 +103,11 @@ func _target(weights: Vector3) -> Vector3:
 	return Vector3(sqrt(w.x), sqrt(w.y), sqrt(w.z))   # equal-power crossfade
 
 func _process(delta: float) -> void:
+	_web_meter_time += delta
+	if OS.has_feature("web") and _web_meter_time >= 1.0:
+		_web_meter_time = 0.0
+		var peak_db := AudioServer.get_bus_peak_volume_left_db(AudioServer.get_bus_index("Music"), 0)
+		JavaScriptBridge.eval("window.starworldMusicPeakDb = Math.max(window.starworldMusicPeakDb ?? -200, " + str(peak_db) + ")")
 	var cycle = world.get("day_cycle") if world else null
 	if cycle:
 		var target := _target(cycle.weights)
@@ -185,6 +190,7 @@ func report() -> Dictionary:
 # The browser must receive an actual gesture after initialization to unlock audio.
 # This callback also handles the explicit HTML sound button without touching story saves.
 var _web_sound_callback: JavaScriptObject
+var _web_meter_time := 0.0
 
 func _enable_web_sound(_args: Array) -> void:
 	settings.muted = false

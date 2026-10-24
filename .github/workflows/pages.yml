@@ -40,6 +40,7 @@ jobs:
           Godot_v4.7.2-stable_linux.x86_64 --headless --path game --export-release Web ../site/play/index.html 2>&1 | tee /tmp/export.log
           test -s site/play/index.wasm
           test -s site/play/index.pck
+          python3 scripts/fingerprint_pack.py
           touch site/.nojekyll
           du -h site/play/*
       - name: Check real browser startup and audio output

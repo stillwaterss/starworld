@@ -50,6 +50,9 @@ def apply(root):
     s = replace(s, '\tload_settings()', '\tload_settings()\n\tif OS.has_feature("web"):\n\t\t_web_sound_callback = JavaScriptBridge.create_callback(_enable_web_sound)\n\t\tJavaScriptBridge.get_interface("window").starworldEnableSound = _web_sound_callback')
     if 'func _enable_web_sound(' not in s:
         s += '\n'+(ADAPTERS/'audio_callback.gdinc').read_text(encoding='utf-8')
+    if 'var _web_meter_time' not in s:
+        s = replace(s, 'var _web_sound_callback: JavaScriptObject', 'var _web_sound_callback: JavaScriptObject\nvar _web_meter_time := 0.0')
+    s = replace(s, 'func _process(delta: float) -> void:', 'func _process(delta: float) -> void:\n\t_web_meter_time += delta\n\tif OS.has_feature("web") and _web_meter_time >= 1.0:\n\t\t_web_meter_time = 0.0\n\t\tvar peak_db := AudioServer.get_bus_peak_volume_left_db(AudioServer.get_bus_index("Music"), 0)\n\t\tJavaScriptBridge.eval("window.starworldMusicPeakDb = Math.max(window.starworldMusicPeakDb ?? -200, " + str(peak_db) + ")")')
     changes[path] = s
     path = 'project.godot'
     s = read(path)
