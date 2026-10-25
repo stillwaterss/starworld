@@ -198,7 +198,4 @@ func _enable_web_sound(_args: Array) -> void:
 	if settings.ambience <= 0.0:settings.ambience = .7
 	apply_settings()
 	for player in music + ambience:
-		if player.stream:
-			# A stream started while the browser was suspended can report playing but stay silent.
-			player.stop()
-			player.play()
+		if player.stream and not player.playing:player.play()

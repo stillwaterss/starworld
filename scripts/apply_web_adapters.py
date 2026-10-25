@@ -42,8 +42,7 @@ def apply(root):
     path = 'scripts/content/content_root.gd'
     s = read(path)
     s = replace(s, '\tgrid.bake(world.get_world_3d().direct_space_state, ignore)', '\tif not (OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")):\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)')
-    if 'window.starworldSceneReady' not in s:
-        s = replace(s, '\tguide.refresh_route(true)\n\tui.refresh()', '\tguide.refresh_route(true)\n\tui.refresh()\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")')
+    s = replace(s, '\tguide.refresh_route(true)\n\tui.refresh()', '\tguide.refresh_route(true)\n\tui.refresh()\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")')
     changes[path] = s
     path = 'scripts/content/audio_director.gd'
     s = read(path)
@@ -121,12 +120,6 @@ func _process(delta: float) -> void:
         text = text.replace('func _enter_vista() -> void:', 'func _enter_vista() -> void:\n\t# Hide the close foreground silhouette in both seated vistas.\n\tplayer.model.visible=false')
         text = text.replace('func _leave_vista() -> void:', 'func _leave_vista() -> void:\n\tplayer.model.visible=true')
     text = text.replace('views.append(_first_clear([CHAIR-FACING*3.0+Vector3.UP*4.4-side*1.7,CHAIR-FACING*3.0+Vector3.UP*4.4+side*1.7,CHAIR-FACING*2.2+Vector3.UP*5.2],town,town))', 'views.append([CHAIR+FACING*5.0+Vector3.UP*4.4,town])')
-    changes[key] = text
-    key = 'scripts/content/audio_director.gd'
-    text = changes.get(key, read(key))
-    marker = '# The browser must receive an actual gesture'
-    if marker in text:
-        text = text[:text.index(marker)] + (ADAPTERS/'audio_callback.gdinc').read_text(encoding='utf-8')
     changes[key] = text
     # Validate every anchor before writing any file.
     for path, s in changes.items():
