@@ -1,9 +1,17 @@
-# 星星人的小世界
+# 星星人的小世界 · V16
 
-V13 浏览器试玩版。在线入口：https://stillwaterss.github.io/starworld/
+[游戏介绍](https://stillwaterss.github.io/starworld/) · [直接游玩](https://stillwaterss.github.io/starworld/play/)
 
-此仓库是 Windows 工程的网页发布副本，不包含玩家存档、开发备份或 Blender 源文件。主要适配：Compatibility 渲染、浏览器 user:// 存储、嵌入中文字体、网页摄影下载与点击后捕获鼠标。保留两个观景机位，停用暴露坐姿穿模的并肩近景。
+一款由密斯特李发起、与 Codex 和 Claude 共同制作的免费非商业 3D 爱好者游戏。五章故事围绕迷路的小光展开，包含送信、观星、点灯、种花、飞艇与五个小故事。推荐电脑键盘鼠标。
 
-推送 main 后 GitHub Actions 自动用 Godot 4.7.2 导出并发布 GitHub Pages。生成文件经 Pages artifact 发布，不提交导入缓存。
+此仓库包含完整的网页运行源文件和发布流程，不包含玩家存档、开发备份、Blender 原件和导入缓存。桌面原工程另行保留。先用 Godot 4.7.2 导入工程，再运行；GitHub Actions 自动完成导入、网页导出和发布。
 
-电脑键盘鼠标操作；手机暂未适配。字体为 Noto Sans CJK 子集，授权见 game/assets/fonts/OFL.txt。自动化与浏览器实测状态见发布记录。
+网页采用单线程 Compatibility / WebGL 2，保留天空色彩校正、环境光配置、预生成寻路、点击启用声音、网页照片下载、浏览器本地存档和资源版本标识。新增居民的网页资源从约 140 MB 缩减为 33 MB；桌面原素材保持原画质。网页已去掉与 HTML 下载页重复的游戏内加载遮罩。
+
+V16 发布通过了本地七组 253 项检查；发布前的 Chromium 检查验证启动、实际音频与音乐信号、点击进入游戏、键盘移动及地图操作。浏览器检查使用软件渲染的小窗口，不能代表所有电脑、网络或显卡的帧率。[本轮成功记录](https://github.com/stillwaterss/starworld/actions/runs/40203755341)。
+
+WASD / 方向键移动，Shift 跑，空格跳，E 交谈，N 地图，P 故事本，H 帮助，T 换天色，O 摄影，M 音乐。首次进入网页需要点击开始并启用声音；首次资源下载速度取决于网络。手机触控未专门适配，清理浏览器站点数据会清除网页进度。
+
+“星星人”相关名称与形象归原权利人所有，本作与原权利人无关联，未获其授权或认可。免费分享与公开程序源码不代表第三方形象或素材可自由商用。如权利人认为存在不妥，请通过项目反馈联系作者，我们会修改或下架。霞鹜文楷与 Noto 字体采用 SIL OFL，授权分别见 game/assets/fonts/OFL.txt 与 NotoSansSC-OFL.txt。
+
+特别鸣谢 [Sac 的《小王子》游戏制作分享](https://x.com/Saccc_c/status/2110694725640474759)，它激发了这次尝试。
