@@ -119,6 +119,7 @@ func _process(delta: float) -> void:
     if '# Hide the close foreground silhouette in both seated vistas.' not in text:
         text = text.replace('func _enter_vista() -> void:', 'func _enter_vista() -> void:\n\t# Hide the close foreground silhouette in both seated vistas.\n\tplayer.model.visible=false')
         text = text.replace('func _leave_vista() -> void:', 'func _leave_vista() -> void:\n\tplayer.model.visible=true')
+    text = text.replace('views.append(_first_clear([CHAIR-FACING*3.0+Vector3.UP*4.4-side*1.7,CHAIR-FACING*3.0+Vector3.UP*4.4+side*1.7,CHAIR-FACING*2.2+Vector3.UP*5.2],town,town))', 'views.append([CHAIR+FACING*5.0+Vector3.UP*4.4,town])')
     changes[key] = text
     # Validate every anchor before writing any file.
     for path, s in changes.items():

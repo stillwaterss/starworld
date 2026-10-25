@@ -81,7 +81,7 @@ func _plan_vistas() -> Array:
 	var town:=Vector3(-3,3.2,-2)
 	var views:=[]
 	# 0: the whole town over the player's shoulder, high enough that the hat stays small
-	views.append(_first_clear([CHAIR-FACING*3.0+Vector3.UP*4.4-side*1.7,CHAIR-FACING*3.0+Vector3.UP*4.4+side*1.7,CHAIR-FACING*2.2+Vector3.UP*5.2],town,town))
+	views.append([CHAIR+FACING*5.0+Vector3.UP*4.4,town])
 	# 1: the sky, from above the chair back, over the fence line
 	var sky:=CHAIR+FACING*30+Vector3.UP*12
 	views.append(_first_clear([CHAIR-FACING*.5+Vector3.UP*2.3+side*.5,CHAIR-FACING*.2+Vector3.UP*2.6-side*.5,CHAIR+Vector3.UP*2.9],sky,sky))
