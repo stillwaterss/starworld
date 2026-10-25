@@ -140,6 +140,7 @@ func _boot_card() -> void:
 	var args := OS.get_cmdline_user_args()
 	if DisplayServer.get_name() == "headless" or "--visual-review" in args or "--test-session" in args or "--autotest" in args:return
 	var veil := ColorRect.new()
+	veil.name = "BootVeil"
 	veil.color = Color(.05, .06, .12, 1)
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	veil.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1155,7 +1156,7 @@ func _process(delta: float) -> void:
 			buttons.append({"text": button.text, "x": center.x, "y": center.y})
 		var pos: Vector3 = content.world.player.global_position
 		var size: Vector2 = root.size
-		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))
+		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))
 	var world: Node3D = content.world
 	var idle: bool = world.interactions.mode == "idle"
 	var cozy = world.get("activities")

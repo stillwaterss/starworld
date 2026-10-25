@@ -65,6 +65,8 @@ def apply(root):
     # Read-only telemetry lets CI click the real in-game buttons and verify movement.
     path = 'scripts/content/content_ui.gd'
     s = read(path)
+    if 'veil.name = "BootVeil"' not in s:
+        s = replace(s, '\tvar veil := ColorRect.new()', '\tvar veil := ColorRect.new()\n\tveil.name = "BootVeil"')
     if 'var _web_diag_clock' not in s:
         s = replace(s, 'func _process(delta: float) -> void:', '''var _web_diag_clock := 0.0
 func _process(delta: float) -> void:
@@ -77,7 +79,8 @@ func _process(delta: float) -> void:
 \t\t\tbuttons.append({"text": button.text, "x": center.x, "y": center.y})
 \t\tvar pos: Vector3 = content.world.player.global_position
 \t\tvar size: Vector2 = root.size
-\t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
+\t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
+    s = s.replace('"title": title_card.visible, "buttons": buttons', '"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons')
     changes[path] = s
     # Validate every anchor before writing any file.
     for path, s in changes.items():

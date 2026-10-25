@@ -20,6 +20,7 @@ const fs=require('node:fs');
   await page.waitForFunction(()=>window.starworldDiagnostics().peakRms>0.00002,{},{timeout:45000});
   await page.waitForFunction(()=>window.starworldMusicPeakDb>-65,{},{timeout:45000});
   await page.waitForFunction(()=>window.starworldUi?.buttons?.length>0,{},{timeout:30000});
+  await page.waitForFunction(()=>window.starworldUi?.booting===false,{},{timeout:30000});
   const ui=await page.evaluate(()=>window.starworldUi);
   const free=ui.buttons.find(b=>b.text==='先随便走走');
   if(!free)throw Error('Free-roam button missing');
