@@ -62,6 +62,23 @@ def apply(root):
         else:
             s += '\n[audio]\n\ngeneral/default_playback_type.web=1\n'
     changes[path] = s
+    # Read-only telemetry lets CI click the real in-game buttons and verify movement.
+    path = 'scripts/content/content_ui.gd'
+    s = read(path)
+    if 'var _web_diag_clock' not in s:
+        s = replace(s, 'func _process(delta: float) -> void:', '''var _web_diag_clock := 0.0
+func _process(delta: float) -> void:
+\t_web_diag_clock += delta
+\tif OS.has_feature("web") and _web_diag_clock >= .5:
+\t\t_web_diag_clock = 0.0
+\t\tvar buttons: Array = []
+\t\tfor button in title_card.find_children("*", "Button", true, false):
+\t\t\tvar center: Vector2 = button.get_global_rect().get_center()
+\t\t\tbuttons.append({"text": button.text, "x": center.x, "y": center.y})
+\t\tvar pos: Vector3 = content.world.player.global_position
+\t\tvar size: Vector2 = get_viewport().get_visible_rect().size
+\t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
+    changes[path] = s
     # Validate every anchor before writing any file.
     for path, s in changes.items():
         (root/path).write_text(s, encoding='utf-8')

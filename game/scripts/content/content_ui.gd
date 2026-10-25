@@ -396,7 +396,7 @@ func _build_chip() -> void:
 	chip_title = _label("", 25, ACCENT)
 	var bold := SystemFont.new()
 	bold.font_names = font.font_names
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	bold.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
 	bold.font_weight = 700
 	chip_title.add_theme_font_override("font", bold)
 	chip_title.add_theme_constant_override("outline_size", 6)
@@ -1144,7 +1144,18 @@ func _on_arrived(target: String) -> void:
 	toast("到了：" + content.registry.target_name(target), 2.5)
 	_hint_time = 8.0
 
+var _web_diag_clock := 0.0
 func _process(delta: float) -> void:
+	_web_diag_clock += delta
+	if OS.has_feature("web") and _web_diag_clock >= .5:
+		_web_diag_clock = 0.0
+		var buttons: Array = []
+		for button in title_card.find_children("*", "Button", true, false):
+			var center: Vector2 = button.get_global_rect().get_center()
+			buttons.append({"text": button.text, "x": center.x, "y": center.y})
+		var pos: Vector3 = content.world.player.global_position
+		var size: Vector2 = get_viewport().get_visible_rect().size
+		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))
 	var world: Node3D = content.world
 	var idle: bool = world.interactions.mode == "idle"
 	var cozy = world.get("activities")

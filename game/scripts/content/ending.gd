@@ -315,7 +315,7 @@ func _build_finale(left: Array[String]) -> void:
 	finale_panel.add_child(box)
 	var ui_font := SystemFont.new()
 	ui_font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	ui_font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
 	var add_label := func(text: String, size: int, color: Color, hand: bool) -> Label:
 		var l := Label.new()
 		l.text = content.named(text)
