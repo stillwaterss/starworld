@@ -1,6 +1,7 @@
 # The browser must receive an actual gesture after initialization to unlock audio.
 # This callback also handles the explicit HTML sound button without touching story saves.
 var _web_sound_callback: JavaScriptObject
+var _web_meter_time := 0.0
 
 func _enable_web_sound(_args: Array) -> void:
 	settings.muted = false
@@ -8,4 +9,7 @@ func _enable_web_sound(_args: Array) -> void:
 	if settings.ambience <= 0.0:settings.ambience = .7
 	apply_settings()
 	for player in music + ambience:
-		if player.stream and not player.playing:player.play()
+		if player.stream:
+			# A stream started while the browser was suspended can report playing but stay silent.
+			player.stop()
+			player.play()
