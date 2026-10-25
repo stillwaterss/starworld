@@ -65,6 +65,8 @@ def apply(root):
     # Read-only telemetry lets CI click the real in-game buttons and verify movement.
     path = 'scripts/content/content_ui.gd'
     s = read(path)
+    if 'The HTML shell already owns the web loading cover.' not in s:
+        s = replace(s, 'func _boot_card() -> void:', 'func _boot_card() -> void:\n\t# The HTML shell already owns the web loading cover.\n\tif OS.has_feature("web"):return')
     if 'veil.name = "BootVeil"' not in s:
         s = replace(s, '\tvar veil := ColorRect.new()', '\tvar veil := ColorRect.new()\n\tveil.name = "BootVeil"')
     if 'var _web_diag_clock' not in s:

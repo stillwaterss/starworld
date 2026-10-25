@@ -137,6 +137,8 @@ func _ready() -> void:
 ## The loading screen: the name, a short disclaimer and "正在准备小岛" while the island
 ## settles (the walk grid bakes in the first frames); fades out after about four seconds.
 func _boot_card() -> void:
+	# The HTML shell already owns the web loading cover.
+	if OS.has_feature("web"):return
 	var args := OS.get_cmdline_user_args()
 	if DisplayServer.get_name() == "headless" or "--visual-review" in args or "--test-session" in args or "--autotest" in args:return
 	var veil := ColorRect.new()

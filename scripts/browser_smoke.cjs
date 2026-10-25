@@ -4,7 +4,8 @@ const fs=require('node:fs');
 (async()=>{
  fs.mkdirSync('browser-evidence',{recursive:true});
  const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
- const page=await browser.newPage({viewport:{width:800,height:500}});
+ // CI uses software rasterization; a small viewport keeps GPU cost bounded.
+ const page=await browser.newPage({viewport:{width:400,height:250}});
  const logs=[],errors=[];
  page.on('console',m=>{logs.push(m.type()+': '+m.text());if(m.text().includes('SCRIPT ERROR'))errors.push(m.text());});
  page.on('pageerror',e=>errors.push(e.message));
@@ -25,7 +26,7 @@ const fs=require('node:fs');
   const free=ui.buttons.find(b=>b.text==='先随便走走');
   if(!free)throw Error('Free-roam button missing');
   const box=await page.locator('canvas').boundingBox();
-  await page.mouse.click(box.x+free.x/ui.width*box.width,box.y+free.y/ui.height*box.height);
+  await page.mouse.click(box.x+free.x/ui.width*box.width,box.y+free.y/ui.height*box.height,{delay:150});
   await page.waitForFunction(()=>window.starworldUi?.title===false,{},{timeout:30000});
   const before=await page.evaluate(()=>window.starworldUi.position);
   await page.keyboard.down('ArrowRight');
@@ -40,6 +41,7 @@ const fs=require('node:fs');
   await page.keyboard.press('Escape');
   const result=await page.evaluate(()=>window.starworldDiagnostics());
   result.movementMetres=moved;
+  result.testViewport={width:400,height:250,renderer:'Chromium SwiftShader software rasterization'};
   result.musicPeakDb=await page.evaluate(()=>window.starworldMusicPeakDb);
   result.startupMs=Date.now()-begun;
   result.errors=errors;
