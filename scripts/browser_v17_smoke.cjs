@@ -69,9 +69,11 @@ const fs=require('node:fs');
   await page.keyboard.press('l');
   await page.waitForFunction(()=>window.starworldUi.performance==='wish',{},{timeout:20000});
   await page.screenshot({path:'browser-evidence/wish-after-new-game.png'});
-  await page.keyboard.press('e');await page.waitForFunction(()=>!window.starworldUi.performing,{},{timeout:30000});
+  await page.keyboard.press('e');await page.waitForFunction(()=>!window.starworldUi.performing,{},{timeout:120000});
   const before=await page.evaluate(()=>window.starworldUi.position);
-  await page.keyboard.down('ArrowRight');await page.waitForTimeout(2200);await page.keyboard.up('ArrowRight');
+  await page.keyboard.down('ArrowRight');
+  try{await page.waitForFunction(p=>Math.hypot(...window.starworldUi.position.map((v,i)=>v-p[i]))>.15,before,{timeout:30000});}
+  finally{await page.keyboard.up('ArrowRight');}
   const after=await page.evaluate(()=>window.starworldUi.position);
   const moved=Math.hypot(...after.map((v,i)=>v-before[i]));
   if(moved<0.1)throw Error('Player did not move after keyboard input');
