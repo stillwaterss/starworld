@@ -99,9 +99,7 @@ func _build_ui() -> void:
 	ui=Control.new()
 	ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ui.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var font:=SystemFont.new()
-	font.font_names=PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var font:=preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	ui.add_theme_font_override("font",font)
 	add_child(ui)
 	hint=label("")

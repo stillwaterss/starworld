@@ -49,9 +49,7 @@ func _ready() -> void:
 	card.add_theme_color_override("font_color", Color("fff1d7"))
 	card.add_theme_color_override("font_outline_color", Color(.03, .03, .1, .9))
 	card.add_theme_constant_override("outline_size", 7)
-	var font := SystemFont.new()
-	font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Serif CJK SC", "Noto Sans CJK SC", "Source Han Serif SC"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var font := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	card.add_theme_font_override("font", font)
 	card.modulate.a = 0
 	layer.add_child(card)

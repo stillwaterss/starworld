@@ -202,9 +202,7 @@ func _setup_hud() -> void:
 	layer.visible = not "--clean-shots" in OS.get_cmdline_user_args()
 	var help := Label.new()
 	help.text = "WASD 移动 · E 交谈 · N 地图 · P 故事 · H 帮助"
-	var font := SystemFont.new()
-	font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var font := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	help.add_theme_font_override("font",font)
 	help.position = Vector2(16, 12)
 	help.add_theme_color_override("font_outline_color", Color(0.1, 0.08, 0.2))

@@ -84,6 +84,42 @@ func _process(delta: float) -> void:
 \t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
     s = s.replace('"title": title_card.visible, "buttons": buttons', '"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons')
     changes[path] = s
+    key = 'scripts/performance.gd'
+    text = changes.get(key, read(key))
+    if 'func prepare_web_props()' not in text:
+        text += (ADAPTERS/'performance_warmup.gdinc').read_text(encoding='utf-8')
+        for factory in ['watering_can','paper_lantern','pebble','seed_pouch','cloth']:
+            signature = 'static func '+factory+'() -> Node3D:'
+            text = text.replace(signature, signature+'\n\tif OS.has_feature("web") and _web_prop_templates.has("'+factory+'") :return _web_prop_copy("'+factory+'")')
+    changes[key] = text
+    key = 'scripts/content/content_root.gd'
+    text = changes.get(key, read(key))
+    if 'await world.performance.prepare_web_props()' not in text:
+        text = text.replace('\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")', '\t\tawait world.performance.prepare_web_props()\n\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")')
+    changes[key] = text
+    key = 'scripts/content/content_ui.gd'
+    text = changes.get(key, read(key))
+    if 'window.starworldFontCheck' not in text:
+        text = text.replace('\tfont = preload("res://assets/fonts/LXGWWenKai-Regular.ttf")', '\tfont = preload("res://assets/fonts/LXGWWenKai-Regular.ttf")\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldFontCheck = " + JSON.stringify({"bundledPrimary": font is FontFile, "playerName":font.has_char(0x4ed4), "filledStar":font.has_char(0x2605), "emptyStar":font.has_char(0x2606)}))')
+    changes[key] = text
+    # Use one comprehensive primary font on every browser UI and NPC label.
+    import re
+    for p in (root/'scripts').rglob('*.gd'):
+        key = p.relative_to(root).as_posix()
+        text = changes.get(key, p.read_text(encoding='utf-8'))
+        text = text.replace('SystemFont.new()', 'preload("res://assets/fonts/LXGWWenKai-Regular.ttf")').replace(': SystemFont', ': Font')
+        text = re.sub(r';\w+\.font_names\s*=.*?(?=\n|$)', '', text)
+        text = re.sub(r'^.*\.(?:font_names|font_weight|fallbacks)\s*=.*\n', '', text, flags=re.M)
+        text = text.replace('✦', '★').replace('✧', '☆')
+        changes[key] = text
+    key = 'project.godot'
+    changes[key] = changes.get(key, read(key)).replace('theme/custom_font="res://assets/fonts/NotoSansSC.ttf"', 'theme/custom_font="res://assets/fonts/LXGWWenKai-Regular.ttf"')
+    key = 'scripts/scene_actions.gd'
+    text = changes.get(key, read(key))
+    if '# Hide the close foreground silhouette in both seated vistas.' not in text:
+        text = text.replace('func _enter_vista() -> void:', 'func _enter_vista() -> void:\n\t# Hide the close foreground silhouette in both seated vistas.\n\tplayer.model.visible=false')
+        text = text.replace('func _leave_vista() -> void:', 'func _leave_vista() -> void:\n\tplayer.model.visible=true')
+    changes[key] = text
     # Validate every anchor before writing any file.
     for path, s in changes.items():
         (root/path).write_text(s, encoding='utf-8')

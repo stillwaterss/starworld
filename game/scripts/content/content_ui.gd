@@ -39,7 +39,7 @@ M 音乐开关 · Y 声音与指引设置"""
 
 var content
 var root: Control
-var font: SystemFont
+var font: Font
 var chip: PanelContainer
 var chip_heading: Label
 var chip_title: Label
@@ -92,9 +92,9 @@ func _ready() -> void:
 	root = Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	font = SystemFont.new()
-	font.font_names = PackedStringArray(["Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei", "Microsoft YaHei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	font = preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.starworldFontCheck = " + JSON.stringify({"bundledPrimary": font is FontFile, "playerName":font.has_char(0x4ed4), "filledStar":font.has_char(0x2605), "emptyStar":font.has_char(0x2606)}))
 	var theme := Theme.new()
 	theme.default_font = font
 	theme.default_font_size = 17
@@ -397,10 +397,7 @@ func _build_chip() -> void:
 	chip_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(chip_heading)
 	chip_title = _label("", 25, ACCENT)
-	var bold := SystemFont.new()
-	bold.font_names = font.font_names
-	bold.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
-	bold.font_weight = 700
+	var bold := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	chip_title.add_theme_font_override("font", bold)
 	chip_title.add_theme_constant_override("outline_size", 6)
 	chip_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -721,8 +718,7 @@ var _note_anim: Tween
 func _hand_font() -> Font:
 	var font: Font = load(HAND_FONT) if ResourceLoader.exists(HAND_FONT) else null
 	if font == null:
-		var system := SystemFont.new()
-		system.font_names = PackedStringArray(["KaiTi", "STKaiti", "Microsoft YaHei", "Noto Sans CJK SC"])
+		var system := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 		return system
 	return font
 
@@ -1208,7 +1204,7 @@ func _process(delta: float) -> void:
 	_whisper_time = maxf(0, _whisper_time - delta)
 	if _whisper_time <= 0 and not _whispers.is_empty() and not _performing() and content.state.flag("xiaoguang") and open_panel == "":
 		var line := String(_whispers.pop_front())
-		whisper_label.text = "✦ 小光：" + line
+		whisper_label.text = "★ 小光：" + line
 		_whisper_time = clampf(3.5 + line.length() * .12, 5.0, 9.0) + 1.2
 		_whisper_total = _whisper_time
 	# the last 1.2 seconds are a quiet gap before the next line
@@ -1237,9 +1233,9 @@ func _update_glow() -> void:
 	if not shown:return
 	var level: int = light.level()
 	var total: int = light.DEEDS.size()
-	glow_meter.text = "小光的光  " + "✦".repeat(level) + "✧".repeat(total - level)
+	glow_meter.text = "小光的光  " + "★".repeat(level) + "☆".repeat(total - level)
 	if _glow_level >= 0 and level > _glow_level:
-		toast("✦ 小光亮了一点（%d / %d）" % [level, total], 4.0)
+		toast("★ 小光亮了一点（%d / %d）" % [level, total], 4.0)
 	_glow_level = level
 
 func _performing() -> bool:

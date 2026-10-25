@@ -278,6 +278,7 @@ static func ball(radius: float, segments := 12) -> SphereMesh:
 	return m
 
 static func watering_can() -> Node3D:
+	if OS.has_feature("web") and _web_prop_templates.has("watering_can") :return _web_prop_copy("watering_can")
 	var can := Node3D.new()
 	can.name = "WateringCan"
 	var tin := material(Color("7fa7b5"))
@@ -295,6 +296,7 @@ const LANTERN_MODEL := "res://assets/props/prop_lantern.glb"
 static var _lantern_scene: PackedScene
 
 static func paper_lantern() -> Node3D:
+	if OS.has_feature("web") and _web_prop_templates.has("paper_lantern") :return _web_prop_copy("paper_lantern")
 	if _lantern_scene == null and ResourceLoader.exists(LANTERN_MODEL):_lantern_scene = load(LANTERN_MODEL)
 	if _lantern_scene:
 		var root := Node3D.new()
@@ -335,20 +337,57 @@ static func paper_lantern() -> Node3D:
 	return lantern
 
 static func pebble() -> Node3D:
+	if OS.has_feature("web") and _web_prop_templates.has("pebble") :return _web_prop_copy("pebble")
 	var stone := Node3D.new()
 	var mesh := piece(stone, ball(.035, 8), Vector3.ZERO, material(Color("b8b3a6")))
 	mesh.scale = Vector3(1.2, .55, 1.0)
 	return stone
 
 static func seed_pouch() -> Node3D:
+	if OS.has_feature("web") and _web_prop_templates.has("seed_pouch") :return _web_prop_copy("seed_pouch")
 	var pouch := Node3D.new()
 	piece(pouch, ball(.05, 10), Vector3(0, -.02, .03), material(Color("c9a06a")))
 	piece(pouch, cylinder(.02, .03), Vector3(0, .03, .03), material(Color("8a6a44")))
 	return pouch
 
 static func cloth() -> Node3D:
+	if OS.has_feature("web") and _web_prop_templates.has("cloth") :return _web_prop_copy("cloth")
 	var rag := Node3D.new()
 	var box := BoxMesh.new()
 	box.size = Vector3(.11, .02, .09)
 	piece(rag, box, Vector3(0, -.02, .05), material(Color("e9d7b8")), Vector3(10, 20, 0))
 	return rag
+
+## Compile prop material variants during the loading cover, then reuse their meshes.
+static var _web_prop_templates := {}
+func prepare_web_props() -> void:
+	if not OS.has_feature("web") or not _web_prop_templates.is_empty():return
+	var view:=SubViewport.new()
+	view.size=Vector2i(96,96)
+	view.own_world_3d=true
+	view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
+	add_child(view)
+	var cam:=Camera3D.new()
+	view.add_child(cam)
+	cam.position=Vector3(0,1.2,3)
+	cam.look_at(Vector3(0,.2,0))
+	var sun:=DirectionalLight3D.new()
+	view.add_child(sun)
+	sun.rotation_degrees=Vector3(-35,-25,0)
+	var nodes: Array[Node3D]=[watering_can(),paper_lantern(),pebble(),seed_pouch(),cloth()]
+	var names: Array[String]=["watering_can","paper_lantern","pebble","seed_pouch","cloth"]
+	for i in nodes.size():
+		view.add_child(nodes[i])
+		nodes[i].position=Vector3((i-2)*.35,0,0)
+	for i in 3:await RenderingServer.frame_post_draw
+	for i in nodes.size():
+		nodes[i].reparent(self)
+		nodes[i].visible=false
+		_web_prop_templates[names[i]]=nodes[i]
+	view.queue_free()
+
+static func _web_prop_copy(id: String) -> Node3D:
+	var node: Node3D=_web_prop_templates[id].duplicate()
+	node.visible=true
+	node.transform=Transform3D.IDENTITY
+	return node

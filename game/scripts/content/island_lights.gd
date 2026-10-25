@@ -118,7 +118,7 @@ func perform(site: String) -> void:
 		await perf.finish(.8)
 	else:
 		light(site, true)
-	content.ui.toast("✦ 小光点亮了%s" % SITES[site].label, 4.0)
+	content.ui.toast("★ 小光点亮了%s" % SITES[site].label, 4.0)
 
 ## Marks the site lit and shows it; the story reads the flag "lit_<site>".
 func light(site: String, animate: bool) -> void:

@@ -45,7 +45,7 @@ signal finale_closed
 
 func _ready() -> void:
 	name = "Ending"
-	_font = load(HAND_FONT) if ResourceLoader.exists(HAND_FONT) else SystemFont.new()
+	_font = load(HAND_FONT) if ResourceLoader.exists(HAND_FONT) else preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	# the dreamy sky: a violet-pink-gold wash added over the night, under the words
 	sky_layer = CanvasLayer.new()
 	sky_layer.layer = 2
@@ -313,9 +313,7 @@ func _build_finale(left: Array[String]) -> void:
 	box.add_theme_constant_override("separation", 14)
 	box.custom_minimum_size.x = 560
 	finale_panel.add_child(box)
-	var ui_font := SystemFont.new()
-	ui_font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	ui_font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var ui_font := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	var add_label := func(text: String, size: int, color: Color, hand: bool) -> Label:
 		var l := Label.new()
 		l.text = content.named(text)
@@ -326,7 +324,7 @@ func _build_finale(left: Array[String]) -> void:
 		l.add_theme_color_override("font_color", color)
 		box.add_child(l)
 		return l
-	add_label.call("✦ 故事完结 ✦", 44, Color("ffd98a"), true)
+	add_label.call("★ 故事完结 ★", 44, Color("ffd98a"), true)
 	add_label.call("小光回家了。谢谢你，{name}。", 22, Color("fff4e0"), true)
 	add_label.call("你已通关《星星人的小世界》的故事模式。", 17, Color("d8d2c4"), false)
 	if not left.is_empty():

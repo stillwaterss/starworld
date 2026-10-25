@@ -24,9 +24,7 @@ func _ready() -> void:
 	add_child(visual)
 	var label:=Label3D.new()
 	label.text=display_name
-	var font:=SystemFont.new()
-	font.font_names=PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var font:=preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	label.font=font
 	label.position.y=1.84
 	label.font_size=36

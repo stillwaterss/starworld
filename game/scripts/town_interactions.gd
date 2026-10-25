@@ -103,9 +103,7 @@ func _build_ui() -> void:
 	root_ui=Control.new()
 	root_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root_ui.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	var font:=SystemFont.new()
-	font.font_names=PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var font:=preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	root_ui.add_theme_font_override("font",font)
 	add_child(root_ui)
 	status=_label("")
@@ -446,7 +444,7 @@ func _show_line(index: int) -> void:
 	if speaker=="小光":
 		if _hand_font==null and ResourceLoader.exists("res://assets/fonts/LXGWWenKai-Regular.ttf"):_hand_font=load("res://assets/fonts/LXGWWenKai-Regular.ttf")
 		dialogue_panel.add_theme_stylebox_override("panel",xiaoguang_card)
-		dialogue_title.text="✦ 小光"
+		dialogue_title.text="★ 小光"
 		dialogue_title.add_theme_color_override("font_color",Color("cfe0ff"))
 		if _hand_font:dialogue_body.add_theme_font_override("font",_hand_font)
 		dialogue_body.add_theme_font_size_override("font_size",22)

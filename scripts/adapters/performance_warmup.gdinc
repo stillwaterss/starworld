@@ -1,0 +1,34 @@
+
+## Compile prop material variants during the loading cover, then reuse their meshes.
+static var _web_prop_templates := {}
+func prepare_web_props() -> void:
+	if not OS.has_feature("web") or not _web_prop_templates.is_empty():return
+	var view:=SubViewport.new()
+	view.size=Vector2i(96,96)
+	view.own_world_3d=true
+	view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
+	add_child(view)
+	var cam:=Camera3D.new()
+	view.add_child(cam)
+	cam.position=Vector3(0,1.2,3)
+	cam.look_at(Vector3(0,.2,0))
+	var sun:=DirectionalLight3D.new()
+	view.add_child(sun)
+	sun.rotation_degrees=Vector3(-35,-25,0)
+	var nodes: Array[Node3D]=[watering_can(),paper_lantern(),pebble(),seed_pouch(),cloth()]
+	var names: Array[String]=["watering_can","paper_lantern","pebble","seed_pouch","cloth"]
+	for i in nodes.size():
+		view.add_child(nodes[i])
+		nodes[i].position=Vector3((i-2)*.35,0,0)
+	for i in 3:await RenderingServer.frame_post_draw
+	for i in nodes.size():
+		nodes[i].reparent(self)
+		nodes[i].visible=false
+		_web_prop_templates[names[i]]=nodes[i]
+	view.queue_free()
+
+static func _web_prop_copy(id: String) -> Node3D:
+	var node: Node3D=_web_prop_templates[id].duplicate()
+	node.visible=true
+	node.transform=Transform3D.IDENTITY
+	return node

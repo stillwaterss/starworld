@@ -29,7 +29,7 @@ file_logging/enable_file_logging=false
 
 [gui]
 
-theme/custom_font="res://assets/fonts/NotoSansSC.ttf"
+theme/custom_font="res://assets/fonts/LXGWWenKai-Regular.ttf"
 
 [audio]
 

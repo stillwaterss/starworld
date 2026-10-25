@@ -55,9 +55,7 @@ func _build_skip() -> void:
 	skip_button.text = "跳过 ▶▶   E"
 	skip_button.focus_mode = Control.FOCUS_NONE
 	skip_button.add_theme_font_size_override("font_size", 18)
-	var font := SystemFont.new()
-	font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var font := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	skip_button.add_theme_font_override("font", font)
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color(.08, .08, .16, .55)

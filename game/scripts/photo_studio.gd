@@ -60,9 +60,7 @@ func _ready() -> void:
 	hud.offset_top = -46
 	hud.offset_bottom = -14
 	hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var font := SystemFont.new()
-	font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var font := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	hud.add_theme_font_override("font", font)
 	add_child(hud)
 	thumb = TextureRect.new()

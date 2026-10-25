@@ -49,8 +49,7 @@ func _ready() -> void:
 	hint.add_theme_color_override("font_color",Color("fff1d7"))
 	hint.add_theme_color_override("font_outline_color",Color(.08,.08,.16,.85))
 	hint.add_theme_constant_override("outline_size",5)
-	var font:=SystemFont.new();font.font_names=PackedStringArray(["Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
+	var font:=preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	hint.add_theme_font_override("font",font)
 	hint.modulate.a=0
 	corner=Label.new();hint_layer.add_child(corner)
@@ -107,6 +106,8 @@ func vista_fov(index: int) -> float:
 	return [40.0,58.0,46.0][index]
 
 func _enter_vista() -> void:
+	# Hide the close foreground silhouette in both seated vistas.
+	player.model.visible=false
 	vista=0;vista_clock=0.0;_vista_views=_plan_vistas()
 	_vista_hidden.clear()
 	for node in world.get_children():
@@ -127,6 +128,7 @@ func _update_corner() -> void:
 	corner.text="  ·  ".join(keys)
 
 func _leave_vista() -> void:
+	player.model.visible=true
 	corner.visible=false
 	for node in _vista_hidden:
 		if is_instance_valid(node):node.visible=true
