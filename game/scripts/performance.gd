@@ -278,7 +278,7 @@ static func ball(radius: float, segments := 12) -> SphereMesh:
 	return m
 
 static func watering_can() -> Node3D:
-	if OS.has_feature("web") and _web_prop_templates.has("watering_can") :return _web_prop_copy("watering_can")
+	if OS.has_feature("web") and is_instance_valid(_web_prop_templates.get("watering_can")) :return _web_prop_copy("watering_can")
 	var can := Node3D.new()
 	can.name = "WateringCan"
 	var tin := material(Color("7fa7b5"))
@@ -296,7 +296,7 @@ const LANTERN_MODEL := "res://assets/props/prop_lantern.glb"
 static var _lantern_scene: PackedScene
 
 static func paper_lantern() -> Node3D:
-	if OS.has_feature("web") and _web_prop_templates.has("paper_lantern") :return _web_prop_copy("paper_lantern")
+	if OS.has_feature("web") and is_instance_valid(_web_prop_templates.get("paper_lantern")) :return _web_prop_copy("paper_lantern")
 	if _lantern_scene == null and ResourceLoader.exists(LANTERN_MODEL):_lantern_scene = load(LANTERN_MODEL)
 	if _lantern_scene:
 		var root := Node3D.new()
@@ -337,21 +337,21 @@ static func paper_lantern() -> Node3D:
 	return lantern
 
 static func pebble() -> Node3D:
-	if OS.has_feature("web") and _web_prop_templates.has("pebble") :return _web_prop_copy("pebble")
+	if OS.has_feature("web") and is_instance_valid(_web_prop_templates.get("pebble")) :return _web_prop_copy("pebble")
 	var stone := Node3D.new()
 	var mesh := piece(stone, ball(.035, 8), Vector3.ZERO, material(Color("b8b3a6")))
 	mesh.scale = Vector3(1.2, .55, 1.0)
 	return stone
 
 static func seed_pouch() -> Node3D:
-	if OS.has_feature("web") and _web_prop_templates.has("seed_pouch") :return _web_prop_copy("seed_pouch")
+	if OS.has_feature("web") and is_instance_valid(_web_prop_templates.get("seed_pouch")) :return _web_prop_copy("seed_pouch")
 	var pouch := Node3D.new()
 	piece(pouch, ball(.05, 10), Vector3(0, -.02, .03), material(Color("c9a06a")))
 	piece(pouch, cylinder(.02, .03), Vector3(0, .03, .03), material(Color("8a6a44")))
 	return pouch
 
 static func cloth() -> Node3D:
-	if OS.has_feature("web") and _web_prop_templates.has("cloth") :return _web_prop_copy("cloth")
+	if OS.has_feature("web") and is_instance_valid(_web_prop_templates.get("cloth")) :return _web_prop_copy("cloth")
 	var rag := Node3D.new()
 	var box := BoxMesh.new()
 	box.size = Vector3(.11, .02, .09)
@@ -361,12 +361,16 @@ static func cloth() -> Node3D:
 ## Compile prop material variants during the loading cover, then reuse their meshes.
 static var _web_prop_templates := {}
 func prepare_web_props() -> void:
-	if not OS.has_feature("web") or not _web_prop_templates.is_empty():return
+	if not OS.has_feature("web"):return
+	if not _web_prop_templates.is_empty():
+		if is_instance_valid(_web_prop_templates.get("paper_lantern")):return
+		_web_prop_templates.clear()
 	var view:=SubViewport.new()
 	view.size=Vector2i(96,96)
 	view.own_world_3d=true
 	view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
 	add_child(view)
+	view.world_3d.environment=world.get_world_3d().environment
 	var cam:=Camera3D.new()
 	view.add_child(cam)
 	cam.position=Vector3(0,1.2,3)

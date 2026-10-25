@@ -1,4 +1,5 @@
 extends Node
+var fog_scale := 1.0
 ## Sky, cloud sea, stars and world lighting share the same six-second blend.
 const TITLES := ["晴日 · 云海", "傍晚 · 桃色晚风", "夜晚 · 银河"]
 var world: Node3D
@@ -47,7 +48,7 @@ func _apply(value: Vector3) -> void:
 	env.fog_light_color=sun_color([Color("c3dce6"),Color("c8a3c2"),Color("7d85ba")])
 	key.light_color=sun_color(sun_colors)
 	key.light_energy=Vector3(1.25,.95,.88).dot(weights)
-	env.fog_density=Vector3(.00065,.00085,.0010).dot(weights)
+	env.fog_density=Vector3(.00065,.00085,.0010).dot(weights)*fog_scale
 	key.rotation_degrees=Vector3(-48,-38,0)*weights.x+Vector3(-13,-66,0)*weights.y+Vector3(-46,-34,0)*weights.z
 	preload("res://scripts/web_visual_profile.gd").apply(self)
 

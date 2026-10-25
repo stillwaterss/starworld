@@ -83,6 +83,7 @@ var _whispers: Array = []
 var _whisper_time := 0.0
 var _whisper_total := 6.0
 var _pending_card := -1
+var _pending_finished := -1
 var _banner_time := 0.0
 var _hint_time := 0.0
 
@@ -129,7 +130,10 @@ func _ready() -> void:
 	content.guide.arrived.connect(_on_arrived)
 	refresh()
 	_boot_card()
-	if content.state.data.mode == "" and not "--visual-review" in OS.get_cmdline_user_args():
+	if bool(content.state.data.get("autostart", false)):
+		content.state.data.autostart = false
+		start_story.call_deferred()
+	elif not "--visual-review" in OS.get_cmdline_user_args():
 		_open("title")
 	elif content.state.data.mode == "":
 		title_card.visible = true
@@ -218,88 +222,204 @@ func _build_title_backdrop() -> void:
 	root.move_child(title_backdrop, 0)
 	var picture := _art("home_key_visual.jpg")
 	if picture:title_backdrop.add_child(picture)
-	var logo := _logo(Vector2(620, 310))
+	var logo := _logo(Vector2(560, 280))
 	if logo:
-		logo.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-		logo.offset_left = -310
-		logo.offset_right = 310
-		logo.offset_top = 24
-		logo.offset_bottom = 334
+		# in the middle of the screen, the card right under it
+		logo.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		logo.offset_left = -280
+		logo.offset_right = 280
+		logo.offset_top = -250
+		logo.offset_bottom = 30
 		title_backdrop.add_child(logo)
 
-## A chapter's opening: its painting full screen, the chapter's name and first line,
-## about five seconds (E, Space or a click skips). Awaitable.
+## Between chapters, at the player's pace: first the end of the chapter just finished
+## (its name and closing words on a cream card, "翻开下一章"), then the next chapter's
+## painting with its name, its first line and a "开始" button. Nothing moves on by itself.
+## index is the chapter about to begin; finished = the one that just ended (-1: none).
 var chapter_card: Control
 var _card_skip := false
 signal chapter_card_done
+const CHAPTER_NUMBERS := ["一", "二", "三", "四", "五"]
 
-func show_chapter_card(index: int) -> void:
+func show_chapter_card(index: int, finished := -1) -> void:
 	var director = content.director
 	if index < 0 or index >= director.main.size() or content.test_session:return
-	var file := "chapter_%02d.jpg" % (index + 1)
-	if not ResourceLoader.exists(ART + file):return
 	if is_instance_valid(chapter_card):chapter_card.queue_free()
-	chapter_card = Control.new()
-	chapter_card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	chapter_card.mouse_filter = Control.MOUSE_FILTER_STOP
-	chapter_card.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:_card_skip = true)
-	root.add_child(chapter_card)
-	chapter_card.add_child(_art(file))
-	var band := ColorRect.new()
-	band.color = Color(.05, .04, .1, .55)
-	band.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	band.offset_top = -190
-	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chapter_card.add_child(band)
-	var box := VBoxContainer.new()
-	box.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	box.offset_top = -176
-	box.offset_bottom = -24
-	box.offset_left = 40
-	box.offset_right = -40
-	box.add_theme_constant_override("separation", 10)
-	chapter_card.add_child(box)
-	var chapter: Dictionary = director.main[index]
-	var title := Label.new()
-	title.text = String(chapter.title)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_override("font", _hand_font())
-	title.add_theme_font_size_override("font_size", 46)
-	title.add_theme_color_override("font_color", Color("ffd98a"))
-	title.add_theme_color_override("font_outline_color", Color(.12, .06, .2, .9))
-	title.add_theme_constant_override("outline_size", 10)
-	box.add_child(title)
-	var line := Label.new()
-	line.text = content.named(String(chapter.intro))
-	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.add_theme_font_override("font", _hand_font())
-	line.add_theme_font_size_override("font_size", 23)
-	line.add_theme_color_override("font_color", Color("fff4e0"))
-	line.add_theme_color_override("font_outline_color", Color(.12, .06, .2, .85))
-	line.add_theme_constant_override("outline_size", 6)
-	box.add_child(line)
-	var hint := _label("E 继续", 14, SOFT)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	box.add_child(hint)
-	chapter_card.modulate.a = 0
 	var player: CharacterBody3D = content.world.player
 	var was_locked: bool = player.controls_locked
 	player.controls_locked = true
-	_card_skip = false
-	var t := create_tween()
-	t.tween_property(chapter_card, "modulate:a", 1.0, .7)
-	var left := 6.0
-	while left > 0 and not _card_skip:
-		await get_tree().process_frame
-		left -= get_process_delta_time()
-	t = create_tween()
-	t.tween_property(chapter_card, "modulate:a", 0.0, .6)
-	await t.finished
+	var mouse := Input.mouse_mode
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	chapter_card = Control.new()
+	chapter_card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	chapter_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(chapter_card)
+	if finished >= 0 and finished < director.main.size():
+		var dim := ColorRect.new()
+		dim.color = Color(.06, .05, .12, .55)
+		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		chapter_card.add_child(dim)
+		var done: Dictionary = director.main[finished]
+		var page := _chapter_page(String(done.title).replace("第", "").split(" · ")[0], "第%s章 · 完" % CHAPTER_NUMBERS[finished], String(done.outro), "翻开下一章")
+		chapter_card.add_child(page)
+		await _fade_page(page)
+		page.queue_free()
+		dim.queue_free()
+	var file := "chapter_%02d.jpg" % (index + 1)
+	var art := _art(file)
+	if art:chapter_card.add_child(art)
+	var shade := ColorRect.new()
+	shade.color = Color(.05, .04, .1, .18)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chapter_card.add_child(shade)
+	var chapter: Dictionary = director.main[index]
+	var opening := _chapter_page("", String(chapter.title), content.named(String(chapter.intro)), "开始第%s章" % CHAPTER_NUMBERS[index])
+	opening.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	opening.offset_top = -250
+	opening.offset_bottom = -40
+	opening.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	chapter_card.add_child(opening)
+	await _fade_page(opening, chapter_card)
 	chapter_card.queue_free()
 	player.controls_locked = was_locked
+	Input.mouse_mode = mouse
 	chapter_card_done.emit()
+
+## A cream card with a title, a line of story and one button; returned unparented.
+func _chapter_page(_kicker: String, title: String, line: String, button_text: String) -> PanelContainer:
+	var page := PanelContainer.new()
+	page.add_theme_stylebox_override("panel", Cozy.card(.95, 26, 36))
+	page.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	page.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	page.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	box.custom_minimum_size.x = 600
+	page.add_child(box)
+	box.add_child(Cozy.label(title, 36))
+	box.add_child(Cozy.StarRow.new(3))
+	var words := Cozy.label(line, 21, Cozy.INK_SOFT)
+	words.custom_minimum_size.x = 560
+	box.add_child(words)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(row)
+	var go := Cozy.button(button_text + "  →", func():_card_skip = true, true, 21)
+	go.custom_minimum_size.x = 220
+	row.add_child(go)
+	return page
+
+## Fades `node` (or `fade`) in, waits for the button (or E / Enter / Space), fades out.
+func _fade_page(node: Control, fade: Control = null) -> void:
+	var target: Control = fade if fade else node
+	target.modulate.a = 0
+	_card_skip = false
+	var t := create_tween()
+	t.tween_property(target, "modulate:a", 1.0, .6)
+	while not _card_skip:
+		await get_tree().process_frame
+	t = create_tween()
+	t.tween_property(target, "modulate:a", 0.0, .45)
+	await t.finished
+
+## First steps: the basic controls one at a time in a small card above the bottom edge.
+## Each waits until the player has tried it (or a few seconds for the ones you only need
+## to know), ticks, fades, and the next comes. Shown once (flag "tutorial_done").
+const TUTORIAL := [
+	["W A S D 或 方向键  走一走", "move"],
+	["点一下画面，再移动鼠标  转动视角 · 滚轮  拉近拉远", "look"],
+	["按住 Shift  跑起来", "run"],
+	["空格  跳一下（矮台阶要跳上去）", "jump"],
+	["E  和人说话、看看发光的东西", "wait"],
+	["N  地图 · P  故事本 · H  全部按键 · T  换天色", "wait"],
+]
+var tutorial_card: PanelContainer
+var tutorial_label: RichTextLabel
+var _tutorial := -1
+var _tutorial_clock := 0.0
+var _tutorial_start := Vector3.ZERO
+var _tutorial_yaw := 0.0
+var _tutorial_done := false
+
+func start_tutorial() -> void:
+	if content.state.flag("tutorial_done") or content.test_session or _tutorial >= 0:return
+	if not is_instance_valid(tutorial_card):
+		tutorial_card = PanelContainer.new()
+		tutorial_card.add_theme_stylebox_override("panel", Cozy.card(.9, 22, 18))
+		tutorial_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		tutorial_card.offset_left = -330
+		tutorial_card.offset_right = 330
+		tutorial_card.offset_top = -168
+		tutorial_card.offset_bottom = -110
+		tutorial_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		tutorial_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		tutorial_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(tutorial_card)
+		tutorial_label = RichTextLabel.new()
+		tutorial_label.bbcode_enabled = true
+		tutorial_label.fit_content = true
+		tutorial_label.scroll_active = false
+		tutorial_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tutorial_label.custom_minimum_size.x = 620
+		tutorial_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tutorial_label.add_theme_font_override("normal_font", Cozy.hand())
+		tutorial_label.add_theme_font_override("bold_font", Cozy.hand())
+		tutorial_label.add_theme_font_size_override("normal_font_size", 21)
+		tutorial_label.add_theme_font_size_override("bold_font_size", 21)
+		tutorial_label.add_theme_color_override("default_color", Cozy.INK)
+		tutorial_card.add_child(tutorial_label)
+	_tutorial = 0
+	_tutorial_next()
+
+func _tutorial_next() -> void:
+	if _tutorial >= TUTORIAL.size():
+		content.state.set_flag("tutorial_done")
+		content.state.save()
+		create_tween().tween_property(tutorial_card, "modulate:a", 0.0, .8)
+		_tutorial = TUTORIAL.size()
+		return
+	var player: CharacterBody3D = content.world.player
+	_tutorial_start = player.global_position
+	_tutorial_yaw = player.cam_yaw
+	_tutorial_clock = 0.0
+	_tutorial_done = false
+	tutorial_label.text = "[center]" + _key_caps(String(TUTORIAL[_tutorial][0])) + "[/center]"
+	tutorial_card.modulate.a = 0
+	create_tween().tween_property(tutorial_card, "modulate:a", 1.0, .6)
+
+## Key names drawn as small warm key caps.
+func _key_caps(text: String) -> String:
+	var out := text
+	for key in ["W A S D", "Shift", "空格", "方向键", "滚轮"]:
+		out = out.replace(key, "[bgcolor=#f3d7ae][color=#5b3f2c] " + key + " [/color][/bgcolor]")
+	var caps := RegEx.new()
+	caps.compile("(?<![A-Za-z])([ENPHT])(?![A-Za-z])")
+	return caps.sub(out, "[bgcolor=#f3d7ae][color=#5b3f2c] $1 [/color][/bgcolor]", true)
+
+func _tutorial_process(delta: float) -> void:
+	if _tutorial < 0 or _tutorial >= TUTORIAL.size():return
+	tutorial_card.visible = content.world.interactions.mode == "idle" and open_panel == "" and not showing_card()
+	if not tutorial_card.visible:return
+	_tutorial_clock += delta
+	var player: CharacterBody3D = content.world.player
+	var kind := String(TUTORIAL[_tutorial][1])
+	var done := false
+	match kind:
+		"move":done = player.global_position.distance_to(_tutorial_start) > 3.0
+		"look":done = absf(angle_difference(player.cam_yaw, _tutorial_yaw)) > .7 or _tutorial_clock > 14.0
+		"run":done = Input.is_action_pressed("run") and Vector2(player.velocity.x, player.velocity.z).length() > 3.0 or _tutorial_clock > 14.0
+		"jump":done = Input.is_action_pressed("jump") or not player.is_on_floor() or _tutorial_clock > 12.0
+		"wait":done = _tutorial_clock > 6.0
+	if done and not _tutorial_done:
+		_tutorial_done = true
+		tutorial_label.text = "[center]" + _key_caps(String(TUTORIAL[_tutorial][0])) + "  [color=#5aa06a]✓[/color][/center]"
+		var t := create_tween()
+		t.tween_interval(.8)
+		t.tween_property(tutorial_card, "modulate:a", 0.0, .6)
+		t.tween_callback(func():
+			_tutorial += 1
+			_tutorial_next())
 
 func showing_card() -> bool:
 	return is_instance_valid(chapter_card)
@@ -514,50 +634,140 @@ func _build_menu() -> void:
 		var button := _button(item[0], toggle_panel.bind(item[1]), 15)
 		menu.add_child(button)
 
+## The home screen: the logo in the middle of the painting, and right under it a cream
+## card with the usual entries: continue, new game (asks for the name; over a story in
+## progress it asks once more), wander, settings, about, quit.
+const Cozy := preload("res://scripts/content/cozy_style.gd")
+var title_menu: VBoxContainer
+var title_naming: VBoxContainer
+var title_new_button: Button
+var _new_confirm := false
+
 func _build_title_card() -> void:
 	title_card = PanelContainer.new()
-	title_card.add_theme_stylebox_override("panel", _card())
-	title_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	title_card.offset_left = -270
-	title_card.offset_right = 270
-	title_card.offset_top = -200
-	title_card.offset_bottom = -40
-	# taller content grows upwards, never past the bottom of the window
-	title_card.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	title_card.add_theme_stylebox_override("panel", Cozy.card(.93, 28, 30))
+	title_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	title_card.offset_left = -250
+	title_card.offset_right = 250
+	title_card.offset_top = 40
+	title_card.offset_bottom = 300
+	title_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	title_card.grow_vertical = Control.GROW_DIRECTION_END
 	title_card.visible = false
 	root.add_child(title_card)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 12)
 	title_card.add_child(box)
-	var name := _label("星星人的小世界", 28, ACCENT)
-	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(name)
-	var line := _label("云海上的星星岛。一颗小星星，今晚要掉下来了。", 16, SOFT)
-	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(line)
+	box.add_child(Cozy.label("云海上的星星岛。一颗小星星，今晚要掉下来了。", 19, Cozy.INK_SOFT))
+	box.add_child(Cozy.StarRow.new(3))
+	title_menu = VBoxContainer.new()
+	title_menu.add_theme_constant_override("separation", 10)
+	box.add_child(title_menu)
+	title_naming = VBoxContainer.new()
+	title_naming.add_theme_constant_override("separation", 12)
+	title_naming.visible = false
+	box.add_child(title_naming)
 	var naming := HBoxContainer.new()
 	naming.alignment = BoxContainer.ALIGNMENT_CENTER
-	naming.add_theme_constant_override("separation", 10)
-	box.add_child(naming)
-	naming.add_child(_label("你的星星人叫", 16, SOFT))
+	naming.add_theme_constant_override("separation", 12)
+	title_naming.add_child(naming)
+	var ask := Cozy.label("你的星星人叫", 21)
+	ask.autowrap_mode = TextServer.AUTOWRAP_OFF
+	naming.add_child(ask)
 	name_edit = LineEdit.new()
 	name_edit.text = content.player_name()
 	name_edit.max_length = 8
-	name_edit.custom_minimum_size = Vector2(150, 0)
+	name_edit.custom_minimum_size = Vector2(170, 44)
+	name_edit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	name_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_edit.add_theme_font_size_override("font_size", 18)
-	name_edit.text_submitted.connect(func(_t):start_story())
+	name_edit.add_theme_font_override("font", Cozy.hand())
+	name_edit.add_theme_font_size_override("font_size", 22)
+	name_edit.add_theme_color_override("font_color", Cozy.INK)
+	var field := StyleBoxFlat.new()
+	field.bg_color = Color("fffdf7")
+	field.border_color = Cozy.PAPER_EDGE
+	field.set_border_width_all(2)
+	field.set_corner_radius_all(14)
+	field.content_margin_left = 12
+	field.content_margin_right = 12
+	name_edit.add_theme_stylebox_override("normal", field)
+	name_edit.add_theme_stylebox_override("focus", field)
+	name_edit.text_submitted.connect(func(_t):_begin_new_game())
 	naming.add_child(name_edit)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 14)
-	box.add_child(row)
-	row.add_child(_button("开始故事", start_story, 18))
-	row.add_child(_button("先随便走走", free_roam, 18))
-	var tip := _label("之后随时可以按 P 打开故事本。", 14, SOFT)
-	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(tip)
+	var go := HBoxContainer.new()
+	go.alignment = BoxContainer.ALIGNMENT_CENTER
+	go.add_theme_constant_override("separation", 14)
+	title_naming.add_child(go)
+	go.add_child(Cozy.button("出发吧", _begin_new_game, true))
+	go.add_child(Cozy.button("返回", func():_show_title_menu()))
 	panels["title"] = title_card
+	_show_title_menu()
+
+func _show_title_menu() -> void:
+	_new_confirm = false
+	title_naming.visible = false
+	title_menu.visible = true
+	for child in title_menu.get_children():child.queue_free()
+	var started: bool = content.state.data.started or content.state.data.mode == "free"
+	var rows := [
+		[["继续游戏", _continue_game, true]] if started else [],
+		[["新游戏", _ask_new_game, not started], ["先随便走走", free_roam, false]],
+		[["设置", _title_settings, false], ["关于与声明", show_about, false], ["退出游戏", func():preload("res://scripts/web_platform.gd").exit_game(get_tree()), false]],
+	]
+	for row_spec in rows:
+		if row_spec.is_empty():continue
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 12)
+		title_menu.add_child(row)
+		for spec in row_spec:
+			var b := Cozy.button(spec[0], spec[1], spec[2], 22 if spec[2] else 19)
+			if spec[0] == "新游戏":title_new_button = b
+			if row_spec.size() == 1:b.custom_minimum_size.x = 320
+			row.add_child(b)
+	if started:
+		var where := Cozy.label("上次停在：" + String(content.director.chapter().get("title", "")), 15, Cozy.INK_SOFT, false)
+		title_menu.add_child(where)
+
+func _continue_game() -> void:
+	if content.state.data.started:start_story()
+	else:free_roam()
+
+func _ask_new_game() -> void:
+	# over a story in progress, the first press asks again
+	if content.state.data.started and not _new_confirm:
+		_new_confirm = true
+		title_new_button.text = "从头开始？再点一次"
+		return
+	title_menu.visible = false
+	title_naming.visible = true
+	name_edit.grab_focus()
+
+## A fresh story: the save starts over (name kept), flowers and star charts too, and the
+## island is reloaded so everything lit goes dark again; then the story begins at once.
+func _begin_new_game() -> void:
+	var typed := name_edit.text.strip_edges()
+	if not content.state.data.started:
+		start_story()
+		return
+	content.state.reset()
+	content.state.data.player_name = typed if not typed.is_empty() else "星仔"
+	content.state.data.autostart = true
+	content.state.save()
+	var cozy = content.world.get("activities")
+	if cozy:
+		cozy.progress = {"flowers": 0, "watered": false, "moments": []}
+		cozy.mark("新的故事")
+	var talk = content.world.interactions
+	talk.journal.stars.clear()
+	talk._save_journal()
+	get_tree().reload_current_scene()
+
+var _settings_from_title := false
+
+func _title_settings() -> void:
+	_settings_from_title = true
+	_open("settings")
 
 func _build_story() -> void:
 	var box := _panel("story", "故事本", 820, 520)
@@ -726,49 +936,53 @@ func _build_note() -> void:
 	note_panel = PanelContainer.new()
 	note_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	note_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	note_panel.offset_left = -360
-	note_panel.offset_right = 360
-	note_panel.offset_top = -215
-	note_panel.offset_bottom = 215
+	# a portrait page from the painted notebook, a fountain pen resting beside it
+	note_panel.offset_left = -250
+	note_panel.offset_right = 250
+	note_panel.offset_top = -330
+	note_panel.offset_bottom = 330
 	note_panel.visible = false
 	note_panel.resized.connect(func():note_panel.pivot_offset = note_panel.size / 2)
 	note_panel.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:_turn_note())
 	root.add_child(note_panel)
-	var paper := ColorRect.new()
+	var shadow := Panel.new()
+	var soft := StyleBoxFlat.new()
+	soft.bg_color = Color(0, 0, 0, 0)
+	soft.shadow_color = Color(.2, .12, .25, .35)
+	soft.shadow_size = 22
+	soft.shadow_offset = Vector2(4, 10)
+	soft.set_corner_radius_all(10)
+	shadow.add_theme_stylebox_override("panel", soft)
+	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	note_panel.add_child(shadow)
+	var paper: Control
+	if ResourceLoader.exists(ART + "letter_page.jpg"):
+		var page := TextureRect.new()
+		page.texture = load(ART + "letter_page.jpg")
+		page.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		page.stretch_mode = TextureRect.STRETCH_SCALE
+		paper = page
+	else:
+		var plain := ColorRect.new()
+		var shader := ShaderMaterial.new()
+		shader.shader = load("res://shaders/letter_paper.gdshader")
+		plain.material = shader
+		paper = plain
 	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var shader := ShaderMaterial.new()
-	shader.shader = load("res://shaders/letter_paper.gdshader")
-	paper.material = shader
 	note_panel.add_child(paper)
 	var decor := Control.new()
 	decor.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note_panel.add_child(decor)
-	# a small stamp in the top-right corner
-	var stamp := PanelContainer.new()
-	var frame := StyleBoxFlat.new()
-	frame.bg_color = Color(1, .96, .9, .5)
-	frame.border_color = Color("b4513c")
-	frame.set_border_width_all(2)
-	frame.set_corner_radius_all(3)
-	frame.content_margin_left = 10
-	frame.content_margin_right = 10
-	frame.content_margin_top = 4
-	frame.content_margin_bottom = 4
-	stamp.add_theme_stylebox_override("panel", frame)
-	var star := Label.new()
-	star.text = "★"
-	star.add_theme_font_size_override("font_size", 26)
-	star.add_theme_color_override("font_color", Color("c25a3f"))
-	stamp.add_child(star)
-	stamp.rotation = .14
-	stamp.position = Vector2(620, 26)
-	decor.add_child(stamp)
+	var pen := FountainPen.new()
+	pen.position = Vector2(468, 470)
+	pen.rotation = -.62
+	decor.add_child(pen)
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 58)
-	margin.add_theme_constant_override("margin_right", 58)
-	margin.add_theme_constant_override("margin_top", 40)
-	margin.add_theme_constant_override("margin_bottom", 30)
+	margin.add_theme_constant_override("margin_left", 54)
+	margin.add_theme_constant_override("margin_right", 46)
+	margin.add_theme_constant_override("margin_top", 70)
+	margin.add_theme_constant_override("margin_bottom", 44)
 	note_panel.add_child(margin)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 16)
@@ -781,10 +995,11 @@ func _build_note() -> void:
 	box.add_child(note_title)
 	note_body = Label.new()
 	note_body.add_theme_font_override("font", hand)
-	note_body.add_theme_font_size_override("font_size", 24)
+	note_body.add_theme_font_size_override("font_size", 23)
 	note_body.add_theme_color_override("font_color", Color("33261b"))
 	note_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note_body.custom_minimum_size = Vector2(600, 210)
+	note_body.custom_minimum_size = Vector2(390, 420)
+	note_body.add_theme_constant_override("line_spacing", 9)
 	note_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(note_body)
 	note_hint = Label.new()
@@ -849,7 +1064,10 @@ func show_note(title: String, lines: Array) -> void:
 	await note_closed
 
 func _show_note_line() -> void:
-	note_body.text = content.named(String(note_lines[note_index]))
+	# each E brings the next paragraph onto the same page, like reading down a letter
+	var shown: Array[String] = []
+	for i in note_index + 1:shown.append(content.named(String(note_lines[i])))
+	note_body.text = "\n".join(shown)
 	note_hint.text = ("E 继续  %d / %d" % [note_index + 1, note_lines.size()]) if note_index < note_lines.size() - 1 else "E 合上"
 
 func _turn_note() -> void:
@@ -909,6 +1127,7 @@ func whisper(text: String) -> void:
 
 # ------------------------------------------------------------------ open / close
 func _can_open() -> bool:
+	if content.ending != null and content.ending.playing:return false
 	var cozy = content.world.get("activities")
 	if cozy and cozy.photo:return false
 	return content.world.interactions.mode in ["idle", "content"]
@@ -946,6 +1165,12 @@ func _open(id: String) -> bool:
 func close_panel() -> void:
 	if open_panel == "":return
 	_finish_note_animation()
+	if open_panel == "settings" and _settings_from_title:
+		_settings_from_title = false
+		panels.settings.visible = false
+		open_panel = "title"
+		title_card.visible = true
+		return
 	panels[open_panel].visible = false
 	open_panel = ""
 	if content.world.interactions.mode == "content":content.world.interactions.mode = "idle"
@@ -961,6 +1186,7 @@ func start_story() -> void:
 	content.director.start_story()
 	if first and content.Opening.wanted():await content.opening.play()
 	if first:await show_chapter_card(0)
+	start_tutorial()
 	content.guide.refresh_route(true)
 	_hint_time = 10.0
 
@@ -981,6 +1207,7 @@ func free_roam() -> void:
 	title_card.visible = false
 	_take_name()
 	content.director.choose_free_roam()
+	start_tutorial()
 	toast("随便走走吧。按 N 打开地图，按 P 随时开始故事。", 6.0)
 
 func pick_place(id: String) -> void:
@@ -1126,17 +1353,18 @@ func _on_stage_completed(_quest: String, title: String) -> void:
 	_hint_time = 8.0
 
 func _on_chapter_completed(title: String, outro: String) -> void:
-	# the next chapter opens with its painting, after this one's closing words
-	var next_index: int = int(content.state.data.main.chapter) + 1
-	if not title.begins_with("小故事") and next_index < content.director.main.size():
-		get_tree().create_timer(6.5).timeout.connect(func():
-			if not content.airship.flying() and not _performing():show_chapter_card(next_index)
-			else:_pending_card = next_index)
-	banner_title.text = title + " · 完"
-	banner_body.text = outro
-	banner.visible = true
-	banner.modulate.a = 1
-	_banner_time = 7.0
+	if title.begins_with("小故事"):
+		banner_title.text = title + " · 完"
+		banner_body.text = outro
+		banner.visible = true
+		banner.modulate.a = 1
+		_banner_time = 7.0
+		return
+	# the main story: the end page and the next chapter wait until the player is free
+	var finished: int = int(content.state.data.main.chapter)
+	if finished + 1 < content.director.main.size():
+		_pending_card = finished + 1
+		_pending_finished = finished
 
 func _on_arrived(target: String) -> void:
 	_play("arrive")
@@ -1150,28 +1378,34 @@ func _process(delta: float) -> void:
 		_web_diag_clock = 0.0
 		var buttons: Array = []
 		for button in title_card.find_children("*", "Button", true, false):
+			if not button.is_visible_in_tree():continue
 			var center: Vector2 = button.get_global_rect().get_center()
 			buttons.append({"text": button.text, "x": center.x, "y": center.y})
+		var controls: Array = []
+		for button in root.find_children("*", "Button", true, false):
+			if not button.is_visible_in_tree():continue
+			var center: Vector2 = button.get_global_rect().get_center()
+			controls.append({"text": button.text, "x": center.x, "y": center.y})
 		var pos: Vector3 = content.world.player.global_position
 		var size: Vector2 = root.size
-		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))
+		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "controls": controls, "about": about_panel.visible, "opening": content.opening.playing, "chapter": showing_card(), "locked": content.world.player.controls_locked, "performance": content.world.performance.kind, "performing": content.world.performance.busy, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))
 	var world: Node3D = content.world
 	var idle: bool = world.interactions.mode == "idle"
 	var cozy = world.get("activities")
 	var photo: bool = cozy != null and bool(cozy.photo)
 	var scene = world.get("scene_actions")
 	var vista: bool = scene != null and scene.has_method("in_vista") and scene.in_vista()
-	visible = not photo and not world.interactions.mode in ["dialogue", "scope", "journal"] and not _performing() and not vista and not (content.opening != null and content.opening.playing)
+	visible = not photo and not world.interactions.mode in ["dialogue", "scope", "journal"] and not _performing() and not vista and not (content.opening != null and content.opening.playing) and not (content.ending != null and content.ending.playing)
 	# in the story the quest box is the one thing to read: the journal counters step aside
 	var story: bool = content.state.data.mode == "story"
 	if cozy and is_instance_valid(cozy.progress_label) and not photo:cozy.progress_label.visible = not story
 	if is_instance_valid(world.interactions.status):world.interactions.status.visible = not story
 	if is_instance_valid(world.interactions.journal_button):world.interactions.journal_button.visible = not story
-	if is_instance_valid(title_backdrop):title_backdrop.visible = title_card.visible
-	if _pending_card >= 0 and idle and not _performing() and not content.airship.flying():
+	if is_instance_valid(title_backdrop):title_backdrop.visible = title_card.visible or _settings_from_title
+	if _pending_card >= 0 and idle and open_panel == "" and not _performing() and not content.airship.flying() and not showing_card():
 		var index := _pending_card
 		_pending_card = -1
-		show_chapter_card(index)
+		show_chapter_card(index, _pending_finished)
 	var audio = world.get("audio")
 	var guide_on: bool = audio == null or bool(audio.settings.get("guide", true))
 	var prompts_on: bool = audio == null or bool(audio.settings.get("prompts", true))
@@ -1195,6 +1429,7 @@ func _process(delta: float) -> void:
 			var shown := keys_bbcode("怎么做：" + content.named(String(tracked.hint)))
 			if chip_hint.text != shown:chip_hint.text = shown
 	_hint_time = maxf(0, _hint_time - delta)
+	_tutorial_process(delta)
 	_glow_clock -= delta
 	if _glow_clock <= 0:
 		_glow_clock = .5
@@ -1244,6 +1479,11 @@ func _performing() -> bool:
 
 func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:return
+	if is_instance_valid(about_panel) and about_panel.visible:
+		if event.physical_keycode == KEY_ESCAPE:about_panel.visible = false
+		get_viewport().set_input_as_handled()
+		return
+	if content.ending != null and content.ending.playing:return
 	if _performing():return
 	var world: Node3D = content.world
 	var cozy = world.get("activities")
@@ -1252,7 +1492,7 @@ func _input(event: InputEvent) -> void:
 	if not mode in ["idle", "content"]:return
 	var key: int = event.physical_keycode
 	if showing_card():
-		if key in [KEY_E, KEY_SPACE, KEY_ENTER, KEY_ESCAPE]:_card_skip = true
+		if key in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:_card_skip = true
 		get_viewport().set_input_as_handled()
 		return
 	var handled := true
@@ -1265,7 +1505,8 @@ func _input(event: InputEvent) -> void:
 		return
 	match key:
 		KEY_ESCAPE:
-			if open_panel == "title":free_roam()
+			if open_panel == "title":
+				if title_naming.visible:_show_title_menu()
 			elif open_panel != "":close_panel()
 			else:handled = false
 		KEY_P:toggle_panel("story")
@@ -1279,3 +1520,35 @@ func _input(event: InputEvent) -> void:
 			else:handled = open_panel != ""
 		_:handled = open_panel != "" and key != KEY_M
 	if handled:get_viewport().set_input_as_handled()
+
+
+## A fountain pen drawn lying on the desk beside the letter: dark lacquer body, gold
+## bands and clip, a gold nib with its slit, a little drop of ink.
+class FountainPen extends Control:
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		custom_minimum_size = Vector2(300, 40)
+	func _draw() -> void:
+		var body := Color("3b2a4a")
+		var shine := Color("6b5480")
+		var gold := Color("d9a94e")
+		# shadow
+		draw_rect(Rect2(14, 16, 232, 18), Color(0, 0, 0, .18))
+		# cap end and body
+		draw_rect(Rect2(10, 4, 110, 22), body)
+		draw_circle(Vector2(10, 15), 11, body)
+		draw_rect(Rect2(120, 6, 110, 18), body.darkened(.1))
+		draw_rect(Rect2(12, 7, 210, 4), Color(shine, .7))
+		# gold bands and clip
+		draw_rect(Rect2(112, 4, 8, 22), gold)
+		draw_rect(Rect2(30, 4, 5, 22), gold)
+		draw_rect(Rect2(36, 0, 60, 5), gold)
+		draw_circle(Vector2(96, 3), 3.5, gold)
+		# grip and nib
+		draw_rect(Rect2(230, 8, 18, 14), Color("2a1f33"))
+		var nib := PackedVector2Array([Vector2(248, 7), Vector2(286, 15), Vector2(248, 23)])
+		draw_colored_polygon(nib, gold)
+		draw_line(Vector2(262, 15), Vector2(285, 15), Color("6e5022"), 1.2)
+		draw_circle(Vector2(262, 15), 2.2, Color("6e5022"))
+		# a drop of ink
+		draw_circle(Vector2(298, 22), 4.0, Color(.18, .16, .35, .8))

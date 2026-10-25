@@ -29,6 +29,7 @@ static func defaults() -> Dictionary:
 		"guide_target": "",      # manual map target, "" follows the tracked quest
 		"player_name": "星仔",   # the player's star person; renamed on the title card or in settings
 		"story_rev": STORY_REV,  # which story the chapter/stage numbers belong to
+		"autostart": false,      # set by 新游戏 just before the island reloads
 	}
 
 ## The v16 story has different stages: a save from an older one keeps its chapter but

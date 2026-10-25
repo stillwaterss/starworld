@@ -42,7 +42,8 @@ def apply(root):
     path = 'scripts/content/content_root.gd'
     s = read(path)
     s = replace(s, '\tgrid.bake(world.get_world_3d().direct_space_state, ignore)', '\tif not (OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")):\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)')
-    s = replace(s, '\tguide.refresh_route(true)\n\tui.refresh()', '\tguide.refresh_route(true)\n\tui.refresh()\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")')
+    if 'window.starworldSceneReady' not in s:
+        s = replace(s, '\tguide.refresh_route(true)\n\tui.refresh()', '\tguide.refresh_route(true)\n\tui.refresh()\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")')
     changes[path] = s
     path = 'scripts/content/audio_director.gd'
     s = read(path)
@@ -77,11 +78,17 @@ func _process(delta: float) -> void:
 \t\t_web_diag_clock = 0.0
 \t\tvar buttons: Array = []
 \t\tfor button in title_card.find_children("*", "Button", true, false):
+\t\t\tif not button.is_visible_in_tree():continue
 \t\t\tvar center: Vector2 = button.get_global_rect().get_center()
 \t\t\tbuttons.append({"text": button.text, "x": center.x, "y": center.y})
+\t\tvar controls: Array = []
+\t\tfor button in root.find_children("*", "Button", true, false):
+\t\t\tif not button.is_visible_in_tree():continue
+\t\t\tvar center: Vector2 = button.get_global_rect().get_center()
+\t\t\tcontrols.append({"text": button.text, "x": center.x, "y": center.y})
 \t\tvar pos: Vector3 = content.world.player.global_position
 \t\tvar size: Vector2 = root.size
-\t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
+\t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "controls": controls, "about": about_panel.visible, "opening": content.opening.playing, "chapter": showing_card(), "locked": content.world.player.controls_locked, "performance": content.world.performance.kind, "performing": content.world.performance.busy, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
     s = s.replace('"title": title_card.visible, "buttons": buttons', '"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons')
     changes[path] = s
     key = 'scripts/performance.gd'
@@ -91,6 +98,12 @@ func _process(delta: float) -> void:
         for factory in ['watering_can','paper_lantern','pebble','seed_pouch','cloth']:
             signature = 'static func '+factory+'() -> Node3D:'
             text = text.replace(signature, signature+'\n\tif OS.has_feature("web") and _web_prop_templates.has("'+factory+'") :return _web_prop_copy("'+factory+'")')
+    marker = '## Compile prop material variants during the loading cover, then reuse their meshes.'
+    if marker in text:
+        text = text[:text.index(marker)] + (ADAPTERS/'performance_warmup.gdinc').read_text(encoding='utf-8').lstrip('\n')
+    import re
+    text = re.sub(r'_web_prop_templates\.has\("([^"]+)"\)', r'is_instance_valid(_web_prop_templates.get("\1"))', text)
+    text = text.replace('if not OS.has_feature("web") or not _web_prop_templates.is_empty():return', 'if not OS.has_feature("web"):return\n\tif not _web_prop_templates.is_empty():\n\t\tif is_instance_valid(_web_prop_templates.get("paper_lantern")):return\n\t\t_web_prop_templates.clear()')
     changes[key] = text
     key = 'scripts/content/content_root.gd'
     text = changes.get(key, read(key))
@@ -107,11 +120,17 @@ func _process(delta: float) -> void:
     for p in (root/'scripts').rglob('*.gd'):
         key = p.relative_to(root).as_posix()
         text = changes.get(key, p.read_text(encoding='utf-8'))
-        text = text.replace('SystemFont.new()', 'preload("res://assets/fonts/LXGWWenKai-Regular.ttf")').replace(': SystemFont', ': Font')
+        text = text.replace('SystemFont.new()', 'preload("res://assets/fonts/LXGWWenKai-Regular.ttf")').replace(': SystemFont', ': Font').replace('-> SystemFont', '-> Font')
         text = re.sub(r';\w+\.font_names\s*=.*?(?=\n|$)', '', text)
         text = re.sub(r'^.*\.(?:font_names|font_weight|fallbacks)\s*=.*\n', '', text, flags=re.M)
         text = text.replace('✦', '★').replace('✧', '☆')
+        text = text.replace('get_tree().quit()', 'preload("res://scripts/web_platform.gd").exit_game(get_tree())')
         changes[key] = text
+    key = 'scripts/content/content_ui.gd'
+    text = changes[key]
+    if 'window.starworldFontCheck' not in text:
+        text = text.replace('\tfont = preload("res://assets/fonts/LXGWWenKai-Regular.ttf")', '\tfont = preload("res://assets/fonts/LXGWWenKai-Regular.ttf")\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldFontCheck = " + JSON.stringify({"bundledPrimary": font is FontFile, "playerName":font.has_char(0x4ed4), "filledStar":font.has_char(0x2605), "emptyStar":font.has_char(0x2606)}))')
+    changes[key] = text
     key = 'project.godot'
     changes[key] = changes.get(key, read(key)).replace('theme/custom_font="res://assets/fonts/NotoSansSC.ttf"', 'theme/custom_font="res://assets/fonts/LXGWWenKai-Regular.ttf"')
     key = 'scripts/scene_actions.gd'

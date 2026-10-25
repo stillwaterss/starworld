@@ -133,6 +133,10 @@ func _process(delta: float) -> void:
 		_timer = REPATH
 		refresh_route()
 	var show: bool = enabled() and target != "" and content.world.interactions.mode == "idle" and not _photo()
+	# seated, flying, or in a staged moment the marker would hang in front of the camera
+	var scene = content.world.get("scene_actions")
+	var perf = content.world.get("performance")
+	if (scene and scene.seat_state != "free") or (content.airship and content.airship.flying()) or (content.ending and content.ending.playing) or (perf and perf.busy):show = false
 	var trail: bool = show and bool(content.world.audio.settings.get("breadcrumbs", true)) if content.world.get("audio") else show
 	_draw_dots(trail and not straight)
 	marker.visible = show

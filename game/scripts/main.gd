@@ -289,7 +289,7 @@ func _autotest() -> void:
 		await get_tree().process_frame
 		frame_time += get_process_delta_time()
 	print("REVIEW average_fps=%.1f draw_calls=%d triangles=%d" % [120.0 / frame_time, Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)])
-	get_tree().quit()
+	preload("res://scripts/web_platform.gd").exit_game(get_tree())
 
 
 func _stair_test(label: String, a: Vector2, b: Vector2, bottom: float, top: float) -> void:

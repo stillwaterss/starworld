@@ -2,12 +2,16 @@
 ## Compile prop material variants during the loading cover, then reuse their meshes.
 static var _web_prop_templates := {}
 func prepare_web_props() -> void:
-	if not OS.has_feature("web") or not _web_prop_templates.is_empty():return
+	if not OS.has_feature("web"):return
+	if not _web_prop_templates.is_empty():
+		if is_instance_valid(_web_prop_templates.get("paper_lantern")):return
+		_web_prop_templates.clear()
 	var view:=SubViewport.new()
 	view.size=Vector2i(96,96)
 	view.own_world_3d=true
 	view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
 	add_child(view)
+	view.world_3d.environment=world.get_world_3d().environment
 	var cam:=Camera3D.new()
 	view.add_child(cam)
 	cam.position=Vector3(0,1.2,3)

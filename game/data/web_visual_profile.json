@@ -1,5 +1,6 @@
 {
   "version": 1,
   "ambient_scale": [1.4, 1.6, 2.2],
+  "fog_density_scale": [4.0, 4.0, 4.0],
   "sky_night_lift": [0.006, 0.005, 0.004]
 }

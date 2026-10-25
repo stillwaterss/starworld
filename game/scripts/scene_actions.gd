@@ -54,7 +54,7 @@ func _ready() -> void:
 	hint.modulate.a=0
 	corner=Label.new();hint_layer.add_child(corner)
 	corner.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	corner.offset_left=-420;corner.offset_right=-18;corner.offset_top=16;corner.offset_bottom=56
+	corner.offset_left=-420;corner.offset_right=-18;corner.offset_top=70;corner.offset_bottom=110
 	corner.grow_horizontal=Control.GROW_DIRECTION_BEGIN
 	corner.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	corner.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
@@ -80,8 +80,9 @@ func _plan_vistas() -> Array:
 	var side:=Vector3(-FACING.z,0,FACING.x)
 	var town:=Vector3(-3,3.2,-2)
 	var views:=[]
-	# 0: the whole town over the player's shoulder, high enough that the hat stays small
-	views.append([CHAIR+FACING*5.0+Vector3.UP*4.4,town])
+	# 0: the whole island from high above and behind the chair, like a bird resting there:
+	#    higher than anyone could sit, so the town, the islets and the sea of clouds all fit
+	views.append(_first_clear([CHAIR-FACING*7.0+Vector3.UP*13.0-side*2.0,CHAIR-FACING*6.0+Vector3.UP*11.0+side*2.0,CHAIR-FACING*4.0+Vector3.UP*9.0],town+Vector3.DOWN*2.5,town))
 	# 1: the sky, from above the chair back, over the fence line
 	var sky:=CHAIR+FACING*30+Vector3.UP*12
 	views.append(_first_clear([CHAIR-FACING*.5+Vector3.UP*2.3+side*.5,CHAIR-FACING*.2+Vector3.UP*2.6-side*.5,CHAIR+Vector3.UP*2.9],sky,sky))
@@ -103,12 +104,14 @@ func _first_clear(eyes: Array,look: Vector3,must_see: Vector3) -> Array:
 	return [eyes[0],look]
 
 func vista_fov(index: int) -> float:
-	return [40.0,58.0,46.0][index]
+	return [50.0,58.0,46.0][index]
 
 func _enter_vista() -> void:
 	# Hide the close foreground silhouette in both seated vistas.
 	player.model.visible=false
 	vista=0;vista_clock=0.0;_vista_views=_plan_vistas()
+	var cycle=world.get("day_cycle")
+	if cycle and "fog_scale" in cycle:cycle.fog_scale=.3;cycle._apply(cycle.weights)
 	_vista_hidden.clear()
 	for node in world.get_children():
 		if node is CanvasLayer and node.visible:_vista_hidden.append(node);node.visible=false
@@ -130,6 +133,8 @@ func _update_corner() -> void:
 func _leave_vista() -> void:
 	player.model.visible=true
 	corner.visible=false
+	var cycle=world.get("day_cycle")
+	if cycle and "fog_scale" in cycle:cycle.fog_scale=1.0;cycle._apply(cycle.weights)
 	for node in _vista_hidden:
 		if is_instance_valid(node):node.visible=true
 	_vista_hidden.clear()

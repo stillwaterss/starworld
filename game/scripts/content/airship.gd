@@ -31,6 +31,7 @@ var _cam_yaw := 0.0
 var _cam_drag := false
 var _look := Vector2.ZERO           # mouse offset from the window centre, -1..1
 var _look_smooth := Vector2.ZERO
+var _pitch_drag := 0.0
 var look_hint: Label
 var hull_reach := 2.0               # deck centre to the hull's far edge, along the gate
 var gangway: Node3D
@@ -77,14 +78,14 @@ func _build_skip() -> void:
 	skip_button.visible = false
 	skip_layer.add_child(skip_button)
 	look_hint = Label.new()
-	look_hint.text = "移动鼠标  转动视角"
+	look_hint.text = "移动鼠标  左右转、上下看"
 	look_hint.add_theme_font_override("font", font)
 	look_hint.add_theme_font_size_override("font_size", 17)
 	look_hint.add_theme_color_override("font_color", Color("fff1d7"))
 	look_hint.add_theme_color_override("font_outline_color", Color(.08, .08, .16, .85))
 	look_hint.add_theme_constant_override("outline_size", 5)
 	look_hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	look_hint.offset_left = -420
+	look_hint.offset_left = -520
 	look_hint.offset_right = -205
 	look_hint.offset_top = -66
 	look_hint.offset_bottom = -36
@@ -472,20 +473,33 @@ func fly_home_from_summit() -> void:
 	var curve := _curve(PackedVector3Array([deck_point(), deck_point() + Vector3(-6, -6, 6), Vector3(-16, 16, 14), home_transform * (home_transform.basis.inverse() * deck_offset) + Vector3(2, 5, 2), home_transform * (home_transform.basis.inverse() * deck_offset)]))
 	var length := curve.get_baked_length()
 	var seconds := clampf(length / 3.0, 10.0, 40.0)
+	# the last night: the slow way down while the closing words are read, seen wide
+	var ending: bool = content.ending.playing
+	if ending:
+		seconds = 92.0
+		content.ending.descent()
 	var t := 0.0
 	var player: CharacterBody3D = world.player
 	at = "flying"
 	skip = false
 	var shown := 0.0
 	while t < seconds:
-		var dt := get_process_delta_time() * (5.0 if hurry else 1.0)
+		var dt := get_process_delta_time() * (5.0 if hurry or (ending and content.ending.hurry) else 1.0)
 		shown += get_process_delta_time()
-		_show_skip(shown >= SKIP_AFTER)
+		_show_skip(shown >= SKIP_AFTER and not ending)
 		t = seconds if skip else t + dt
 		var p := curve.sample_baked(smoothstep(0.0, 1.0, clampf(t / seconds, 0, 1)) * length)
 		rig.global_position = p - rig.global_basis * (home_transform.basis.inverse() * deck_offset)
 		player.global_position = p
 		_cam_yaw += dt * .05
+		if ending:
+			# far out and a little below: the ship small among the lanterns, the lit island beneath
+			var wide := p + Vector3(sin(_cam_yaw * .6), 0, cos(_cam_yaw * .6)) * 26.0 + Vector3.UP * 2.0
+			camera.global_position = camera.global_position.lerp(wide, clampf(dt * .8, 0, 1))
+			camera.look_at(p.lerp(Vector3(0, 0, 2), .35) + Vector3.UP * 2.0, Vector3.UP)
+			player.global_position = p
+			await get_tree().process_frame
+			continue
 		var goal := p + _orbit(dt)
 		camera.global_position = goal if skip else camera.global_position.lerp(goal, clampf(dt * 2.0, 0, 1))
 		camera.look_at(p + Vector3.UP * 1.2, Vector3.UP)
@@ -496,8 +510,13 @@ func fly_home_from_summit() -> void:
 ## Camera offset from the deck: the slow orbit plus where the mouse is in the window.
 func _orbit(dt: float) -> Vector3:
 	_look_smooth = _look_smooth.lerp(_look, clampf(dt * 3.0, 0, 1))
-	var a := _cam_yaw - _look_smooth.x * 1.9
-	return Vector3(sin(a), 0, cos(a)) * 9.5 + Vector3.UP * (3.4 - _look_smooth.y * 2.6)
+	var a := _cam_yaw - _look_smooth.x * 2.4
+	# mouse up: from below the gondola looking up at the sky; mouse down: high above,
+	# looking down over the island
+	var elevation := clampf(.3 + _look_smooth.y * 1.05, -.45, 1.25) + _pitch_drag
+	elevation = clampf(elevation, -.55, 1.35)
+	var reach := 10.5
+	return Vector3(sin(a) * cos(elevation), sin(elevation), cos(a) * cos(elevation)) * reach
 
 func _land(destination: String, _from: String) -> void:
 	var player: CharacterBody3D = world.player
@@ -537,6 +556,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion:
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			_cam_yaw -= event.relative.x * .004
+			_pitch_drag = clampf(_pitch_drag + event.relative.y * .003, -.8, .8)
 		else:
 			var size := get_viewport().get_visible_rect().size
 			_look = Vector2(clampf(event.position.x / size.x * 2.0 - 1.0, -1, 1), clampf(event.position.y / size.y * 2.0 - 1.0, -1, 1))

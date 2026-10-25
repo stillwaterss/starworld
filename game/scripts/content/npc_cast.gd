@@ -6,7 +6,8 @@ extends Node3D
 ## Swapping models in later is only a matter of dropping the files into that folder.
 const MODEL_DIR := "res://assets/characters/npc/"
 const SLOTS := [
-	{"id": "baker", "door": "baker", "name": "面包师", "height": 1.45, "tint": Color("c9874a")},
+	# the baker stands on the doorstep: a table stands right in front of the bakery door
+	{"id": "baker", "door": "baker", "name": "面包师", "height": 1.45, "tint": Color("c9874a"), "out": .12, "aside": .05},
 	{"id": "grandma", "door": "grandma", "name": "写信的奶奶", "height": 1.3, "tint": Color("8f7fb8")},
 	{"id": "child", "door": "child", "name": "数星星的孩子", "height": 1.05, "tint": Color("4f86c9")},
 	{"id": "lamplighter", "door": "lamplighter", "name": "修灯的邻居", "height": 1.6, "tint": Color("c99a2e")},
@@ -51,13 +52,14 @@ func _setup() -> void:
 		var latch := Vector3(centre.x - hinge.x, 0, centre.z - hinge.z)
 		latch = latch.normalized() if latch.length() > .05 else Vector3.ZERO
 		root.global_position = floor + front * float(slot.get("out", .7)) + latch * float(info.width) * float(slot.get("aside", .55))
+		# where they come out from: just inside the doorway, hidden by the wall
+		var inside := floor - front * .7
 		root.rotation.y = atan2(-front.x, -front.z)
 		var body := _model(slot)
 		if body == null:body = _silhouette(slot)
 		root.add_child(body)
 		root.visible = false
-		root.scale = Vector3.ONE * .01
-		actors[slot.id] = {"node": root, "door": slot.door, "shown": false, "model": body.name != "Silhouette"}
+		actors[slot.id] = {"node": root, "door": slot.door, "shown": false, "model": body.name != "Silhouette", "rest": root.global_position, "inside": inside}
 
 ## The slot's model if its file is there, standing on the origin and slot.height tall.
 func _model(slot: Dictionary) -> Node3D:
@@ -92,7 +94,7 @@ func _model(slot: Dictionary) -> Node3D:
 		var player: AnimationPlayer = players[0]
 		var names := {}
 		for key in player.get_animation_list():
-			for state in ["idle", "talk", "wave"]:
+			for state in ["idle", "talk", "wave", "walk"]:
 				if String(key).to_lower().contains(state):names[state] = key
 		for state in ["idle", "talk"]:
 			if names.has(state):player.get_animation(names[state]).loop_mode = Animation.LOOP_LINEAR
@@ -169,13 +171,46 @@ func _process(delta: float) -> void:
 		var node: Node3D = a.node
 		if open != a.shown:
 			a.shown = open
-			_greet(node.get_child(0), open)
-			if open:node.visible = true
-			var t := create_tween()
-			t.tween_property(node, "scale", Vector3.ONE if open else Vector3.ONE * .01, .45).set_trans(Tween.TRANS_BACK if open else Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			if not open:t.tween_callback(func():node.visible = false)
+			_walk(node, a, open)
 		if node.visible and not a.model:
 			node.get_child(0).position.y = sin(clock * 2.0 + node.position.x) * .025
+
+## Out through the opening door (walking, then a wave and talk), or back in and gone.
+func _walk(node: Node3D, a: Dictionary, out: bool) -> void:
+	var body: Node3D = node.get_child(0)
+	if a.has("tween") and a.tween is Tween and a.tween.is_valid():a.tween.kill()
+	var t := create_tween()
+	a.tween = t
+	var from: Vector3 = a.inside if out else a.rest
+	var to: Vector3 = a.rest if out else a.inside
+	if out:
+		node.global_position = from
+		node.visible = true
+		_play(body, "walk")
+		t.tween_interval(.35)
+	else:
+		_play(body, "walk")
+		var face := (to - from)
+		node.rotation.y = atan2(-face.x, -face.z) if face.length() > .05 else node.rotation.y
+	var facing_out: float = node.rotation.y
+	t.tween_property(node, "global_position", to, 1.1 if out else .9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if out:
+		t.tween_callback(func():_greet(body, true))
+	else:
+		t.tween_callback(func():
+			node.visible = false
+			var back: Vector3 = a.rest - a.inside
+			node.rotation.y = atan2(-back.x, -back.z)
+			_greet(body, false))
+	if not out:node.set_meta("facing", facing_out)
+
+func _play(body: Node3D, state: String) -> void:
+	if not body.has_meta("anim"):return
+	var player: AnimationPlayer = body.get_meta("anim")
+	var names: Dictionary = body.get_meta("anims")
+	if names.has(state):
+		player.get_animation(names[state]).loop_mode = Animation.LOOP_LINEAR
+		player.play(names[state], .2)
 
 ## Who stands at this door (for tests and later dialogue), or "".
 func at_door(door: String) -> String:
