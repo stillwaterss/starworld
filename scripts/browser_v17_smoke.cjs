@@ -50,15 +50,20 @@ const fs=require('node:fs');
   await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
   await clickControl('出发吧',true);
   await page.waitForFunction(()=>window.starworldUi.title===false,{},{timeout:30000});
-  await page.waitForTimeout(6500);await page.keyboard.press('Space');
-  await page.waitForFunction(()=>window.starworldUi.chapter===true && window.starworldUi.opening===false,{},{timeout:60000});
+  // Software rendering advances the intro more slowly than wall time. Repeated
+  // real skip keys wait for its visible, three-game-second skip affordance.
+  const openingDeadline=Date.now()+120000;
+  while(!(await page.evaluate(()=>window.starworldUi.chapter===true && window.starworldUi.opening===false))){
+   if(Date.now()>openingDeadline)throw Error('Opening did not reach the chapter page after skip input');
+   await page.keyboard.press('Space');await page.waitForTimeout(1500);
+  }
   await page.screenshot({path:'browser-evidence/chapter.png'});
   await clickControl('开始第一章');
   await page.waitForFunction(()=>!window.starworldUi.chapter && !window.starworldUi.locked,{},{timeout:30000});
   await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
   await verifySound();
   await page.keyboard.down('ArrowUp');
-  try{await page.waitForFunction(()=>window.starworldUi.position[2]<3.0,{},{timeout:15000});}
+  try{await page.waitForFunction(()=>window.starworldUi.position[2]<3.0,{},{timeout:30000});}
   finally{await page.keyboard.up('ArrowUp');}
   // Reusing a prepared prop after 新游戏 reloads the scene must not access freed nodes.
   await page.keyboard.press('l');
