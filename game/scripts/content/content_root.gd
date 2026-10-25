@@ -15,6 +15,9 @@ const WorldProps := preload("res://scripts/content/world_props.gd")
 const Xiaoguang := preload("res://scripts/content/xiaoguang.gd")
 const Airship := preload("res://scripts/content/airship.gd")
 const Ending := preload("res://scripts/content/ending.gd")
+const Opening := preload("res://scripts/content/opening.gd")
+const NpcCast := preload("res://scripts/content/npc_cast.gd")
+const IslandLights := preload("res://scripts/content/island_lights.gd")
 
 var world: Node3D
 var registry
@@ -31,6 +34,9 @@ var props
 var xiaoguang
 var airship
 var ending
+var opening
+var npcs
+var lights
 var test_session := "--test-session" in OS.get_cmdline_user_args()
 var reactions: Dictionary = {}
 
@@ -68,6 +74,15 @@ func _ready() -> void:
 	ending = Ending.new()
 	ending.content = self
 	add_child(ending)
+	opening = Opening.new()
+	opening.content = self
+	add_child(opening)
+	npcs = NpcCast.new()
+	npcs.content = self
+	add_child(npcs)
+	lights = IslandLights.new()
+	lights.content = self
+	add_child(lights)
 	director.stage_started.connect(_on_stage_started)
 	var talk = world.get("interactions")
 	if talk and talk.has_signal("dialogue_finished"):talk.dialogue_finished.connect(_on_dialogue_finished)
@@ -76,6 +91,14 @@ func _ready() -> void:
 	if world.get("audio"):world.audio.bind_scene()
 	_apply_reactions()
 	_bake.call_deferred()
+
+func player_name() -> String:
+	var name := String(state.data.get("player_name", "")).strip_edges()
+	return name if not name.is_empty() else "星仔"
+
+## Story text may say {name}; it becomes the player's name.
+func named(text: String) -> String:
+	return text.replace("{name}", player_name())
 
 func _bake() -> void:
 	# Collision shapes exist after the first physics frames
@@ -119,6 +142,9 @@ func _on_stage_started(_quest: String, stage: Dictionary) -> void:
 
 ## Named sequences examines and stages can start.
 func special(id: String, entry: Dictionary, _variant: Dictionary) -> void:
+	if id.begins_with("light:"):
+		await lights.perform(id.substr(6))
+		return
 	match id:
 		"find_xiaoguang":xiaoguang.found()
 		"polish_window":props.light_window()
@@ -175,6 +201,11 @@ func _process(_delta: float) -> void:
 	if airship.flying():return
 	examine_entry = examines.nearest(p)
 	if not examine_entry.is_empty():examine_target = String(examine_entry.id)
+
+## True when an examine marked "first" is in reach: it goes before talking to someone.
+func priority_examine(p: Vector3) -> bool:
+	var entry: Dictionary = examines.nearest(p)
+	return not entry.is_empty() and bool(entry.get("first", false))
 
 ## Uses the examine the player stands at (E or the prompt button).
 func examine(id: String) -> bool:

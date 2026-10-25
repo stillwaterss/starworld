@@ -226,8 +226,8 @@
       "blurb": ""
     },
     "keeper_isle": {
-      "name": "守灯人的岛",
-      "short": "守灯人岛",
+      "name": "灯塔岛",
+      "short": "灯塔岛",
       "kind": "islet",
       "position": [
         45.0,
@@ -239,7 +239,7 @@
       "blurb": "云海东边的高岛，只有飞艇能到。"
     },
     "keeper_dock": {
-      "name": "守灯人岛的码头",
+      "name": "灯塔岛的码头",
       "short": "岛上码头",
       "kind": "place",
       "position": [
@@ -252,7 +252,7 @@
       "blurb": ""
     },
     "keeper_house": {
-      "name": "守灯人的小屋",
+      "name": "老星的小屋",
       "short": "小屋",
       "kind": "place",
       "position": [
@@ -356,8 +356,8 @@
       "blurb": ""
     },
     "door_lamplighter": {
-      "name": "点灯人的门",
-      "short": "点灯人的门",
+      "name": "修灯邻居的门",
+      "short": "修灯邻居的门",
       "kind": "place",
       "position": [
         0.0,

@@ -1,22 +1,39 @@
 extends Node3D
 ## 小光, the little star that fell into the grass. Before it is found it glimmers by the
-## tree-house steps; afterwards it rides in the hand lantern (or floats by the player's
-## shoulder when the lantern is put away) and grows a little brighter each chapter.
-## During the ending it is handed to the sky (leave_for()) and stays there.
+## tree-house steps; afterwards it floats by the player's head ("lantern": with the
+## player), always facing the camera with a small face: two eyes that blink, a blush.
+## Its mood follows the story: shy at first (half hidden behind the shoulder, small,
+## trembling a little), then curious and warm (in front, livelier), and at the end close
+## by the cheek. react() makes it hop and smile or shrink; light_up() flies it to a
+## thing it lights and back. During the ending it is handed to the sky (leave_for()).
 var content
 var star: MeshInstance3D
 var halo: MeshInstance3D
 var light: OmniLight3D
 var material: StandardMaterial3D
-var where := "grass"          # grass, lantern, shoulder, flying, sky
+var where := "grass"          # grass, lantern (with the player), perform, flying, sky
+var face: Node3D
+var eyes: Array[MeshInstance3D] = []
+var _blink := 2.5
+var _smile := 0.0                # > 0: eyes squint into a smile
+var _scared := 0.0               # > 0: shrinks and hides behind the shoulder
+var _hop := 0.0
 var clock := 0.0
 var flight_tween: Tween
+## The ten things 小光 lights (content/island_lights.gd), one notch each on the meter under
+## the quest box, and finding its home in the sky. A key is a story flag or "star:<id>"
+## for a constellation in the journal.
+const DEEDS := [
+	["lit_garden", "花园的夜光花"], ["lit_treehouse", "树屋的小圆窗"], ["lit_lamps", "广场的路灯"],
+	["lit_oven", "面包房的炉火"], ["lit_child", "孩子的小夜灯"], ["lit_fountain", "喷泉的灯"],
+	["lit_ship", "飞艇的心"], ["lit_lighthouse", "灯塔"], ["lit_grandma", "奶奶窗台的灯"], ["star:home", "找到了家"],
+]
 
 func _ready() -> void:
 	name = "Xiaoguang"
 	star = MeshInstance3D.new()
 	star.mesh = preload("res://scripts/actor_visual.gd")._soft_star()
-	star.scale = Vector3.ONE * .16
+	star.scale = Vector3.ONE * .26
 	material = StandardMaterial3D.new()
 	material.albedo_color = Color("fff1c4")
 	material.emission_enabled = true
@@ -40,12 +57,87 @@ func _ready() -> void:
 	halo.material_override = soft
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(halo)
+	_build_face()
 	light = OmniLight3D.new()
 	light.light_color = Color("ffe2a0")
-	light.omni_range = 2.2
-	light.light_energy = .5
+	light.omni_range = 3.2
+	light.light_energy = .8
 	add_child(light)
 	_restore.call_deferred()
+
+## Two dark eyes with a white glint and two pink cheeks on the star's front (+Z).
+func _build_face() -> void:
+	face = Node3D.new()
+	star.add_child(face)
+	var dark := StandardMaterial3D.new()
+	dark.albedo_color = Color("3a2839")
+	dark.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var white := StandardMaterial3D.new()
+	white.albedo_color = Color("fffaf0")
+	white.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var pink := StandardMaterial3D.new()
+	pink.albedo_color = Color(1, .62, .62, .55)
+	pink.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	pink.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	for x in [-.1, .1]:
+		var eye := _dot(dark, Vector3(.042, .062, .02))
+		eye.position = Vector3(x, .03, .155)
+		face.add_child(eye)
+		eyes.append(eye)
+		var glint := _dot(white, Vector3(.38, .3, .5))
+		glint.position = Vector3(.25, .3, .6)
+		eye.add_child(glint)
+		var cheek := _dot(pink, Vector3(.05, .028, .01))
+		cheek.position = Vector3(x * 1.75, -.06, .14)
+		face.add_child(cheek)
+
+func _dot(mat: Material, size: Vector3) -> MeshInstance3D:
+	var dot := MeshInstance3D.new()
+	var ball := SphereMesh.new()
+	ball.radial_segments = 10
+	ball.rings = 5
+	ball.radius = 1.0
+	ball.height = 2.0
+	dot.mesh = ball
+	dot.scale = size
+	dot.material_override = mat
+	dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return dot
+
+## A small reaction: "happy" (hop and a smile), "scared" (shrinks behind the shoulder).
+func react(kind: String) -> void:
+	if kind == "happy":
+		_smile = 1.8
+		_hop = 1.0
+	elif kind == "scared":
+		_scared = 2.5
+
+## shy, warm or close: how near and how lively 小光 is, from the story so far.
+func mood() -> String:
+	var director = content.director
+	if director.main_done():return "close"
+	var chapter: int = int(content.state.data.main.chapter)
+	if chapter <= 0:return "shy"
+	return "close" if chapter >= director.main.size() - 1 else "warm"
+
+## Flies from the player to `point`, brightens there for `hold` seconds (the caller
+## lights the thing meanwhile) and comes back. Awaitable.
+func light_up(point: Vector3, hold := 1.6) -> void:
+	where = "perform"
+	if flight_tween:flight_tween.kill()
+	var start := global_position
+	flight_tween = create_tween()
+	flight_tween.tween_method(func(t: float):
+		global_position = start.lerp(point, t) + Vector3.UP * sin(t * PI) * 1.2, 0.0, 1.0, .9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	flight_tween.tween_method(func(t: float):
+		halo.scale = Vector3.ONE * lerpf(1.3, 7.0, sin(t * PI))
+		light.light_energy = lerpf(.6, 6.0, sin(t * PI))
+		light.omni_range = lerpf(3.2, 9.0, sin(t * PI)), 0.0, 1.0, hold)
+	flight_tween.tween_callback(func():
+		light.omni_range = 3.2
+		where = "lantern")
+	_smile = hold + 1.5
+	await flight_tween.finished
 
 func _restore() -> void:
 	var state = content.state
@@ -65,10 +157,20 @@ func found() -> void:
 	var scene = content.world.get("scene_actions")
 	if scene and is_instance_valid(scene.lantern) and not scene.lantern.visible:scene.toggle_lantern()
 
+func deed_done(key: String) -> bool:
+	if key.begins_with("chapter:"):return content.director._chapter_done(key.substr(8))
+	if key.begins_with("star:"):return content.director._star_known(key.substr(5))
+	return content.state.flag(key)
+
+## How many of the warm deeds are done (0 .. DEEDS.size()).
+func level() -> int:
+	var n := 0
+	for deed in DEEDS:n += 1 if deed_done(deed[0]) else 0
+	return n
+
 func brightness() -> float:
-	var chapter: int = content.state.data.main.chapter
-	if content.director.main_done():chapter = 5
-	return .45 + chapter * .17 + (.25 if content.state.flag("reaction_lighthouse_lit") else 0.0)
+	if content.director.main_done():return 1.6
+	return .55 + level() * .1
 
 ## The ending: flies from the lantern to a point in the sky and stays there.
 func leave_for(sky_point: Vector3, seconds := 9.0) -> void:
@@ -92,31 +194,58 @@ func _process(delta: float) -> void:
 	var glow := brightness()
 	var pulse := .85 + .15 * sin(clock * 2.3)
 	material.emission_energy_multiplier = 1.2 + glow * 1.6 * pulse
-	light.light_energy = glow * .6 * pulse
-	star.rotation.y += delta * .8
+	_smile = maxf(0, _smile - delta)
+	_scared = maxf(0, _scared - delta)
+	_hop = maxf(0, _hop - delta * 1.6)
+	_update_face(delta)
 	var player: CharacterBody3D = content.world.player
 	match where:
 		"grass":
 			visible = true
 			# faint, like something that has been crying a little
-			material.emission_energy_multiplier = .8 + .5 * pow(.5 + .5 * sin(clock * 1.3), 4.0)
-			light.light_energy = .25
-			star.position.y = .05 + sin(clock * 1.1) * .02
+			material.emission_energy_multiplier = 1.2 + .8 * pow(.5 + .5 * sin(clock * 1.3), 4.0)
+			light.light_energy = .6
+			star.scale = Vector3.ONE * .3
+			halo.visible = true
+			halo.scale = Vector3.ONE * 1.6
+			star.position.y = .12 + sin(clock * 1.1) * .03
 		"lantern":
-			var scene = content.world.get("scene_actions")
-			var lantern: Node3D = scene.lantern if scene and is_instance_valid(scene.lantern) else null
-			if lantern and lantern.visible:
-				visible = true
-				global_position = lantern.global_position + Vector3(0, -.31, 0)
-				star.scale = Vector3.ONE * .07
-				halo.visible = false
-				light.light_energy = 0.0
-			else:
-				# lantern put away: it rides by the player's shoulder instead
-				visible = true
-				halo.visible = true
-				star.scale = Vector3.ONE * .11
-				var shoulder: Vector3 = player.global_position + player.model.global_basis * Vector3(.42, 1.45 + sin(clock * 1.7) * .06, .1)
-				global_position = global_position.lerp(shoulder, clampf(delta * 4.0, 0, 1)) if global_position.distance_to(shoulder) < 6.0 else shoulder
+			visible = true
+			halo.visible = true
+			var m := mood()
+			var size: float = {"shy": .22, "warm": .27, "close": .27}[m] * (1.0 - .3 * minf(_scared, 1.0))
+			star.scale = star.scale.lerp(Vector3.ONE * size, clampf(delta * 3.0, 0, 1))
+			star.position = Vector3.UP * absf(sin(_hop * PI * 2.0)) * .25 * _hop
+			halo.scale = Vector3.ONE * (1.4 + .3 * glow)
+			light.light_energy = glow * .7 * pulse
+			# shy: half behind the shoulder and trembling; warm: out in front, lively;
+			# close: right by the cheek
+			var lively: float = {"shy": .03, "warm": .09, "close": .05}[m]
+			var spot: Vector3 = {"shy": Vector3(.5, 1.5, .32), "warm": Vector3(.55, 1.62, -.22), "close": Vector3(.38, 1.42, -.05)}[m]
+			if _scared > 0:spot = Vector3(.42, 1.35, .45)
+			spot += Vector3(sin(clock * 1.3) * lively, sin(clock * 1.7) * .07, cos(clock * 1.1) * lively)
+			if m == "shy":spot += Vector3(sin(clock * 23.0), 0, 0) * .006
+			var shoulder: Vector3 = player.global_position + player.model.global_basis * spot
+			global_position = global_position.lerp(shoulder, clampf(delta * 4.0, 0, 1)) if global_position.distance_to(shoulder) < 6.0 else shoulder
+		"perform":
+			visible = true
+			halo.visible = true
+			star.scale = star.scale.lerp(Vector3.ONE * .3, clampf(delta * 3.0, 0, 1))
 		"sky":
 			visible = false
+
+## Faces the camera (gently wobbling), blinks every few seconds, squints when happy.
+func _update_face(delta: float) -> void:
+	var camera := get_viewport().get_camera_3d()
+	if camera:
+		var to_camera := camera.global_position - star.global_position
+		to_camera.y *= .4
+		if to_camera.length() > .05:
+			var goal := Basis.looking_at(-to_camera.normalized()).rotated(Vector3.UP, sin(clock * .9) * .25) * Basis(Vector3.FORWARD, sin(clock * 1.4) * .12)
+			star.basis = star.basis.orthonormalized().slerp(goal, clampf(delta * 6.0, 0, 1)).scaled(star.scale)
+	_blink -= delta
+	if _blink <= 0:_blink = randf_range(2.2, 4.5)
+	var open := .12 if _blink < .12 else 1.0
+	if _smile > 0:open = .32
+	if _scared > 0:open = 1.25
+	for eye in eyes:eye.scale.y = lerpf(eye.scale.y, .062 * open, clampf(delta * 18.0, 0, 1))

@@ -20,6 +20,7 @@ var saved_mouse := 0
 var leave_after_settle := false
 var approach := CHAIR+FACING*1.05
 ## Seated view: two slow framings of the island and sky (←/→), HUD stepped aside.
+## (A third, close beside the player, showed the model not quite on the seat: dropped.)
 const VISTAS := ["整座小镇", "天色"]
 var vista := 0
 var vista_clock := 0.0
@@ -27,6 +28,9 @@ var hint_layer: CanvasLayer
 var hint: Label
 var _vista_hidden: Array[CanvasLayer] = []
 var _vista_views: Array = []
+## Stays in the top-right corner while seated: how to leave, and what the story wants next.
+var corner: Label
+var _corner_clock := 0.0
 
 func _ready() -> void:
 	name="SceneActions"
@@ -46,13 +50,22 @@ func _ready() -> void:
 	hint.add_theme_color_override("font_outline_color",Color(.08,.08,.16,.85))
 	hint.add_theme_constant_override("outline_size",5)
 	var font:=SystemFont.new();font.font_names=PackedStringArray(["Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf")]
+	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
 	hint.add_theme_font_override("font",font)
 	hint.modulate.a=0
-	scene_event.connect(_forward_content_event)
-
-func _forward_content_event(id: String, payload: Dictionary) -> void:
-	if activities.has_signal(id):activities.emit_signal(id,payload)
+	corner=Label.new();hint_layer.add_child(corner)
+	corner.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	corner.offset_left=-420;corner.offset_right=-18;corner.offset_top=16;corner.offset_bottom=56
+	corner.grow_horizontal=Control.GROW_DIRECTION_BEGIN
+	corner.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	corner.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
+	corner.add_theme_font_size_override("font_size",19)
+	corner.add_theme_color_override("font_color",Color("fff1d7"))
+	corner.add_theme_color_override("font_outline_color",Color(.08,.08,.16,.85))
+	corner.add_theme_constant_override("outline_size",4)
+	corner.add_theme_font_override("font",font)
+	corner.modulate.a=.92
+	corner.visible=false
 
 func vista_transform(index: int) -> Transform3D:
 	if _vista_views.size()!=VISTAS.size():_vista_views=_plan_vistas()
@@ -91,17 +104,30 @@ func _first_clear(eyes: Array,look: Vector3,must_see: Vector3) -> Array:
 	return [eyes[0],look]
 
 func vista_fov(index: int) -> float:
-	return [40.0,58.0][index]
+	return [40.0,58.0,46.0][index]
 
 func _enter_vista() -> void:
 	vista=0;vista_clock=0.0;_vista_views=_plan_vistas()
 	_vista_hidden.clear()
 	for node in world.get_children():
 		if node is CanvasLayer and node.visible:_vista_hidden.append(node);node.visible=false
-	hint.text="←/→ 换个角度看（%s）· T 换天色 · O 拍照 · C 起身"%VISTAS[vista]
+	hint.text="←/→ 换个角度看（%s） · T 换天色 · O 拍照 · C 起身"%VISTAS[vista]
 	var t:=create_tween();t.tween_property(hint,"modulate:a",1.0,.8);t.tween_interval(5.0);t.tween_property(hint,"modulate:a",0.0,1.5)
+	_corner_clock=0.0;_update_corner();corner.visible=true
+
+## Only the keys that move the story on stay in the corner: T while the story waits for
+## a change of sky, and C to get up. Everything else was shown once, at the bottom.
+func _update_corner() -> void:
+	var keys:=[]
+	var content=world.get("content")
+	if content and content.director and content.director.state.data.started and not content.director.main_done():
+		var stage: Dictionary=content.director.main_stage()
+		if JSON.stringify(stage.get("done",{})).contains("\"sky\""):keys.append("T 换天色")
+	keys.append("C 起身")
+	corner.text="  ·  ".join(keys)
 
 func _leave_vista() -> void:
+	corner.visible=false
 	for node in _vista_hidden:
 		if is_instance_valid(node):node.visible=true
 	_vista_hidden.clear()
@@ -119,6 +145,8 @@ func _input(event: InputEvent) -> void:
 
 func _process_vista(delta: float) -> void:
 	vista_clock+=delta
+	_corner_clock+=delta
+	if _corner_clock>1.0:_corner_clock=0.0;_update_corner()
 	var goal:=vista_transform(vista)
 	var k:=1.0-exp(-delta*.9)
 	seat_camera.global_transform=seat_camera.global_transform.interpolate_with(goal,k)
@@ -208,7 +236,7 @@ func _physics_process(delta: float) -> void:
 			transition_start=player.position;seat_state="lowering";phase=0;seat_camera.current=true
 	elif seat_state=="lowering":
 		var t:=smoothstep(0.0,1.0,minf(phase/.85,1.0))
-		player.position=transition_start.lerp(CHAIR+Vector3.UP*.16,t)
+		player.position=transition_start.lerp(_seat_point(),t)
 		player.model.seat_blend=t
 		if phase>=.85:
 			seat_state="seated";activities.sitting=true
@@ -222,6 +250,23 @@ func _physics_process(delta: float) -> void:
 		if phase>=.8:
 			_finish_standing();activities.say("起身了，继续走走。")
 			scene_event.emit("seat_left",{"location_id":"remote_chair"})
+
+## Where the player's root rests when seated: on the seat's top surface, found by rays
+## (the seat is slatted, so the highest of several), a little back toward the backrest.
+var _seat_cache := Vector3.INF
+func _seat_point() -> Vector3:
+	if _seat_cache!=Vector3.INF:return _seat_cache
+	var space:=world.get_world_3d().direct_space_state
+	var side:=Vector3(-FACING.z,0,FACING.x)
+	var top:=-INF
+	for along: float in [-.25,-.15,-.05,.05]:
+		for across: float in [-.1,0.0,.1]:
+			var probe:=CHAIR+FACING*along+side*across
+			var q:=PhysicsRayQueryParameters3D.create(probe+Vector3.UP*.95,probe+Vector3.DOWN*.5,0xFFFFFFFF,[player.get_rid()])
+			var hit:=space.intersect_ray(q)
+			if not hit.is_empty():top=maxf(top,hit.position.y)
+	_seat_cache=(CHAIR-FACING*.08)+Vector3.UP*(top-CHAIR.y+.005 if top>CHAIR.y+.2 else .16)
+	return _seat_cache
 
 func _finish_standing() -> void:
 	seat_state="free";activities.sitting=false;player.scripted_active=false;player.scripted_direction=Vector3.ZERO

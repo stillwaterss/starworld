@@ -1,6 +1,8 @@
 extends Node3D
 ## Wind chime beside the tree-house door: a wooden arm, a disc and five brass tubes on
 ## strings. ring() gives each tube a damped swing; idle wind keeps them barely moving.
+## Nothing stands near the spot to hang it from, so the arm sits on its own post,
+## which reaches down to whatever ground is under the arm's far end.
 const TUBES := [[.0, .34], [.072, .28], [-.072, .30], [.04, .23], [-.04, .25]]
 
 var tubes: Array[Node3D] = []
@@ -86,6 +88,45 @@ func _ready() -> void:
 	clapper.material_override = wood
 	clapper.position.y = -.2
 	add_child(clapper)
+	_plant_post.call_deferred(wood)
+
+func _plant_post(wood: Material) -> void:
+	for i in 2:await get_tree().physics_frame
+	var top := to_global(Vector3(0, .15, -.56))
+	var hit := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(top, top + Vector3.DOWN * 8))
+	if hit.is_empty():return
+	var length: float = top.y - hit.position.y
+	var post := StaticBody3D.new()
+	post.name = "ChimePost"
+	post.position = to_local(hit.position) + Vector3.UP * length / 2
+	add_child(post)
+	var shape := CollisionShape3D.new()
+	var cylinder := CylinderShape3D.new()
+	cylinder.radius = .05
+	cylinder.height = length
+	shape.shape = cylinder
+	post.add_child(shape)
+	var pole := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.radial_segments = 8
+	mesh.rings = 1
+	mesh.top_radius = .035
+	mesh.bottom_radius = .045
+	mesh.height = length
+	pole.mesh = mesh
+	pole.material_override = wood
+	post.add_child(pole)
+	var foot := MeshInstance3D.new()
+	var base := CylinderMesh.new()
+	base.radial_segments = 8
+	base.rings = 1
+	base.top_radius = .09
+	base.bottom_radius = .13
+	base.height = .08
+	foot.mesh = base
+	foot.material_override = wood
+	foot.position.y = .04 - length / 2
+	post.add_child(foot)
 
 func ring(strength := 1.0) -> void:
 	for i in swing.size():swing[i] = strength * (.35 + .25 * sin(i * 2.1))

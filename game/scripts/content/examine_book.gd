@@ -46,6 +46,36 @@ func prompt(entry: Dictionary) -> String:
 	var v := variant(entry)
 	return "E  " + String(v.get("prompt", entry.get("prompt", "看看")))
 
+## A doorway conversation: {"talk": {"title": "面包师", "lines": [...]}}. The door (the
+## variant's or the entry's "door") stays open while it lasts, its resident in view.
+func _talk(entry: Dictionary, v: Dictionary, at: Vector3) -> void:
+	var props = content.props
+	var door := String(v.get("door", entry.get("door", "")))
+	var focus: Vector3 = at + Vector3.UP * .9
+	var front: Vector3 = content.world.player.global_position - at
+	if props.doors.has(door):
+		props.open_door(door, false, true)
+		props.doors[door].hold = true
+		var c: Vector3 = props._v(props.doors[door].info.centre)
+		front = props.doors[door].front
+		focus = c + front * .45 + Vector3.DOWN * .25
+	front.y = 0
+	front = front.normalized() if front.length() > .01 else Vector3.BACK
+	var side: Vector3 = front.cross(Vector3.UP)
+	var eye: Vector3 = focus + front * 4.4 + side * 1.9 + Vector3.UP * 1.3
+	var space: PhysicsDirectSpaceState3D = content.world.get_world_3d().direct_space_state
+	for s: float in [1.9, -1.9, 3.0, -3.0, 0.0]:
+		var candidate: Vector3 = focus + front * 4.4 + side * s + Vector3.UP * 1.3
+		if space.intersect_ray(PhysicsRayQueryParameters3D.create(focus, candidate, 1)).is_empty():
+			eye = candidate
+			break
+	var talk = content.world.interactions
+	var lines: Array = []
+	for line in v.talk.get("lines", []):lines.append(String(line))
+	if talk.show_talk(String(v.talk.get("title", "")), lines, focus, eye):
+		await talk.talk_closed
+	if props.doors.has(door):props.doors[door].hold = false
+
 ## Runs an entry; returns false if nothing applies right now.
 func use(entry: Dictionary) -> bool:
 	var v := variant(entry)
@@ -62,13 +92,21 @@ func use(entry: Dictionary) -> bool:
 		await _perform(performance, pose, at, float(v.get("seconds", 2.0)), v)
 	elif v.has("door"):
 		content.props.open_door(String(v.door))
+	if v.has("talk"):
+		await _talk(entry, v, at)
 	if v.has("note"):
 		await content.ui.show_note(String(v.note.get("title", "")), v.note.get("lines", []))
 	elif v.has("text"):
-		content.ui.toast(String(v.text), float(v.get("text_seconds", 5.0)))
+		content.ui.toast(content.named(String(v.text)), float(v.get("text_seconds", 5.0)))
 	if v.has("whisper") and (first or bool(v.get("whisper_always", false))):content.ui.whisper(String(v.whisper))
 	if v.has("event"):content.events.emit(String(v.event), {"place": entry.id, "first": first})
-	if v.has("special"):content.special(String(v.special), entry, v)
+	if v.has("special"):
+		# a lighting is awaited, so what the resident says afterwards follows it
+		if String(v.special).begins_with("light:"):
+			await content.special(String(v.special), entry, v)
+			if v.has("after_talk"):await _talk(entry, {"talk": v.after_talk, "door": v.get("door", "")}, at)
+		else:
+			content.special(String(v.special), entry, v)
 	state.save()
 	content.director.evaluate()
 	return true

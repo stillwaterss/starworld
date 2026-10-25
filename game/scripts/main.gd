@@ -19,9 +19,9 @@ var fps_label: Label
 var interactions: CanvasLayer
 var day_cycle: Node
 var activities: CanvasLayer
+var scene_actions: Node3D
 var audio: Node      # content: day/dusk/night music, ambience, settings
 var content: Node    # content: story, guide, map, story UI
-var scene_actions: Node3D
 var performance: Node3D   # staged moments for everyday actions
 
 func get_scene_location(id: String) -> Vector3:
@@ -73,26 +73,11 @@ func _ready() -> void:
 	performance=preload("res://scripts/performance.gd").new()
 	performance.world=self
 	add_child(performance)
-	_setup_content_anchors()
 	content=preload("res://scripts/content/content_root.gd").new()
 	content.world=self
 	add_child(content)
 	if autotest:
 		_autotest()
-
-func _setup_content_anchors() -> void:
-	var points := {
-		"tree_house": [Vector3(0,.1,1.4),Vector3.FORWARD],
-		"star_roof_shop": [Vector3(-15.5,.1,7.4),Vector3.BACK],
-		"garden": [Vector3(-3,.1,8.2),Vector3.FORWARD],
-		"remote_chair": [scene_actions.approach+Vector3.UP*.1,-scene_actions.FACING],
-		"telescope": [interactions.SCOPE_POSITION+Vector3(0,.1,1.9),Vector3.FORWARD],
-		"fountain": [Vector3(6.5,.1,4.0),Vector3.FORWARD],
-		"dock": [Vector3(-22.5,.1,4.8),Vector3.LEFT]
-	}
-	for id in points:
-		var marker:=Marker3D.new();marker.name="Anchor_"+id;add_child(marker)
-		marker.position=points[id][0];marker.look_at(marker.position+points[id][1])
 
 
 func _process(_delta: float) -> void:
@@ -188,6 +173,9 @@ func _setup_lights() -> void:
 		omni.distance_fade_begin = 85.0
 		omni.distance_fade_length = 30.0
 		omni.light_color = Color(l[4], l[5], l[6])
+		# the story dims these until 小光 has lit the island again (content/island_lights.gd)
+		omni.set_meta("base_energy", omni.light_energy)
+		omni.add_to_group("town_lamps")
 		add_child(omni)
 
 
@@ -216,12 +204,16 @@ func _setup_hud() -> void:
 	help.text = "WASD 移动 · E 交谈 · N 地图 · P 故事 · H 帮助"
 	var font := SystemFont.new()
 	font.font_names = PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf")]
+	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
 	help.add_theme_font_override("font",font)
 	help.position = Vector2(16, 12)
 	help.add_theme_color_override("font_outline_color", Color(0.1, 0.08, 0.2))
 	help.add_theme_constant_override("outline_size", 6)
 	layer.add_child(help)
+	# the key list fades after a while: the help panel (H) has it all
+	var fade := help.create_tween()
+	fade.tween_interval(25.0)
+	fade.tween_property(help, "modulate:a", 0.0, 2.0)
 	fps_label = Label.new()
 	fps_label.position = Vector2(16, 40)
 	fps_label.add_theme_color_override("font_color", Color(1, 0.9, 0.6))

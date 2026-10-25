@@ -136,20 +136,23 @@ func frame(focus: Vector3, view := {}) -> void:
 	facing.y = 0
 	facing = facing.normalized() if facing.length() > .01 else Vector3.FORWARD
 	var look: Vector3 = view.get("look", p.lerp(focus, float(view.get("mix", .45))) + Vector3.UP * float(view.get("look_height", .75)))
-	var distance := float(view.get("distance", 3.1))
-	var height := float(view.get("height", 1.45))
+	# Wide and from the side or behind: the characters are small figures in their place,
+	# never a close look at a face (the models are not made for close-ups).
+	var distance := maxf(float(view.get("distance", 4.6)), 4.4)
+	# a low shot looking up (the wish lantern rising) keeps its height
+	var height := float(view.get("height", 2.0)) if view.get("low", false) else maxf(float(view.get("height", 2.0)), 1.9)
 	var eye: Vector3 = view.get("eye", Vector3.INF)
 	if eye == Vector3.INF:
 		var space := world.get_world_3d().direct_space_state
 		# NPCs count as obstacles: a friend standing in front of the camera is a bad shot
 		var exclude: Array[RID] = [player.get_rid()]
-		eye = look + facing.rotated(Vector3.UP, deg_to_rad(40)) * distance + Vector3.UP * height
-		for angle in [40, -40, 65, -65, 20, -20, 95, -95]:
+		eye = look + facing.rotated(Vector3.UP, deg_to_rad(100)) * distance + Vector3.UP * height
+		for angle in [100, -100, 130, -130, 75, -75, 160, -160, 55, -55]:
 			var candidate: Vector3 = look + facing.rotated(Vector3.UP, deg_to_rad(angle)) * distance + Vector3.UP * height
 			if space.intersect_ray(PhysicsRayQueryParameters3D.create(look, candidate, 3, exclude)).is_empty():
 				eye = candidate
 				break
-	glide_to(Transform3D(Basis.looking_at(look - eye), eye), float(view.get("fov", 46)), float(view.get("time", .9)))
+	glide_to(Transform3D(Basis.looking_at(look - eye), eye), minf(float(view.get("fov", 44)), 50.0), float(view.get("time", .9)))
 
 func glide_to(goal: Transform3D, fov: float, seconds := .9) -> void:
 	if _glide:_glide.kill()
@@ -287,7 +290,37 @@ static func watering_can() -> Node3D:
 	piece(can, handle, Vector3(0, .05, .02), dark, Vector3(0, 90, 0))
 	return can
 
+## The modelled star paper lantern (assets/props) when present, else a simple one.
+const LANTERN_MODEL := "res://assets/props/prop_lantern.glb"
+static var _lantern_scene: PackedScene
+
 static func paper_lantern() -> Node3D:
+	if _lantern_scene == null and ResourceLoader.exists(LANTERN_MODEL):_lantern_scene = load(LANTERN_MODEL)
+	if _lantern_scene:
+		var root := Node3D.new()
+		root.name = "WishLanternProp"
+		var model: Node3D = _lantern_scene.instantiate()
+		model.scale = Vector3.ONE * .36
+		model.position.y = .06
+		root.add_child(model)
+		for mesh: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+			for i in mesh.get_surface_override_material_count():
+				var base := mesh.get_active_material(i)
+				if not base is StandardMaterial3D:continue
+				var m: StandardMaterial3D = base.duplicate()
+				m.emission_enabled = true
+				m.emission = Color(1, .78, .45)
+				m.emission_energy_multiplier = 1.0
+				if m.albedo_texture:m.emission_texture = m.albedo_texture
+				m.set_meta("lantern_glow", true)
+				mesh.set_surface_override_material(i, m)
+		var glow := OmniLight3D.new()
+		glow.light_color = Color("ffcf89")
+		glow.light_energy = .8
+		glow.omni_range = 2.6
+		glow.position.y = .22
+		root.add_child(glow)
+		return root
 	var lantern := Node3D.new()
 	lantern.name = "WishLanternProp"
 	piece(lantern, cylinder(.13, .26, .16), Vector3(0, .22, 0), material(Color("ffd08a"), 1.4, .92))

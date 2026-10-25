@@ -11,7 +11,7 @@ const fs=require('node:fs');
  try{
   await page.goto('http://127.0.0.1:8765/');
   await page.screenshot({path:'browser-evidence/home.png'});
-  await page.getByRole('link',{name:'去小世界走走 →'}).click();
+  await page.getByRole('link',{name:'去小世界走走 →'}).first().click();
   await page.screenshot({path:'browser-evidence/loading.png'});
   const begun=Date.now();
   await page.locator('#start').click();

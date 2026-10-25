@@ -1,11 +1,8 @@
 extends CanvasLayer
-signal content_event(id: String, data: Dictionary)
-signal seat_settled(data: Dictionary)
-signal seat_left(data: Dictionary)
-signal lantern_enabled(data: Dictionary)
 ## Small unhurried interactions. Test sessions never write real progress/photos.
 const SAVE := "user://cozy.json"   # = D:/claude/starworld/game/save/cozy.json
 ## Content events for the story/guide layer (ids in content/content_events.gd).
+signal content_event(id: String, data: Dictionary)
 const CHAIR := Vector3(-43.8,6,-19.5)
 const TREE := Vector3(0,0,-.2)
 const GARDEN := Vector3(-3,0,8.2)
@@ -104,7 +101,7 @@ func _build_ui() -> void:
 	ui.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var font:=SystemFont.new()
 	font.font_names=PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf")]
+	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
 	ui.add_theme_font_override("font",font)
 	add_child(ui)
 	hint=label("")
@@ -193,8 +190,14 @@ func _process(delta: float) -> void:
 		elif near(GARDEN,4):hint.text="R 种花 · U 浇水 · G 向芽芽招手"
 		elif near(WATER,4.8):hint.text="K 打水漂，看涟漪散开"
 		elif near(TREE,4):hint.text="X 拨风铃 · L 放一盏愿望灯"
+		elif _story_mode():hint.text=""
 		else:hint.text="H 帮助 · N 地图 · F 小灯 · O 摄影"
 	else:hint.text=""
+
+## In the story the quest box says what to do; the corner texts step aside.
+func _story_mode() -> bool:
+	var content=world.get("content")
+	return content!=null and content.state!=null and content.state.data.mode=="story"
 
 func near(place: Vector3,distance: float) -> bool:return player.position.distance_to(place)<distance
 
@@ -390,7 +393,7 @@ func _perform_chime() -> void:
 func _perform_wish(node: Node3D,entry: Dictionary) -> void:
 	var perf=world.performance
 	var up:=player.global_position+Vector3.UP*2.2
-	if not perf.begin("wish",up,{"distance":3.6,"height":.35,"look_height":1.15,"mix":0.0,"fov":50}):entry.time=0.0;return
+	if not perf.begin("wish",up,{"distance":5.0,"height":.35,"look_height":1.6,"mix":0.0,"fov":50,"low":true}):entry.time=0.0;return
 	perf.hold_prop(perf.paper_lantern(),Vector3(0,.02,.05))
 	perf.set_pose("hug",5.0)
 	await perf.wait(1.0)

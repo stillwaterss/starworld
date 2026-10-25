@@ -4,81 +4,1105 @@
   "gardener": {
     "title": "花园看护人",
     "entries": [
-      {"id": "g_meet", "priority": 100, "when": {"stage": "c1_meet"}, "sets": "met_gardener", "lines": ["你就是新来的星星人吧？我是芽芽，花园归我管。", "……你灯里那是什么？掉下来的星星？", "掉下来的星星和种子差不多，要暖着，要等。你在我旁边种三株花吧——花开的晚上，它也会亮一点。", "种子给你。站到花圃边按 R。"]},
-      {"id": "g_plant", "priority": 100, "when": {"stage": "c1_plant"}, "lines": ["一株一株来，别挤在一起。根要有地方伸开。", "小光：它们会疼吗？", "不会。被埋进土里，是它们最安心的时候。"]},
-      {"id": "g_water", "priority": 100, "when": {"stage": "c1_water"}, "lines": ["土有点干。按 U，水不用多。"]},
-      {"id": "g_day", "priority": 100, "when": {"stage": "c1_day"}, "lines": ["花要见到太阳才会转头。按 T，天色会慢慢换。"]},
-      {"id": "g_window", "priority": 100, "when": {"stage": "c1_window"}, "lines": ["小光总得有个地方待着。你树屋门上那扇小圆窗，好久没擦了吧？", "擦亮了，它就能从窗里看见天。"]},
-      {"id": "g_report", "priority": 100, "when": {"stage": "c1_report"}, "lines": ["你看，三株都朝着云海那边。", "小光：它们是全镇最好看的花吗？", "不是。镇上比它们好看的花多着呢。", "可它们是你的。不是因为它们开得最好，是因为你给它们浇过水。", "对了……我想给远岛的眠眠写封信，可家里的信纸用完了。码头边的星顶小摊也许还有。"]},
-      {"id": "g_shop", "priority": 100, "when": {"stage": "c2_shop"}, "lines": ["星顶小摊在码头那边，房顶是一颗大星星。按 N 打开地图也能找到。", "摊主不在的时候，东西可以先拿，留个记号就行。"]},
-      {"id": "g_letter", "priority": 100, "when": {"stage": "c2_letter"}, "lines": ["信纸找到了？好。", "小光：什么是信？", "嗯……就是把想念折起来，让它替你走很远的路。", "写好了。你帮我带给眠眠。去远岛要过一座很长的高桥，桥上有栏杆，慢慢走。"]},
-      {"id": "g_deliver", "priority": 100, "when": {"stage": "c2_deliver"}, "lines": ["信送到了吗？没送到也不要紧，信不怕慢。"]},
-      {"id": "g_dusk_wait", "priority": 100, "when": {"any": [{"stage": "c2_dusk"}, {"stage": "c2_night"}]}, "lines": ["眠眠说西北小岛那把椅子看天色最好。去坐一会儿吧，花园我看着。"]},
-      {"id": "g_ask", "priority": 100, "when": {"stage": "c2_ask"}, "lines": ["眠眠今晚肯定守着望远镜。去问问她看什么吧。"]},
-      {"id": "g_stars", "priority": 100, "when": {"any": [{"stage": "c3_first"}, {"stage": "c3_all"}, {"stage": "c3_show"}]}, "lines": ["星图的事我不太懂。我只知道，记下来的东西就不容易走丢。"]},
-      {"id": "g_wish", "priority": 100, "when": {"stage": "c3_wish"}, "lines": ["愿望灯在树屋门前放，按 L。灯纸我在门口留了几张。"]},
-      {"id": "g_home", "priority": 100, "when": {"stage": "c3_home"}, "lines": ["灯飞走了，小光没跟上？", "小光：我太重了。我是不是不该掉下来？", "掉下来的东西，不一定是做错了什么。花瓣也会掉，掉下来才变成土。", "……码头边那艘飞艇，很多年没飞了。以前守灯人开着它去云海那边。也许它能飞得比愿望灯高。"]},
-      {"id": "g_c4", "priority": 100, "when": {"any": [{"stage": "c4_dock"}, {"stage": "c4_wind"}, {"stage": "c4_lamp"}, {"stage": "c4_fly"}]}, "lines": ["守灯人？我小时候见过一次。他话很少，手上总有灯油的味道。", "他走的那天也是傍晚，风铃响了三下。"]},
-      {"id": "g_c4_away", "priority": 100, "when": {"any": [{"stage": "c4_house"}, {"stage": "c4_letters"}, {"stage": "c4_light"}, {"stage": "c4_return"}]}, "lines": ["你怎么在这儿？……哦，是我在想你们会不会已经到了。"]},
-      {"id": "g_farewell", "priority": 100, "when": {"stage": "c5_farewell"}, "lines": ["今晚就要走了吗？", "小光：如果我回去了，你们还能看见我吗？", "能。不过要抬头。", "我这辈子都在低头看花，以后就多一件事做了。", "去吧。这朵给它带上——你种的第一株，开得最早。"]},
-      {"id": "g_after_end", "priority": 46, "when": {"main_done": true}, "lines": ["今晚的归家座好像亮了一点。……也可能是我看错了。看错了也挺好。"]},
-      {"id": "g_chime_tell", "priority": 90, "when": {"side_stage": "s_chime_tell"}, "lines": ["三种都听过了？我最喜欢傍晚那一声，像有人在叫你回家吃饭。", "声音一下就散了。可是听过的人，会记得那天的风。"]},
-      {"id": "g_sketch_show", "priority": 90, "when": {"side_stage": "s_sketch_show"}, "lines": ["拍得真好。", "你知道吗，照片里留下的其实不是花。花明年还会开，可那天弯腰看花的你，只有这一张。"]},
-      {"id": "g_firefly_tell", "priority": 90, "when": {"side_stage": "s_firefly_tell"}, "lines": ["它们带你去了南边那座小岛？那里有一眼很小的泉。", "萤火虫每一只都不亮。可是一只接一只，就是一条路。"]},
-      {"id": "g_chime_offer", "priority": 70, "once": true, "when": {"all": [{"chapter_done": "c1"}, {"side_state": "s_chime", "is": "locked"}]}, "unlocks": "s_chime", "lines": ["树屋前那串风铃，晴天、傍晚、夜里听起来不一样。哪天有空，三种都听听？按 P 打开故事本就能接下这件小事。"]},
-      {"id": "g_sketch_offer", "priority": 69, "once": true, "when": {"all": [{"chapter_done": "c1"}, {"side_state": "s_sketch", "is": "locked"}]}, "unlocks": "s_sketch", "lines": ["今年第一批花，我想留张照片。晴天拍最好看。你按 O 就能拍。"]},
-      {"id": "g_neighbors_offer", "priority": 68, "once": true, "when": {"all": [{"chapter_done": "c2"}, {"side_state": "s_neighbors", "is": "locked"}]}, "unlocks": "s_neighbors", "lines": ["镇上那些小屋里都住着人，只是他们不太出门。你去敲敲门？他们会开一条缝跟你说话。"]},
-      {"id": "g_firefly_offer", "priority": 67, "once": true, "when": {"all": [{"chapter_done": "c3"}, {"side_state": "s_firefly", "is": "locked"}]}, "unlocks": "s_firefly", "lines": ["夜里在花园叫来萤火虫，有时候它们会带你去一个地方。我小时候跟着走过一次。"]},
-      {"id": "g_after_wish", "priority": 40, "when": {"flag": "ev_wish_released"}, "lines": ["那天的愿望灯是你放的吧？飞得好高。"]},
-      {"id": "g_after_stars", "priority": 40, "when": {"stars": 1}, "lines": ["眠眠说你帮她记了星图。她平时可不让别人碰望远镜。"]},
-      {"id": "g_after_seat", "priority": 38, "when": {"flag": "ev_seat_settled"}, "lines": ["西北小岛那把椅子坐着舒服吗？我是坐不住，花园总有事。"]},
-      {"id": "g_after_wave", "priority": 36, "when": {"flag": "ev_waved"}, "lines": ["你朝我招手的时候，我正蹲着拔草，没顾上回。下次一定。"]},
-      {"id": "g_after_lighthouse", "priority": 44, "when": {"flag": "reaction_lighthouse_lit"}, "lines": ["昨晚我看见云海那边有光，一下一下的。是灯塔吧？", "那么多年没人点，它居然还记得怎么亮。"]},
-      {"id": "g_after_photo", "priority": 34, "when": {"flag": "ev_photo_saved"}, "lines": ["你也在拍照？记得拍拍那棵大树，它最上镜。"]},
-      {"id": "g_after_ripple", "priority": 34, "when": {"flag": "ev_stones_skipped"}, "lines": ["喷泉刚才跳舞了？……它只在有人认真看的时候跳。"]},
-      {"id": "g_sky_day", "priority": 30, "when": {"sky": "day"}, "lines": ["晴天浇水要趁早，不然太阳一晒，叶子就卷边。"]},
-      {"id": "g_sky_dusk", "priority": 30, "when": {"sky": "dusk"}, "lines": ["傍晚的风从云海那边吹过来，花会轻轻晃。像在跟太阳挥手。"]},
-      {"id": "g_sky_night", "priority": 30, "when": {"sky": "night"}, "lines": ["夜里花会自己发一点光。不亮的那几株，是睡着了。"]},
-      {"id": "g_idle_1", "priority": 10, "when": {}, "lines": ["花圃旁边那块空地，是留给明年的。明年的事，现在就可以开始想。"]},
-      {"id": "g_idle_2", "priority": 10, "when": {}, "lines": ["今天的土很松，适合种东西。"]},
-      {"id": "g_idle_3", "priority": 10, "when": {}, "lines": ["你那顶恐龙帽子，是从家里带来的吗？挺好看的。"]},
-      {"id": "g_idle_4", "priority": 10, "when": {}, "lines": ["花不会着急。着急的是种花的人。"]},
-      {"id": "g_idle_5", "priority": 10, "when": {}, "lines": ["我不太会看星星，只会看叶子。叶子卷了，就是要变天了。"]}
+      {
+        "id": "g_meet",
+        "priority": 100,
+        "when": {
+          "stage": "c1_meet"
+        },
+        "lines": [
+          "{name}！你也看见昨晚的流星雨了？……咦，你肩膀后面躲着的是什么？",
+          "小光：……",
+          "别怕，我不碰你。掉下来的星星，和种子差不多——要暖着，要等。",
+          "你看我的花园，这些是夜光花。以前一到夜里，它们就自己发光。",
+          "云海那边的灯塔暗了以后，它们也跟着睡着了。……也许，小光能叫醒它们。",
+          "先种三株吧。站到花圃边按 R。"
+        ],
+        "sets": "met_gardener"
+      },
+      {
+        "id": "g_plant",
+        "priority": 100,
+        "when": {
+          "stage": "c1_plant"
+        },
+        "lines": [
+          "一株一株来，别挤在一起。根要有地方伸开。",
+          "小光：它们会疼吗？",
+          "不会。被埋进土里，是它们最安心的时候。"
+        ]
+      },
+      {
+        "id": "g_water",
+        "priority": 100,
+        "when": {
+          "stage": "c1_water"
+        },
+        "lines": [
+          "土有点干。按 U，水不用多。"
+        ]
+      },
+      {
+        "id": "g_night",
+        "priority": 100,
+        "when": {
+          "stage": "c1_night"
+        },
+        "lines": [
+          "夜光花只在夜里开。按 T，天色会慢慢换。",
+          "小光：天黑了……我会不会被黑夜吞掉？",
+          "不会的。天越黑，光越看得清。"
+        ]
+      },
+      {
+        "id": "g_light",
+        "priority": 100,
+        "when": {
+          "stage": "c1_light"
+        },
+        "lines": [
+          "花苞都鼓起来了。让小光试试吧——在花圃边按 E。",
+          "小光：要是我点不亮呢？",
+          "那就明天再试。花不会着急。"
+        ]
+      },
+      {
+        "id": "g_window",
+        "priority": 100,
+        "when": {
+          "stage": "c1_window"
+        },
+        "lines": [
+          "小光总得有个住的地方。你树屋门上那扇小圆窗，好久没擦了吧？",
+          "擦亮了，它就能从窗里看见天。"
+        ]
+      },
+      {
+        "id": "g_report",
+        "priority": 100,
+        "when": {
+          "stage": "c1_report"
+        },
+        "lines": [
+          "你看，三株都亮了。整个花园好久没这么亮过了。",
+          "小光：我把光分给它们，可是……我好像更亮了？",
+          "光不是用掉的，是分出去的。分出去的光，会回到你身上。",
+          "小光：芽芽，你知道我的家在哪儿吗？",
+          "我只会看近处的东西，叶子、花、泥土。看远处的，是眠眠。",
+          "……我和她，很久没说话了。小时候我们天天在喷泉边打水漂。后来她搬去远岛跟老星学看星星，我守着花园，就……",
+          "算了。我给她写封信，你帮我送去。家里的信纸用完了，码头边的星顶小摊也许还有。"
+        ]
+      },
+      {
+        "id": "g_shop",
+        "priority": 100,
+        "when": {
+          "stage": "c2_shop"
+        },
+        "lines": [
+          "星顶小摊在码头那边，房顶是一颗大星星。按 N 打开地图也能找到。"
+        ]
+      },
+      {
+        "id": "g_letter",
+        "priority": 100,
+        "when": {
+          "stage": "c2_letter"
+        },
+        "lines": [
+          "信纸找到了？好。",
+          "小光：什么是信？",
+          "嗯……就是把想念折起来，让它替你走很远的路。",
+          "我写：“眠眠，好久不见。这是{name}，这是小光。请你帮小光找到回家的路。”",
+          "……再加一句：“喷泉的水，还和以前一样凉。”她会懂的。",
+          "去远岛要过一座很长的高桥。慢慢走。"
+        ]
+      },
+      {
+        "id": "g_deliver",
+        "priority": 100,
+        "when": {
+          "stage": "c2_deliver"
+        },
+        "lines": [
+          "信送到了吗？没送到也不要紧，信不怕慢。"
+        ]
+      },
+      {
+        "id": "g_dusk_wait",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c2_dusk"
+            },
+            {
+              "stage": "c2_night"
+            }
+          ]
+        },
+        "lines": [
+          "眠眠让你去看天黑？西北小岛那把椅子，看得最清楚。"
+        ]
+      },
+      {
+        "id": "g_c2_rest",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c2_back"
+            },
+            {
+              "stage": "c2_boat"
+            },
+            {
+              "stage": "c2_memory"
+            }
+          ]
+        },
+        "lines": [
+          "眠眠……她读信的时候，笑了吗？",
+          "……算了，别告诉我。我自己猜。"
+        ]
+      },
+      {
+        "id": "g_c3",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c3_knock"
+            },
+            {
+              "stage": "c3_help"
+            }
+          ]
+        },
+        "lines": [
+          "镇上的人很少出门了。灯暗了，人也跟着缩起来。",
+          "喷泉的灯也灭了很多年。要是小光能点亮它……眠眠在远岛，也能看见。"
+        ]
+      },
+      {
+        "id": "g_c3_rest",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c3_bell"
+            },
+            {
+              "stage": "c3_tell"
+            }
+          ]
+        },
+        "lines": [
+          "小光是不是比前几天亮了？我没看错吧。",
+          "镇上的人都在说，好像天黑得没那么快了。"
+        ]
+      },
+      {
+        "id": "g_wish",
+        "priority": 100,
+        "when": {
+          "stage": "c3_wish"
+        },
+        "lines": [
+          "愿望灯在树屋门前放，按 L。灯纸我在门口留了几张。"
+        ]
+      },
+      {
+        "id": "g_c3_after_wish",
+        "priority": 100,
+        "when": {
+          "stage": "c3_grandma"
+        },
+        "lines": [
+          "灯飞走了，小光没跟上？",
+          "小光：我飞不上去……可是我心里有一点高兴。我是不是很坏？",
+          "不坏。舍不得，是因为这里对你好。",
+          "掉下来的东西，不一定是做错了什么。花瓣也会掉，掉下来才变成土。",
+          "去问问坡上的奶奶吧。飞艇的事，她最清楚。"
+        ]
+      },
+      {
+        "id": "g_c4",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c4_dock"
+            },
+            {
+              "stage": "c4_mail"
+            },
+            {
+              "stage": "c4_wind"
+            },
+            {
+              "stage": "c4_lamp"
+            },
+            {
+              "stage": "c4_fly"
+            }
+          ]
+        },
+        "lines": [
+          "老星？我小时候见过一次。他话很少，手上总有灯油的味道。",
+          "奶奶说，他走的那天也是傍晚，风铃响了三下。"
+        ]
+      },
+      {
+        "id": "g_c4_away",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c4_keeper"
+            },
+            {
+              "stage": "c4_letters"
+            },
+            {
+              "stage": "c4_light"
+            },
+            {
+              "stage": "c4_return"
+            }
+          ]
+        },
+        "lines": [
+          "你怎么在这儿？……哦，是我在想你们会不会已经到了。"
+        ]
+      },
+      {
+        "id": "g_c4_grandma",
+        "priority": 100,
+        "when": {
+          "stage": "c4_grandma"
+        },
+        "lines": [
+          "灯塔亮了，我在花园里都看见了！快去奶奶那儿吧。"
+        ]
+      },
+      {
+        "id": "g_c5_scope",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c5_scope"
+            },
+            {
+              "stage": "c5_tell"
+            }
+          ]
+        },
+        "lines": [
+          "今晚的天特别干净。眠眠肯定守在望远镜旁。"
+        ]
+      },
+      {
+        "id": "g_invite",
+        "priority": 100,
+        "when": {
+          "all": [
+            {
+              "stage": "c5_invite"
+            },
+            {
+              "not": {
+                "flag": "invite_gardener"
+              }
+            }
+          ]
+        },
+        "lines": [
+          "放天灯？……我当然去。",
+          "我的心愿啊：希望小光回去以后，每天晚上都能看见这座花园。",
+          "我把花园的灯都点上，让它从天上一眼就找到。"
+        ],
+        "sets": "invite_gardener"
+      },
+      {
+        "id": "g_invite_done",
+        "priority": 100,
+        "when": {
+          "all": [
+            {
+              "stage": "c5_invite"
+            },
+            {
+              "flag": "invite_gardener"
+            }
+          ]
+        },
+        "lines": [
+          "去请别人吧。我在这儿糊灯纸。"
+        ]
+      },
+      {
+        "id": "g_farewell",
+        "priority": 100,
+        "when": {
+          "stage": "c5_farewell"
+        },
+        "lines": [
+          "都请到了？那……今晚就要走了吧。",
+          "小光：芽芽，我不想走了。我想留下来，每天陪你看花。",
+          "舍不得，才说明这里是家。可是，你的家也在等你啊。",
+          "小光：如果我回去了，你们还能看见我吗？",
+          "能。不过要抬头。我这辈子都在低头看花，以后就多一件事做了。",
+          "去吧。这朵带上——{name}种的第一株，开得最早。"
+        ]
+      },
+      {
+        "id": "g_night_wait",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c5_night"
+            },
+            {
+              "stage": "c5_fly"
+            },
+            {
+              "stage": "c5_land"
+            }
+          ]
+        },
+        "lines": [
+          "天灯准备好了。等天黑，大家就一起放。"
+        ]
+      },
+      {
+        "id": "g_after_end",
+        "priority": 46,
+        "when": {
+          "main_done": true
+        },
+        "lines": [
+          "今晚的归家座好像亮了一点。……也可能是我看错了。看错了也挺好。",
+          "眠眠前天来花园了。我们在喷泉边坐了一会儿，谁也没说话。挺好的。"
+        ]
+      },
+      {
+        "id": "g_chime_tell",
+        "priority": 90,
+        "when": {
+          "side_stage": "s_chime_tell"
+        },
+        "lines": [
+          "三种都听过了？我最喜欢傍晚那一声，像有人在叫你回家吃饭。",
+          "声音一下就散了。可是听过的人，会记得那天的风。"
+        ]
+      },
+      {
+        "id": "g_sketch_show",
+        "priority": 90,
+        "when": {
+          "side_stage": "s_sketch_show"
+        },
+        "lines": [
+          "拍得真好。",
+          "你知道吗，照片里留下的其实不是花。花明年还会开，可那天弯腰看花的你，只有这一张。"
+        ]
+      },
+      {
+        "id": "g_firefly_tell",
+        "priority": 90,
+        "when": {
+          "side_stage": "s_firefly_tell"
+        },
+        "lines": [
+          "它们带你去了南边那座小岛？那里有一眼很小的泉。",
+          "萤火虫每一只都不亮。可是一只接一只，就是一条路。"
+        ]
+      },
+      {
+        "id": "g_chime_offer",
+        "priority": 70,
+        "once": true,
+        "when": {
+          "all": [
+            {
+              "chapter_done": "c1"
+            },
+            {
+              "side_state": "s_chime",
+              "is": "locked"
+            }
+          ]
+        },
+        "unlocks": "s_chime",
+        "lines": [
+          "树屋前那串风铃，晴天、傍晚、夜里听起来不一样。哪天有空，三种都听听？按 P 打开故事本就能接下这件小事。"
+        ]
+      },
+      {
+        "id": "g_sketch_offer",
+        "priority": 69,
+        "once": true,
+        "when": {
+          "all": [
+            {
+              "chapter_done": "c1"
+            },
+            {
+              "side_state": "s_sketch",
+              "is": "locked"
+            }
+          ]
+        },
+        "unlocks": "s_sketch",
+        "lines": [
+          "今年第一批花，我想留张照片。晴天拍最好看。你按 O 就能拍。"
+        ]
+      },
+      {
+        "id": "g_firefly_offer",
+        "priority": 67,
+        "once": true,
+        "when": {
+          "all": [
+            {
+              "chapter_done": "c3"
+            },
+            {
+              "side_state": "s_firefly",
+              "is": "locked"
+            }
+          ]
+        },
+        "unlocks": "s_firefly",
+        "lines": [
+          "夜里在花园叫来萤火虫，有时候它们会带你去一个地方。我小时候跟着走过一次。"
+        ]
+      },
+      {
+        "id": "g_after_wish",
+        "priority": 40,
+        "when": {
+          "flag": "ev_wish_released"
+        },
+        "lines": [
+          "那天的愿望灯是你放的吧？飞得好高。"
+        ]
+      },
+      {
+        "id": "g_after_stars",
+        "priority": 40,
+        "when": {
+          "stars": 1
+        },
+        "lines": [
+          "眠眠说你帮她记了星图。她平时可不让别人碰望远镜。"
+        ]
+      },
+      {
+        "id": "g_after_seat",
+        "priority": 38,
+        "when": {
+          "flag": "ev_seat_settled"
+        },
+        "lines": [
+          "西北小岛那把椅子坐着舒服吗？我是坐不住，花园总有事。"
+        ]
+      },
+      {
+        "id": "g_after_wave",
+        "priority": 36,
+        "when": {
+          "flag": "ev_waved"
+        },
+        "lines": [
+          "你朝我招手的时候，我正蹲着拔草，没顾上回。下次一定。"
+        ]
+      },
+      {
+        "id": "g_after_lighthouse",
+        "priority": 44,
+        "when": {
+          "flag": "reaction_lighthouse_lit"
+        },
+        "lines": [
+          "昨晚我看见云海那边有光，一下一下的。是灯塔吧？",
+          "那么多年没人点，它居然还记得怎么亮。"
+        ]
+      },
+      {
+        "id": "g_after_photo",
+        "priority": 34,
+        "when": {
+          "flag": "ev_photo_saved"
+        },
+        "lines": [
+          "你也在拍照？记得拍拍那棵大树，它最上镜。"
+        ]
+      },
+      {
+        "id": "g_after_ripple",
+        "priority": 34,
+        "when": {
+          "flag": "ev_stones_skipped"
+        },
+        "lines": [
+          "喷泉刚才跳舞了？……它只在有人认真看的时候跳。"
+        ]
+      },
+      {
+        "id": "g_sky_day",
+        "priority": 30,
+        "when": {
+          "sky": "day"
+        },
+        "lines": [
+          "晴天浇水要趁早，不然太阳一晒，叶子就卷边。"
+        ]
+      },
+      {
+        "id": "g_sky_dusk",
+        "priority": 30,
+        "when": {
+          "sky": "dusk"
+        },
+        "lines": [
+          "傍晚的风从云海那边吹过来，花会轻轻晃。像在跟太阳挥手。"
+        ]
+      },
+      {
+        "id": "g_sky_night",
+        "priority": 30,
+        "when": {
+          "sky": "night"
+        },
+        "lines": [
+          "夜里花会自己发一点光。不亮的那几株，是睡着了。"
+        ]
+      },
+      {
+        "id": "g_idle_1",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "花圃旁边那块空地，是留给明年的。明年的事，现在就可以开始想。"
+        ]
+      },
+      {
+        "id": "g_idle_2",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "今天的土很松，适合种东西。"
+        ]
+      },
+      {
+        "id": "g_idle_3",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "你那顶恐龙帽子，是从家里带来的吗？挺好看的。"
+        ]
+      },
+      {
+        "id": "g_idle_4",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "花不会着急。着急的是种花的人。"
+        ]
+      },
+      {
+        "id": "g_idle_5",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "我不太会看星星，只会看叶子。叶子卷了，就是要变天了。"
+        ]
+      }
     ]
   },
   "astronomer": {
     "title": "观星伙伴",
     "entries": [
-      {"id": "a_meet_early", "priority": 95, "once": true, "when": {"all": [{"not": {"flag": "met_astronomer"}}, {"not": {"stage": "c2_deliver"}}]}, "sets": "met_astronomer", "lines": ["你好……我是眠眠。我在这儿等天黑。", "你灯里那颗……是掉下来的星星吗？晚上再来，我帮你找找它从哪儿来。"]},
-      {"id": "a_deliver", "priority": 100, "when": {"stage": "c2_deliver"}, "sets": "met_astronomer", "lines": ["芽芽的信？……谢谢。她的字还是那么大。", "她说花开了，还说……让我别总在白天睡觉。", "小光：你会回信吗？", "会。不过要等我想好。想好之前，我会先想她一会儿。", "你去西北小岛那把椅子坐坐吧。从那儿看，整座小镇和云海都在眼前，傍晚是粉色的。"]},
-      {"id": "a_dusk", "priority": 100, "when": {"any": [{"stage": "c2_dusk"}, {"stage": "c2_night"}]}, "lines": ["那把椅子在西北小岛。坐着也好，站着也好。天色变的时候，云会先变，然后才是天。"]},
-      {"id": "a_ask", "priority": 100, "when": {"stage": "c2_ask"}, "lines": ["今晚？今晚看三张星图：星舟、花铃，还有归家。", "小光：星星是一直都在吗？", "嗯……白天也在，只是太阳太亮，我们看不见。", "看不见，不等于不在。", "望远镜就在我旁边。靠近按 E，把星群挪到中间，就能记下来。"]},
-      {"id": "a_scope", "priority": 100, "when": {"any": [{"stage": "c3_first"}, {"stage": "c3_all"}]}, "lines": ["慢慢转，星星不会跑。记下来的那几张，会亮成暖黄色。"]},
-      {"id": "a_show", "priority": 100, "when": {"stage": "c3_show"}, "lines": ["三张都记下来了。你看归家座——三角屋顶，底下一盏灯。", "屋顶这一角，空着一颗。我画了很多年，它一直空着。", "小光：……那是我的位置吗？", "也许。你知道吗，我们看到的星光，是很久以前出发的。有的星星，也许早就不在原来的地方了，可它的光还在路上。", "所以你掉下来了，那里的光却还亮着一点。它在等你。", "要回去，得飞得比愿望灯还高。……先放一盏灯试试？"]},
-      {"id": "a_wish_wait", "priority": 100, "when": {"stage": "c3_wish"}, "lines": ["我在这儿看着。树屋门前，按 L。"]},
-      {"id": "a_home", "priority": 100, "when": {"stage": "c3_home"}, "lines": ["灯飞得很好，只是天太高了。", "去问问芽芽吧。她知道镇上所有旧东西的故事。"]},
-      {"id": "a_c4", "priority": 100, "when": {"any": [{"stage": "c4_dock"}, {"stage": "c4_wind"}, {"stage": "c4_lamp"}, {"stage": "c4_fly"}]}, "lines": ["守灯人的岛？从望远镜里能看见，在云海北边，很远。", "灯塔是黑的。黑了很多年了。"]},
-      {"id": "a_tell", "priority": 100, "when": {"stage": "c5_tell"}, "lines": ["我看见了。云海那边，一下，又一下。", "灯塔亮着，今晚的路就看得见了。", "小光：如果我回去，你们就看不见我了吗？", "……不会。你会在那里，每天晚上都在。只是隔得远一点。", "隔得远的东西，要看很久才看得清。我最擅长这个。"]},
-      {"id": "a_farewell_wait", "priority": 100, "when": {"any": [{"stage": "c5_farewell"}, {"stage": "c5_night"}, {"stage": "c5_fly"}]}, "lines": ["我会守在望远镜这儿。你们飞到最高的时候，我会看见。"]},
-      {"id": "a_after_end", "priority": 46, "when": {"main_done": true}, "lines": ["归家座的屋顶补上了。新来的那颗，比别的都小一点，亮得也不太稳。", "可我一眼就能找到它。"]},
-      {"id": "a_ripple_tell", "priority": 90, "when": {"side_stage": "s_ripple_tell"}, "lines": ["水里的星星晃起来了？", "那些星星是假的。可你为了看它低下了头，又为了真的那颗抬起头来。我在星图角落画了三个小圈，叫它水漂座。"]},
-      {"id": "a_islands_walk", "priority": 88, "when": {"side_stage": "s_islands_walk"}, "lines": ["小岛不会跑，慢慢走。桥上有栏杆，别探出去太多。"]},
-      {"id": "a_islands_tell", "priority": 90, "when": {"side_stage": "s_islands_tell"}, "lines": ["五句话都读到了？", "我猜那是以前路过的人留下的。他们没写名字，也不在乎谁会读到。", "不过总有人会读到的。比如你。"]},
-      {"id": "a_ripple_offer", "priority": 70, "once": true, "when": {"all": [{"chapter_done": "c2"}, {"side_state": "s_ripple", "is": "locked"}]}, "unlocks": "s_ripple", "lines": ["夜里喷泉的水面也会映出星星。你打个水漂，它们就晃起来了。哪天夜里有空，替我看看？"]},
-      {"id": "a_islands_offer", "priority": 69, "once": true, "when": {"all": [{"chapter_done": "c2"}, {"side_state": "s_islands", "is": "locked"}]}, "unlocks": "s_islands", "lines": ["望远镜往下看，云海边有五座小岛，每座上面好像都留着一点什么。你要是路过，替我看看？"]},
-      {"id": "a_new_constellation", "priority": 50, "once": false, "when": {"flag": "constellation_new"}, "lines": ["今晚星图上多了一个形状。你去望远镜里看看？", "我发现，你做过的事，会在天上留下一点影子。"]},
-      {"id": "a_day_1", "priority": 42, "when": {"sky": "day"}, "lines": ["……嗯？天亮了吗……白天的星星都躲起来了。我也躲一会儿……"]},
-      {"id": "a_day_2", "priority": 42, "when": {"sky": "day"}, "lines": ["太亮了，望远镜里只有白白的一片。可它们都在，一颗也没少。"]},
-      {"id": "a_after_seat", "priority": 38, "when": {"flag": "ev_seat_settled"}, "lines": ["西北小岛那把椅子，我也常去。坐着能看见整座小镇。"]},
-      {"id": "a_after_flowers", "priority": 36, "when": {"flowers": 3}, "lines": ["芽芽说你种了三株花。等它们长高，从这里也能看见。"]},
-      {"id": "a_after_chime", "priority": 34, "when": {"flag": "chime_night"}, "lines": ["夜里的风铃声，从这儿听最清楚。"]},
-      {"id": "a_sky_dusk", "priority": 30, "when": {"sky": "dusk"}, "lines": ["傍晚的时候我才刚醒。你也是来看天色的吗？"]},
-      {"id": "a_sky_night", "priority": 30, "when": {"sky": "night"}, "lines": ["今晚的云很薄，星星看得清楚。"]},
-      {"id": "a_idle_1", "priority": 10, "when": {}, "lines": ["望远镜的镜片要轻轻擦，不然星星会糊成一团。"]},
-      {"id": "a_idle_2", "priority": 10, "when": {}, "lines": ["高桥走过来累不累？我每天走两趟，就当散步。"]},
-      {"id": "a_idle_3", "priority": 10, "when": {}, "lines": ["云海底下是什么？我也不知道。不知道的地方，就留给想象吧。"]},
-      {"id": "a_idle_4", "priority": 10, "when": {}, "lines": ["我小时候以为星星是灯。后来发现，确实差不多。"]},
-      {"id": "a_idle_5", "priority": 10, "when": {}, "lines": ["困了。你继续看，我眯一会儿……"]}
+      {
+        "id": "a_meet_early",
+        "priority": 95,
+        "when": {
+          "all": [
+            {
+              "not": {
+                "flag": "met_astronomer"
+              }
+            },
+            {
+              "not": {
+                "stage": "c2_deliver"
+              }
+            }
+          ]
+        },
+        "lines": [
+          "你好……我是眠眠。我在这儿等天黑。",
+          "你肩膀后面那颗……是掉下来的星星吗？晚上再来，我帮你找找它从哪儿来。"
+        ],
+        "once": true,
+        "sets": "met_astronomer"
+      },
+      {
+        "id": "a_deliver",
+        "priority": 100,
+        "when": {
+          "stage": "c2_deliver"
+        },
+        "lines": [
+          "芽芽的信？……谢谢。她的字还是那么大。",
+          "“喷泉的水，还和以前一样凉。”……她还记得。",
+          "小光：你们吵架了吗？",
+          "没有。只是一个看近处，一个看远处，看着看着，就隔远了。",
+          "小光的家，我会帮你找。不过先做一件事：去西北小岛那把椅子，看小镇天黑下来。",
+          "看完，你就知道这座岛缺了什么。"
+        ],
+        "sets": "met_astronomer"
+      },
+      {
+        "id": "a_dusk",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c2_dusk"
+            },
+            {
+              "stage": "c2_night"
+            }
+          ]
+        },
+        "lines": [
+          "那把椅子在西北小岛。天色变的时候，云会先变，然后才是天。"
+        ]
+      },
+      {
+        "id": "a_back",
+        "priority": 100,
+        "when": {
+          "stage": "c2_back"
+        },
+        "lines": [
+          "看见了？镇上的灯，一年比一年暗。岛上的灯都是靠星光点的，云海那边的灯塔暗了，星光就照不过来了。",
+          "那一闪一闪的光，是我老师——老星的小灯。他守在灯塔岛上，飞艇停了以后，就再也回不来了。",
+          "镇上回答他的那一盏……是坡上奶奶的窗台。他们这样说了很多年的话。",
+          "好了，说小光。它还记得家里的样子吗？",
+          "小光：只记得一点点……家旁边，好像有一条小船。",
+          "小船？那就先找星舟座。望远镜就在我旁边，靠近按 E。"
+        ]
+      },
+      {
+        "id": "a_scope",
+        "priority": 100,
+        "when": {
+          "stage": "c2_boat"
+        },
+        "lines": [
+          "慢慢转，星星不会跑。记下来的那几张，会亮成暖黄色。"
+        ]
+      },
+      {
+        "id": "a_memory",
+        "priority": 100,
+        "when": {
+          "stage": "c2_memory"
+        },
+        "lines": [
+          "认得那条船？太好了。可是星舟座旁边有好多星星，哪一颗是你家呢？",
+          "小光：我想不起来了……一使劲想，光就晃。",
+          "别急。老师说过：星星的记忆，藏在它的光里。光越亮，想起来的越多。",
+          "镇上好几户人家的灯都暗了。你们去帮帮他们吧——小光的光，分出去会变多的。",
+          "……这是芽芽说的吧？她小时候就这么说。"
+        ]
+      },
+      {
+        "id": "a_c3",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c3_knock"
+            },
+            {
+              "stage": "c3_help"
+            }
+          ]
+        },
+        "lines": [
+          "我从这儿看得见镇上。今晚，又多亮了一盏。",
+          "要是喷泉也亮起来……我就知道是你们。"
+        ]
+      },
+      {
+        "id": "a_bell_wait",
+        "priority": 100,
+        "when": {
+          "stage": "c3_bell"
+        },
+        "lines": [
+          "孩子画的铃？那是花铃座。在望远镜里找找。"
+        ]
+      },
+      {
+        "id": "a_tell",
+        "priority": 100,
+        "when": {
+          "stage": "c3_tell"
+        },
+        "lines": [
+          "想起那只铃了？小船，还有铃……你的家，就在它们中间。",
+          "可是那一片天太暗了。我画了很多年星图，那一块一直看不清。",
+          "老师说过，只有灯塔亮着的时候，那片天才看得清楚。",
+          "小光：用愿望灯呢？愿望灯能飞得很高。",
+          "……去试试吧。在树屋门前放一盏。"
+        ]
+      },
+      {
+        "id": "a_wish_wait",
+        "priority": 100,
+        "when": {
+          "stage": "c3_wish"
+        },
+        "lines": [
+          "我在这儿看着。树屋门前，按 L。"
+        ]
+      },
+      {
+        "id": "a_c3_grandma",
+        "priority": 100,
+        "when": {
+          "stage": "c3_grandma"
+        },
+        "lines": [
+          "灯飞得很好，只是天太高了。",
+          "坡上的奶奶知道飞艇的事。去问问她吧。"
+        ]
+      },
+      {
+        "id": "a_c4",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c4_dock"
+            },
+            {
+              "stage": "c4_mail"
+            },
+            {
+              "stage": "c4_wind"
+            },
+            {
+              "stage": "c4_lamp"
+            },
+            {
+              "stage": "c4_fly"
+            }
+          ]
+        },
+        "lines": [
+          "灯塔岛在云海东边，很远。我每天晚上都用望远镜看老师的灯——它又暗了一点。",
+          "你们去的时候，替我说一声……算了，他知道的。"
+        ]
+      },
+      {
+        "id": "a_c4_after",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c4_keeper"
+            },
+            {
+              "stage": "c4_letters"
+            },
+            {
+              "stage": "c4_light"
+            },
+            {
+              "stage": "c4_return"
+            },
+            {
+              "stage": "c4_grandma"
+            }
+          ]
+        },
+        "lines": [
+          "我看见了，云海那边！……老师还好吗？他还戴着那顶尖帽子吗？"
+        ]
+      },
+      {
+        "id": "a_c5_scope",
+        "priority": 100,
+        "when": {
+          "stage": "c5_scope"
+        },
+        "lines": [
+          "今晚，灯塔照着的那一片天看得清清楚楚。快去望远镜那儿。"
+        ]
+      },
+      {
+        "id": "a_tell5",
+        "priority": 100,
+        "when": {
+          "stage": "c5_tell"
+        },
+        "lines": [
+          "归家座……三角屋顶，底下一盏灯。屋顶那一角，空着一颗。",
+          "我画了很多年，它一直空着。老师说，它总有一天会回来。",
+          "小光：那是我的位置。我全都想起来了——窗外的小船，门口的铃，屋顶上的风。",
+          "我们看到的星光，是很久以前出发的。你掉下来了，那里的光却还亮着一点。它在等你。",
+          "老师的信里写着：一颗星的光不够，就借大家的光。",
+          "今晚，请全岛的人一起放天灯吧。大家的光托着小光，就能飞到那么高。"
+        ]
+      },
+      {
+        "id": "a_invite",
+        "priority": 100,
+        "when": {
+          "stage": "c5_invite"
+        },
+        "lines": [
+          "我会守在望远镜这儿。你们飞到最高的时候，我会看见。"
+        ]
+      },
+      {
+        "id": "a_farewell_wait",
+        "priority": 100,
+        "when": {
+          "any": [
+            {
+              "stage": "c5_farewell"
+            },
+            {
+              "stage": "c5_night"
+            },
+            {
+              "stage": "c5_fly"
+            },
+            {
+              "stage": "c5_land"
+            }
+          ]
+        },
+        "lines": [
+          "天黑了就出发。我把望远镜对准屋顶那一角了。"
+        ]
+      },
+      {
+        "id": "a_after_end",
+        "priority": 46,
+        "when": {
+          "main_done": true
+        },
+        "lines": [
+          "归家座的屋顶补上了。新来的那颗，比别的都小一点，亮得也不太稳。",
+          "可我一眼就能找到它。"
+        ]
+      },
+      {
+        "id": "a_ripple_tell",
+        "priority": 90,
+        "when": {
+          "side_stage": "s_ripple_tell"
+        },
+        "lines": [
+          "水里的星星晃起来了？",
+          "那些星星是假的。可你为了看它低下了头，又为了真的那颗抬起头来。我在星图角落画了三个小圈，叫它水漂座。"
+        ]
+      },
+      {
+        "id": "a_islands_walk",
+        "priority": 88,
+        "when": {
+          "side_stage": "s_islands_walk"
+        },
+        "lines": [
+          "小岛不会跑，慢慢走。桥上有栏杆，别探出去太多。"
+        ]
+      },
+      {
+        "id": "a_islands_tell",
+        "priority": 90,
+        "when": {
+          "side_stage": "s_islands_tell"
+        },
+        "lines": [
+          "五句话都读到了？",
+          "我猜那是以前路过的人留下的。他们没写名字，也不在乎谁会读到。",
+          "不过总有人会读到的。比如你。"
+        ]
+      },
+      {
+        "id": "a_ripple_offer",
+        "priority": 70,
+        "once": true,
+        "when": {
+          "all": [
+            {
+              "chapter_done": "c2"
+            },
+            {
+              "side_state": "s_ripple",
+              "is": "locked"
+            }
+          ]
+        },
+        "unlocks": "s_ripple",
+        "lines": [
+          "夜里喷泉的水面也会映出星星。你打个水漂，它们就晃起来了。哪天夜里有空，替我看看？"
+        ]
+      },
+      {
+        "id": "a_islands_offer",
+        "priority": 69,
+        "once": true,
+        "when": {
+          "all": [
+            {
+              "chapter_done": "c2"
+            },
+            {
+              "side_state": "s_islands",
+              "is": "locked"
+            }
+          ]
+        },
+        "unlocks": "s_islands",
+        "lines": [
+          "望远镜往下看，云海边有五座小岛，每座上面好像都留着一点什么。你要是路过，替我看看？"
+        ]
+      },
+      {
+        "id": "a_new_constellation",
+        "priority": 50,
+        "once": false,
+        "when": {
+          "flag": "constellation_new"
+        },
+        "lines": [
+          "今晚星图上多了一个形状。你去望远镜里看看？",
+          "我发现，你做过的事，会在天上留下一点影子。"
+        ]
+      },
+      {
+        "id": "a_day_1",
+        "priority": 42,
+        "when": {
+          "sky": "day"
+        },
+        "lines": [
+          "……嗯？天亮了吗……白天的星星都躲起来了。我也躲一会儿……"
+        ]
+      },
+      {
+        "id": "a_day_2",
+        "priority": 42,
+        "when": {
+          "sky": "day"
+        },
+        "lines": [
+          "太亮了，望远镜里只有白白的一片。可它们都在，一颗也没少。"
+        ]
+      },
+      {
+        "id": "a_after_seat",
+        "priority": 38,
+        "when": {
+          "flag": "ev_seat_settled"
+        },
+        "lines": [
+          "西北小岛那把椅子，我也常去。坐着能看见整座小镇。"
+        ]
+      },
+      {
+        "id": "a_after_flowers",
+        "priority": 36,
+        "when": {
+          "flowers": 3
+        },
+        "lines": [
+          "芽芽说你种了三株花。等它们长高，从这里也能看见。"
+        ]
+      },
+      {
+        "id": "a_after_chime",
+        "priority": 34,
+        "when": {
+          "flag": "chime_night"
+        },
+        "lines": [
+          "夜里的风铃声，从这儿听最清楚。"
+        ]
+      },
+      {
+        "id": "a_sky_dusk",
+        "priority": 30,
+        "when": {
+          "sky": "dusk"
+        },
+        "lines": [
+          "傍晚的时候我才刚醒。你也是来看天色的吗？"
+        ]
+      },
+      {
+        "id": "a_sky_night",
+        "priority": 30,
+        "when": {
+          "sky": "night"
+        },
+        "lines": [
+          "今晚的云很薄，星星看得清楚。"
+        ]
+      },
+      {
+        "id": "a_idle_1",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "望远镜的镜片要轻轻擦，不然星星会糊成一团。"
+        ]
+      },
+      {
+        "id": "a_idle_2",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "高桥走过来累不累？我每天走两趟，就当散步。"
+        ]
+      },
+      {
+        "id": "a_idle_3",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "云海底下是什么？我也不知道。不知道的地方，就留给想象吧。"
+        ]
+      },
+      {
+        "id": "a_idle_4",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "我小时候以为星星是灯。后来发现，确实差不多。"
+        ]
+      },
+      {
+        "id": "a_idle_5",
+        "priority": 10,
+        "when": {},
+        "lines": [
+          "困了。你继续看，我眯一会儿……"
+        ]
+      }
     ]
   }
 }

@@ -119,9 +119,34 @@ func tracked() -> Dictionary:
 	if quest == "main":
 		var stage := main_stage()
 		if stage.is_empty():return {}
-		return {"quest": "main", "heading": chapter().title, "title": stage.title, "hint": stage.hint, "target": _target_of(stage), "progress": _progress_text(stage)}
+		var out_main := {"quest": "main", "heading": chapter().title, "title": stage.title, "hint": stage.hint, "target": _target_of(stage), "progress": _progress_text(stage)}
+		var next := checklist_step(stage)
+		if not next.is_empty():
+			out_main.hint = next.text
+			out_main.target = next.target
+		return out_main
 	var stage := side_stage(quest)
-	return {"quest": quest, "heading": "小故事 · " + sides[quest].title, "title": stage.title, "hint": stage.hint, "target": _target_of(stage), "progress": _progress_text(stage)}
+	var out := {"quest": quest, "heading": "小故事 · " + sides[quest].title, "title": stage.title, "hint": stage.hint, "target": _target_of(stage), "progress": _progress_text(stage)}
+	var step := checklist_step(stage)
+	if not step.is_empty():
+		out.hint = step.text
+		out.target = step.target
+	return out
+
+## For a stage with a "checklist" (several people, each wanting one thing): the first
+## unfinished item, as {text, target}: what to do for it, or, once that is done, to go
+## back and tell them. {} when the stage has no checklist or every item is done.
+func checklist_step(stage: Dictionary) -> Dictionary:
+	var items: Array = stage.get("checklist", [])
+	var left := 0
+	for item in items:left += 0 if state.flag(item.done) else 1
+	for item in items:
+		if state.flag(item.done):continue
+		var ready := _check(item.get("ready", {}), "")
+		var text := String(item.back if ready else item.todo)
+		if left > 1:text += "（还有 %d %s）" % [left - 1, String(stage.get("unit", "位"))]
+		return {"text": text, "target": String(item.back_target if ready else item.todo_target)}
+	return {}
 
 ## A stage that asks to visit several places points at the nearest one not seen yet.
 func _target_of(stage: Dictionary) -> String:
@@ -152,7 +177,7 @@ func _progress_text(stage: Dictionary) -> String:
 		return "%d / %d" % [seen, spec.discovered.size()]
 	if spec.has("star_ids"):
 		var got := 0
-		for sid in spec.star_ids:got += 1 if state.flag("star_" + sid) else 0
+		for sid in spec.star_ids:got += 1 if _star_known(sid) else 0
 		return "%d / %d" % [got, spec.star_ids.size()]
 	if spec.has("flags"):
 		var have := 0
@@ -311,10 +336,20 @@ func _check(cond: Dictionary, quest: String) -> bool:
 			"event":ok = _happened(quest, {"id": want, "sky": cond.get("sky", ""), "near": cond.get("near", ""), "r": cond.get("r", 0), "place": cond.get("place", "")})
 			"place":continue
 			"star_ids":
-				for sid in want:ok = ok and state.flag("star_" + sid)
+				for sid in want:ok = ok and _star_known(sid)
 			_:ok = false
 		if not ok:return false
 	return true
+
+## A constellation counts once it is in the journal, even when it was recorded in free
+## roaming before the story asked for it (the telescope then refuses to record it again).
+func _star_known(sid: String) -> bool:
+	if state.flag("star_" + sid):return true
+	var talk = world.get("interactions")
+	if talk and talk.has_method("constellation_id"):
+		for index in talk.journal.stars:
+			if talk.constellation_id(int(index)) == sid:return true
+	return false
 
 func _side_stage_is(stage_id: String) -> bool:
 	for id in side_order:

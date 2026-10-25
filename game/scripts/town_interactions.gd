@@ -2,7 +2,7 @@ extends CanvasLayer
 signal star_recorded(index: int)
 ## Emitted when a conversation is read to the end (or skipped to the end); Esc does not count.
 signal dialogue_finished(npc_id: String)
-const SAVE_PATH := "user://journal.json"
+const SAVE_PATH := "user://journal.json"   # = D:/claude/starworld/game/save/journal.json
 const SCOPE_POSITION := Vector3(43,10,-29)
 var world: Node3D
 var player: CharacterBody3D
@@ -105,14 +105,14 @@ func _build_ui() -> void:
 	root_ui.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var font:=SystemFont.new()
 	font.font_names=PackedStringArray(["Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Zen Hei"])
-	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf")]
+	font.fallbacks = [preload("res://assets/fonts/NotoSansSC.ttf"), preload("res://assets/fonts/LXGWWenKai-Regular.ttf")]
 	root_ui.add_theme_font_override("font",font)
 	add_child(root_ui)
 	status=_label("")
 	status.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	status.position=Vector2(-280,18)
 	root_ui.add_child(status)
-	var journal_button:=_button("打开手记  J",toggle_journal)
+	journal_button=_button("打开手记  J",toggle_journal)
 	root_ui.add_child(journal_button)
 	journal_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	journal_button.offset_left=-220
@@ -134,6 +134,14 @@ func _build_ui() -> void:
 	card.content_margin_top=12
 	card.content_margin_bottom=12
 	dialogue_panel.add_theme_stylebox_override("panel",card)
+	dialogue_card=card
+	# 小光 speaks on a night-blue card with a soft glow, in the handwriting font
+	xiaoguang_card=card.duplicate()
+	xiaoguang_card.bg_color=Color(.10,.16,.34,.88)
+	xiaoguang_card.border_color=Color(.75,.86,1.0,.85)
+	xiaoguang_card.set_border_width_all(2)
+	xiaoguang_card.shadow_color=Color(.6,.78,1.0,.35)
+	xiaoguang_card.shadow_size=14
 	root_ui.add_child(dialogue_panel)
 	dialogue_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	dialogue_panel.offset_left=-320
@@ -262,6 +270,10 @@ func _process(_delta: float) -> void:
 		if distance<nearest:
 			nearest=distance
 			active_target=npc.profile_id
+	# a story moment marked "first" (lighting 芽芽's flowers with her standing right there)
+	# takes E before the person does
+	var content=world.get("content")
+	if active_target!="" and content and content.has_method("priority_examine") and content.priority_examine(player.global_position):active_target=""
 	prompt.visible=not active_target.is_empty()
 	if active_target=="scope":prompt.text="E  使用望远镜 · 观星"
 	else:
@@ -370,9 +382,35 @@ func _open_modal(next_mode: String) -> void:
 	prompt.visible=false
 	Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
 
+## A conversation at a doorway (story examines): the same dialogue box, the camera on
+## `eye` looking at `focus`. Emits talk_closed when read to the end, skipped or closed.
+signal talk_closed
+var _talking := false
+
+func show_talk(title: String, lines: Array, focus: Vector3, eye: Vector3) -> bool:
+	if mode!="idle" or lines.is_empty():return false
+	_open_modal("dialogue")
+	current_npc=null
+	_talking=true
+	dialogue_title.text=title
+	speaker_title=title
+	dialogue_lines.assign(lines)
+	dialogue_index=0
+	_show_line(0)
+	dialogue_next.text="好的  E" if dialogue_lines.size()==1 else "继续  E"
+	dialogue_skip.visible=dialogue_lines.size()>1
+	dialogue_panel.visible=true
+	dialogue_camera.near=.08
+	dialogue_camera.look_at_from_position(eye,focus)
+	dialogue_camera.current=true
+	return true
+
 func next_dialogue() -> void:
 	if mode!="dialogue":return
 	dialogue_index+=1
+	if _talking and dialogue_index>=dialogue_lines.size():
+		close_modal()
+		return
 	if dialogue_index>=dialogue_lines.size():
 		if not current_npc.profile_id in journal.friends:journal.friends.append(current_npc.profile_id)
 		_save_journal()
@@ -381,22 +419,46 @@ func next_dialogue() -> void:
 		dialogue_finished.emit(finished)
 	else:
 		_show_line(dialogue_index)
-		dialogue_next.text="收进手记  E" if dialogue_index==dialogue_lines.size()-1 else "继续  E"
+		dialogue_next.text=("好的  E" if _talking else "收进手记  E") if dialogue_index==dialogue_lines.size()-1 else "继续  E"
 
 var speaker_title := ""
+var journal_button: Button
+var dialogue_card: StyleBoxFlat
+var xiaoguang_card: StyleBoxFlat
+var _hand_font: Font
+## Who else may speak inside one conversation: a line "芽芽：……" switches the name shown.
+const SPEAKERS := ["小光", "芽芽", "眠眠", "老星", "奶奶", "面包师", "孩子", "修灯的邻居", "大家"]
 
-## A line starting with "小光：" is the little star in the lantern speaking.
+## A line starting with "小光：" is the little star speaking: its own blue card and the
+## handwriting font, so it never reads like the person you are talking to. "{name}" is
+## the player's name.
 func _show_line(index: int) -> void:
 	var line: String=dialogue_lines[index]
+	var content=world.get("content")
+	if content and content.has_method("named"):line=content.named(line)
 	if speaker_title=="":speaker_title=dialogue_title.text
-	if line.begins_with("小光："):
+	var speaker:=""
+	var cut:=line.find("：")
+	var me:String=content.player_name() if content and content.has_method("player_name") else ""
+	if cut>0 and (line.substr(0,cut) in SPEAKERS or line.substr(0,cut)==me):
+		speaker=line.substr(0,cut)
+		line=line.substr(cut+1)
+	if speaker=="小光":
+		if _hand_font==null and ResourceLoader.exists("res://assets/fonts/LXGWWenKai-Regular.ttf"):_hand_font=load("res://assets/fonts/LXGWWenKai-Regular.ttf")
+		dialogue_panel.add_theme_stylebox_override("panel",xiaoguang_card)
 		dialogue_title.text="✦ 小光"
 		dialogue_title.add_theme_color_override("font_color",Color("cfe0ff"))
-		dialogue_body.text=line.trim_prefix("小光：")
+		if _hand_font:dialogue_body.add_theme_font_override("font",_hand_font)
+		dialogue_body.add_theme_font_size_override("font_size",22)
+		dialogue_body.add_theme_color_override("font_color",Color("e6efff"))
 	else:
-		dialogue_title.text=speaker_title
+		dialogue_panel.add_theme_stylebox_override("panel",dialogue_card)
+		dialogue_title.text=speaker if speaker!="" else speaker_title
 		dialogue_title.add_theme_color_override("font_color",Color("ffd27d"))
-		dialogue_body.text=line
+		dialogue_body.remove_theme_font_override("font")
+		dialogue_body.add_theme_font_size_override("font_size",19)
+		dialogue_body.add_theme_color_override("font_color",Color("eee3cf"))
+	dialogue_body.text=line
 
 ## Jumps to the end of the conversation; counts as read.
 func skip_dialogue() -> void:
@@ -412,6 +474,9 @@ func close_modal() -> void:
 	scope_ui.visible=false
 	journal_panel.visible=false
 	mode="idle"
+	if _talking:
+		_talking=false
+		talk_closed.emit.call_deferred()
 	player.controls_locked=false
 	var camera:=player.arm.get_child(0) as Camera3D
 	camera.current=true
@@ -460,6 +525,8 @@ func is_unlocked(index: int) -> bool:
 	var flag:=String(constellations[index].get("unlock",""))
 	if flag=="":return true
 	var content=world.get("content")
+	# "story_gate": waits for its moment in the story only; free roaming sees it at once
+	if content!=null and bool(constellations[index].get("story_gate",false)) and content.state.data.mode!="story":return true
 	return content!=null and content.state.flag(flag)
 
 func is_complete(index: int) -> bool:

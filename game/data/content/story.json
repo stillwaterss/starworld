@@ -1,18 +1,18 @@
 {
-  "version": 2,
-  "note": "v13 story. Stage conditions read real game state or events that happened while the stage was active. 'examine' targets are ids in examines.json. 'whisper' lines are 小光 speaking from the lantern when a stage begins.",
+  "version": 3,
+  "note": "v16 story. 小光 lights the island up place by place (flags lit_<site>, content/island_lights.gd); stage conditions read real game state or events that happened while the stage was active. 'whisper' lines are 小光 speaking when a stage begins; a 'checklist' stage shows its first unfinished item.",
   "main": [
     {
       "id": "c1",
-      "title": "第一章 · 落在草里的星星",
-      "intro": "那天夜里，树屋旁边的草丛亮了一下。",
-      "outro": "小光住在了擦亮的小窗上。花开的晚上，它也会亮一点。",
-      "reaction": "garden_glow",
+      "title": "第一章 · 掉进草丛的星星",
+      "intro": "流星雨的夜里，一颗小星星掉进了树屋旁的草丛。它很小，光很暗，还在发抖。",
+      "outro": "花亮了，窗亮了，小光也亮了一点。芽芽说：光不是用掉的，是分出去的。",
+      "reaction": "",
       "stages": [
         {
           "id": "c1_find",
           "title": "去看看树屋旁草丛里的光",
-          "hint": "就在树屋台阶旁边。走近后按 E。",
+          "hint": "就在树屋台阶旁边，走近按 E。",
           "target": "loc:fallen_star",
           "done": {
             "event": "xiaoguang_found"
@@ -20,31 +20,31 @@
         },
         {
           "id": "c1_meet",
-          "title": "带着小光去花园找芽芽",
-          "hint": "广场南边的花园里，有个戴星星帽的孩子。走近按 E 交谈。",
+          "title": "带小光去花园找芽芽",
+          "hint": "芽芽是你的老邻居，在广场南边的花园里。走近按 E 交谈。",
           "target": "npc:gardener",
           "done": {
             "talk": "gardener"
           },
-          "whisper": "……你走路好轻。我们去哪儿？"
+          "whisper": "……你、你要带我去哪儿？别把我丢掉，好不好？"
         },
         {
           "id": "c1_plant",
-          "title": "为小光种下三株花",
-          "hint": "站在花圃边按 R，一次一株。",
+          "title": "种下三株夜光花",
+          "hint": "站在花圃边按 R，一次种一株。",
           "target": "loc:garden",
           "done": {
             "flowers": 3
           },
+          "whisper": "种子那么小，它们知道自己会变成花吗？",
           "progress": {
             "count": "flowers",
             "of": 3
-          },
-          "whisper": "种子那么小，它们知道自己会变成花吗？"
+          }
         },
         {
           "id": "c1_water",
-          "title": "给新花浇水",
+          "title": "给花浇水",
           "hint": "还在花圃边，按 U。",
           "target": "loc:garden",
           "done": {
@@ -52,75 +52,89 @@
           }
         },
         {
-          "id": "c1_day",
-          "title": "等一个晴日",
-          "hint": "按 T 切换天色。晴日里，花会朝着云海那边转过去。",
+          "id": "c1_night",
+          "title": "等到夜里，夜光花才会开",
+          "hint": "按 T 换天色，一直换到夜晚（晴日 → 傍晚 → 夜晚）。",
           "target": "loc:garden",
           "done": {
-            "sky": "day"
+            "sky": "night"
           },
-          "whisper": "太阳……也是一颗星星吗？它好亮，亮得我看不见别的星星了。"
+          "whisper": "天要黑了……我有一点怕黑。……可是，我自己就是光呀？"
+        },
+        {
+          "id": "c1_light",
+          "title": "让小光点亮花苞",
+          "hint": "在花圃边按 E，举起双手，让小光飞过去。",
+          "target": "loc:garden",
+          "done": {
+            "flag": "lit_garden"
+          },
+          "whisper": "我试试看……你在旁边，我就不怕。"
         },
         {
           "id": "c1_window",
-          "title": "擦亮树屋的小圆窗",
-          "hint": "树屋门上的小圆窗。走近按 E，给小光一个能看见天空的窗台。",
+          "title": "擦亮树屋的小圆窗，让小光住进去",
+          "hint": "树屋门上的小圆窗，走近按 E。",
           "target": "loc:tree_house",
           "done": {
-            "event": "window_polished"
-          }
+            "flag": "lit_treehouse"
+          },
+          "whisper": "我把光分给了花，可是……我好像更亮了？"
         },
         {
           "id": "c1_report",
-          "title": "告诉芽芽花开了",
-          "hint": "芽芽还在花园附近。",
+          "title": "告诉芽芽：花亮了，小光也亮了",
+          "hint": "芽芽在花园。走近按 E 交谈。",
           "target": "npc:gardener",
           "done": {
             "talk": "gardener"
-          }
+          },
+          "whisper": "我也有一扇窗了。从这里，能看见天。"
         }
       ]
     },
     {
       "id": "c2",
-      "title": "第二章 · 傍晚的信",
-      "intro": "芽芽想给远岛上的眠眠写一封信。小光问：什么是信？",
-      "outro": "太阳落下去了，可是谁都知道它明天还会来。小光说，原来告别也可以是一种约定。",
+      "title": "第二章 · 去找眠眠",
+      "intro": "要送小光回家，先得知道家在哪里。岛上最懂星星的，是住在东北小岛的眠眠——芽芽已经很久没和她说话了。",
+      "outro": "望远镜里有一条小船，小光认得它。可是再往后，它就想不起来了。",
       "reaction": "",
+      "constellation": "letter",
       "stages": [
         {
           "id": "c2_shop",
-          "title": "去星顶小摊找信纸",
-          "hint": "码头边那间星星屋顶的小摊。走近后按 E 看看。",
+          "title": "去星顶小摊拿一沓信纸",
+          "hint": "码头边那间星星屋顶的小摊，走近按 E 敲门。",
           "target": "loc:star_roof_shop",
           "done": {
             "event": "shop_visited"
           },
-          "whisper": "摊主不在，你怎么知道可以拿呢？"
+          "whisper": "芽芽要写信？写给谁呀？"
         },
         {
           "id": "c2_letter",
-          "title": "把信纸带给芽芽",
-          "hint": "芽芽在花园等着写信。",
+          "title": "把信纸带给芽芽，请她写信",
+          "hint": "芽芽在花园。走近按 E 交谈。",
           "target": "npc:gardener",
           "done": {
             "talk": "gardener"
-          }
+          },
+          "whisper": "写了却不寄出去的信……会难过吗？"
         },
         {
           "id": "c2_deliver",
-          "title": "过高桥，把信送给眠眠",
-          "hint": "眠眠住在东北远岛的望远镜旁。按 N 打开地图能看到怎么走。",
+          "title": "过高桥，把信交给眠眠",
+          "hint": "眠眠住在东北小岛的望远镜旁。按 N 打开地图能看到路。",
           "target": "npc:astronomer",
           "done": {
             "talk": "astronomer"
           },
-          "whisper": "信好轻。可是芽芽写的时候，好像很重。"
+          "whisper": "眠眠是谁？……她会喜欢我吗？"
         },
         {
           "id": "c2_dusk",
-          "title": "去西北小岛的观景椅等傍晚",
-          "hint": "那把椅子正对整座小镇。到了按 C 坐下（或在椅边站着），再按 T 换成傍晚。",
+          "title": "去西北小岛的观景椅，看小镇天黑",
+          "hint": "到椅子边按 C 坐下（站在椅边也行），再按 T 换成傍晚。",
           "target": "loc:remote_chair",
           "done": {
             "all": [
@@ -140,12 +154,12 @@
               }
             ]
           },
-          "whisper": "太阳要走了吗？"
+          "whisper": "眠眠说，在这儿能看出小镇缺了什么。"
         },
         {
           "id": "c2_night",
-          "title": "看天色慢慢变成夜晚",
-          "hint": "继续按 T。坐着时 C 或 Esc 起身。",
+          "title": "看天色变成夜晚",
+          "hint": "继续按 T 换成夜晚。看看镇上的灯，再看看云海那边。",
           "target": "loc:remote_chair",
           "done": {
             "all": [
@@ -164,102 +178,221 @@
                 ]
               }
             ]
-          }
+          },
+          "whisper": "太阳下去了。镇上的灯……怎么只亮了这么几盏？"
         },
         {
-          "id": "c2_ask",
-          "title": "问眠眠今晚看什么",
-          "hint": "眠眠在东北远岛的望远镜旁。",
+          "id": "c2_back",
+          "title": "回去告诉眠眠你看见了什么",
+          "hint": "眠眠在东北小岛的望远镜旁。坐着时按 C 起身。",
           "target": "npc:astronomer",
           "done": {
             "talk": "astronomer"
           },
-          "whisper": "天黑了，星星就出来了。它们是一直都在吗？"
-        }
-      ],
-      "constellation": "letter"
-    },
-    {
-      "id": "c3",
-      "title": "第三章 · 星星的旧光",
-      "intro": "眠眠说，今晚的星图上，有一个空着的位置。",
-      "outro": "愿望灯飞走了，可小光还在灯里。它说：我好像太重了，飞不到那么高。",
-      "reaction": "",
-      "stages": [
+          "whisper": "你看见了吗？云海那边有一点光，一闪，一闪，又一闪。镇上也有一盏在回答它。"
+        },
         {
-          "id": "c3_first",
-          "title": "用望远镜看一张星图",
-          "hint": "靠近望远镜按 E。把星群移到视野中央，点“记录这张星图”。",
+          "id": "c2_boat",
+          "title": "第一次观星：找到星舟座",
+          "hint": "靠近望远镜按 E。左边列表选“星舟座”，把小船移到视野中央，点“记录这张星图”。",
           "target": "loc:telescope",
           "done": {
-            "stars": 1
+            "star_ids": [
+              "boat"
+            ]
           },
+          "whisper": "小船……家旁边好像有一条小船。",
           "progress": {
-            "count": "stars",
-            "of": 1
+            "star_ids": [
+              "boat"
+            ]
           }
         },
         {
-          "id": "c3_all",
-          "title": "记下星舟、花铃和归家三张星图",
-          "hint": "观星时左边的列表可以直接转到星群。",
+          "id": "c2_memory",
+          "title": "告诉眠眠：小光认得那条船",
+          "hint": "眠眠就在望远镜旁。",
+          "target": "npc:astronomer",
+          "done": {
+            "talk": "astronomer"
+          },
+          "whisper": "那条小船！我见过它——从我家的窗口，能看见它。"
+        }
+      ]
+    },
+    {
+      "id": "c3",
+      "title": "第三章 · 一盏一盏的灯",
+      "intro": "眠眠说，星星的记忆藏在它的光里。光越亮，想起来的越多。镇上有好几户人家的灯，已经暗了很久。",
+      "outro": "小镇亮起来了。小光却趴在你肩膀上，小声说：其实，我还不想走。",
+      "reaction": "",
+      "stages": [
+        {
+          "id": "c3_knock",
+          "title": "敲开三户邻居的门，听听他们的灯为什么暗了",
+          "hint": "修灯的邻居、面包房、高台上数星星的孩子。走到门前按 E 敲门。",
+          "target": "",
+          "done": {
+            "all": [
+              {
+                "flag": "door_lamplighter"
+              },
+              {
+                "flag": "door_baker"
+              },
+              {
+                "flag": "door_child"
+              }
+            ]
+          },
+          "whisper": "门后面的人……会不会怕我？",
+          "progress": {
+            "flags": [
+              "door_lamplighter",
+              "door_baker",
+              "door_child"
+            ]
+          },
+          "visit": [
+            "door_lamplighter",
+            "door_baker",
+            "door_child"
+          ]
+        },
+        {
+          "id": "c3_help",
+          "title": "让小光把镇上的灯一盏一盏点亮",
+          "hint": "一处一处来，下面会告诉你下一处在哪。",
+          "target": "",
+          "done": {
+            "all": [
+              {
+                "flag": "lit_lamps"
+              },
+              {
+                "flag": "lit_oven"
+              },
+              {
+                "flag": "lit_child"
+              },
+              {
+                "flag": "lit_fountain"
+              }
+            ]
+          },
+          "whisper": "我真的可以吗？……那，一盏一盏来。",
+          "progress": {
+            "flags": [
+              "lit_lamps",
+              "lit_oven",
+              "lit_child",
+              "lit_fountain"
+            ]
+          },
+          "checklist": [
+            {
+              "done": "lit_lamps",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "修灯的邻居：到他家门口按 E，让小光点亮广场的路灯。",
+              "todo_target": "loc:door_lamplighter",
+              "back": "",
+              "back_target": ""
+            },
+            {
+              "done": "lit_oven",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "面包师：到面包房门口按 E，让小光点亮炉火。",
+              "todo_target": "loc:door_baker",
+              "back": "",
+              "back_target": ""
+            },
+            {
+              "done": "lit_child",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "数星星的孩子：到高台小屋门口按 E，让小光点亮小夜灯。",
+              "todo_target": "loc:door_child",
+              "back": "",
+              "back_target": ""
+            },
+            {
+              "done": "lit_fountain",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "芽芽托你的：到喷泉边按 E，让小光点亮喷泉。",
+              "todo_target": "loc:fountain",
+              "back": "",
+              "back_target": ""
+            }
+          ],
+          "unit": "处"
+        },
+        {
+          "id": "c3_bell",
+          "title": "第二次观星：照着孩子的画找到花铃座",
+          "hint": "靠近望远镜按 E，选“花铃座”，记录下来。",
           "target": "loc:telescope",
           "done": {
             "star_ids": [
-              "boat",
-              "bell",
-              "home"
+              "bell"
             ]
           },
+          "whisper": "孩子画的铃铛……我好像听过它的声音。",
           "progress": {
             "star_ids": [
-              "boat",
-              "bell",
-              "home"
+              "bell"
             ]
-          },
-          "whisper": "那个像屋顶的星座……少了一颗。那里，是不是我原来的地方？"
+          }
         },
         {
-          "id": "c3_show",
-          "title": "把星图拿给眠眠看",
+          "id": "c3_tell",
+          "title": "告诉眠眠：小光想起了那只铃",
           "hint": "眠眠在望远镜旁。",
           "target": "npc:astronomer",
           "done": {
             "talk": "astronomer"
-          }
+          },
+          "whisper": "叮——我想起来了！我家门口挂着一只铃，风一吹就响。"
         },
         {
           "id": "c3_wish",
-          "title": "回树屋放一盏愿望灯试试",
-          "hint": "在树屋门前按 L。看看灯能飞多高。",
+          "title": "在树屋门前放一盏愿望灯，看小光能不能跟上去",
+          "hint": "回到树屋门前按 L。",
           "target": "loc:tree_house",
           "done": {
             "event": "wish_released"
           },
-          "whisper": "它要飞到那么高的地方去吗？带上我好不好。"
+          "whisper": "如果愿望灯能飞到天上……它能带上我吗？"
         },
         {
-          "id": "c3_home",
-          "title": "回花园和芽芽说说愿望灯",
-          "hint": "芽芽还在花园。",
-          "target": "npc:gardener",
+          "id": "c3_grandma",
+          "title": "去听写信的奶奶讲飞艇的故事",
+          "hint": "奶奶家在广场西边的坡上。走到门前按 E 敲门。",
+          "target": "loc:door_grandma",
           "done": {
-            "talk": "gardener"
-          }
+            "flag": "grandma_story"
+          },
+          "whisper": "……我飞不上去。可是，我心里有一点高兴。我是不是很坏？"
         }
       ]
     },
     {
       "id": "c4",
-      "title": "第四章 · 云海那边",
-      "intro": "码头边那艘飞艇，很多年没有飞过了。以前，守灯人开着它去云海那边。",
-      "outro": "灯塔又亮了。光扫过云海的时候，没有一艘船在那里。可小光说，它看见了。",
-      "reaction": "lighthouse_lit",
+      "title": "第四章 · 云海那边的灯塔",
+      "intro": "奶奶说，飞艇的心是一颗星星留下的光。光用完了，飞艇就睡了；老星留在云海那边的灯塔，一等就是很多年。",
+      "outro": "灯塔亮了，奶奶的窗也亮了。云海两边的两盏灯，终于又能互相看清。",
+      "reaction": "",
+      "constellation": "lighthouse",
       "stages": [
         {
           "id": "c4_dock",
-          "title": "去码头看看那艘飞艇",
+          "title": "去码头看看老星的飞艇",
           "hint": "码头在小镇西边，挨着星顶小摊。走近飞艇按 E。",
           "target": "loc:dock",
           "done": {
@@ -267,49 +400,61 @@
           }
         },
         {
+          "id": "c4_mail",
+          "title": "去东边小岛的蓝色信箱，取出奶奶的信",
+          "hint": "过东边的长桥（地图 N 里有）。到信箱前按 E。",
+          "target": "loc:islet_e_thing",
+          "done": {
+            "flag": "letters_taken"
+          },
+          "whisper": "下一颗迷路的星星……是说我吗？"
+        },
+        {
           "id": "c4_wind",
           "title": "傍晚拨响树屋前的风铃，叫风来",
-          "hint": "舵上的字条说：风铃在傍晚响，风就会来。按 T 换成傍晚，再到树屋前按 X。",
+          "hint": "老星的字条说：风铃在傍晚响，风就会来。按 T 换成傍晚，到树屋门前按 X。",
           "target": "loc:tree_house",
           "done": {
             "event": "chime_rung",
             "sky": "dusk"
           },
-          "whisper": "风是听得见风铃的吗？"
+          "whisper": "这么多信……都是写给同一个人的。"
         },
         {
           "id": "c4_lamp",
-          "title": "让小光点亮飞艇的船灯",
+          "title": "让小光点亮飞艇的心",
           "hint": "回到码头，靠近飞艇按 E。",
           "target": "loc:dock",
           "done": {
-            "event": "ship_lamp_lit"
-          }
+            "flag": "lit_ship"
+          },
+          "whisper": "风来了。飞艇的心是一颗星星给的……那我也可以。"
         },
         {
           "id": "c4_fly",
-          "title": "登上飞艇，飞去云海那边",
-          "hint": "在码头靠近飞艇按 E 登船。飞的时候可以四处看看。",
+          "title": "带着奶奶的信，飞去灯塔岛",
+          "hint": "在码头靠近飞艇按 E 登船。飞行 5 秒后可以按 E 跳过。",
           "target": "loc:dock",
           "done": {
             "event": "airship_arrived",
             "place": "keeper_isle"
           },
-          "whisper": "我们在飞！……小镇变得好小。"
+          "whisper": "它醒了！……我们真的要飞了吗？"
         },
         {
-          "id": "c4_house",
-          "title": "推开守灯人的小屋",
+          "id": "c4_keeper",
+          "title": "敲开老星的门",
           "hint": "码头上去就是小屋。走近门按 E。",
           "target": "loc:keeper_house",
           "done": {
             "event": "keeper_door_opened"
-          }
+          },
+          "whisper": "门缝里有光……很小很小的一点。"
         },
         {
           "id": "c4_letters",
-          "title": "读一读桌上的三封信",
-          "hint": "信在窗边的书桌上。靠近按 E 一封一封读。",
+          "title": "替老星把书桌上的三封信读给小光听",
+          "hint": "信在窗边的书桌上。靠近按 E，一封一封读。",
           "target": "loc:keeper_desk",
           "done": {
             "all": [
@@ -334,46 +479,161 @@
         },
         {
           "id": "c4_light",
-          "title": "爬上灯塔，把灯点亮",
-          "hint": "灯塔就在小屋后面。到塔顶的灯旁按 E。",
+          "title": "爬上灯塔，让小光点亮灯塔",
+          "hint": "灯塔就在小屋后面。在塔门口按 E 上楼，到塔顶的灯旁按 E。",
           "target": "loc:keeper_lamp",
           "done": {
-            "event": "lighthouse_lit"
+            "flag": "lit_lighthouse"
           },
-          "whisper": "为看不见的人点灯……他们会知道吗？"
+          "whisper": "老星说，灯塔的光，一直是朝着归家座的。"
         },
         {
           "id": "c4_return",
           "title": "坐飞艇回小镇",
-          "hint": "回到岛上的码头，靠近飞艇按 E。",
+          "hint": "回到岛上的码头，靠近飞艇按 E。老星会留下来守灯。",
           "target": "loc:keeper_dock",
           "done": {
             "event": "airship_arrived",
             "place": "dock"
-          }
+          },
+          "whisper": "光柱指着的那一片天……我好像在哪里见过。"
+        },
+        {
+          "id": "c4_grandma",
+          "title": "把老星的信交给奶奶，点亮她窗台的灯",
+          "hint": "奶奶家门前按 E。",
+          "target": "loc:door_grandma",
+          "done": {
+            "flag": "lit_grandma"
+          },
+          "whisper": "老星说：今晚，我替小光照路。"
         }
-      ],
-      "constellation": "lighthouse"
+      ]
     },
     {
       "id": "c5",
       "title": "第五章 · 回家的光",
-      "intro": "眠眠说，今夜的归家座，会把空着的那颗星等回来。",
-      "outro": "后来，小镇上的人都说，归家座比以前亮了一点。",
+      "intro": "灯塔亮着，小船和铃中间那一片天，终于看得清了。",
+      "outro": "后来，岛上的人都说，归家座比以前亮了一点。",
       "reaction": "player_star",
       "stages": [
         {
-          "id": "c5_tell",
-          "title": "告诉眠眠灯塔亮了",
-          "hint": "眠眠在东北远岛的望远镜旁。",
-          "target": "npc:astronomer",
+          "id": "c5_scope",
+          "title": "第三次观星：找到归家座",
+          "hint": "靠近望远镜按 E，选“归家座”，记录下来。",
+          "target": "loc:telescope",
           "done": {
-            "talk": "astronomer"
+            "star_ids": [
+              "home"
+            ]
+          },
+          "whisper": "灯塔照着的那一片天……我想去看看。",
+          "progress": {
+            "star_ids": [
+              "home"
+            ]
           }
         },
         {
+          "id": "c5_tell",
+          "title": "告诉眠眠：找到了",
+          "hint": "眠眠在望远镜旁。",
+          "target": "npc:astronomer",
+          "done": {
+            "talk": "astronomer"
+          },
+          "whisper": "三角屋顶，底下一盏灯……屋顶那一角空着一颗。那是我的位置。"
+        },
+        {
+          "id": "c5_invite",
+          "title": "请大家今晚一起放天灯",
+          "hint": "一位一位去请，下面会告诉你下一位在哪。",
+          "target": "",
+          "done": {
+            "all": [
+              {
+                "flag": "invite_gardener"
+              },
+              {
+                "flag": "invite_lamplighter"
+              },
+              {
+                "flag": "invite_baker"
+              },
+              {
+                "flag": "invite_child"
+              },
+              {
+                "flag": "invite_grandma"
+              }
+            ]
+          },
+          "whisper": "大家……都会来吗？",
+          "progress": {
+            "flags": [
+              "invite_gardener",
+              "invite_lamplighter",
+              "invite_baker",
+              "invite_child",
+              "invite_grandma"
+            ]
+          },
+          "checklist": [
+            {
+              "done": "invite_gardener",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "芽芽：去花园和她说。",
+              "todo_target": "npc:gardener",
+              "back": "",
+              "back_target": ""
+            },
+            {
+              "done": "invite_lamplighter",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "修灯的邻居：到他家门口按 E。",
+              "todo_target": "loc:door_lamplighter",
+              "back": "",
+              "back_target": ""
+            },
+            {
+              "done": "invite_baker",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "面包师：到面包房门口按 E。",
+              "todo_target": "loc:door_baker",
+              "back": "",
+              "back_target": ""
+            },
+            {
+              "done": "invite_child",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "数星星的孩子：到高台小屋门口按 E。",
+              "todo_target": "loc:door_child",
+              "back": "",
+              "back_target": ""
+            },
+            {
+              "done": "invite_grandma",
+              "ready": {
+                "flag": "never_ready"
+              },
+              "todo": "写信的奶奶：到她家门口按 E。",
+              "todo_target": "loc:door_grandma",
+              "back": "",
+              "back_target": ""
+            }
+          ]
+        },
+        {
           "id": "c5_farewell",
-          "title": "和芽芽说一声",
+          "title": "和芽芽道别",
           "hint": "芽芽在花园。",
           "target": "npc:gardener",
           "done": {
@@ -384,26 +644,28 @@
         {
           "id": "c5_night",
           "title": "等到夜晚",
-          "hint": "按 T 换成夜晚。不着急。",
+          "hint": "按 T 换成夜晚。修灯的邻居会把全岛的灯都点上。",
           "target": "",
           "done": {
             "sky": "night"
-          }
+          },
+          "whisper": "你看，全岛的灯都亮着……是在给我送行吗？"
         },
         {
           "id": "c5_fly",
-          "title": "夜里乘飞艇，飞到云海最高的地方",
+          "title": "乘飞艇飞到云海最高的地方",
           "hint": "在码头靠近飞艇按 E。这一次，飞艇会一直往上飞。",
           "target": "loc:dock",
           "done": {
             "event": "xiaoguang_home"
-          }
+          },
+          "whisper": "我们往上飞吧。一直往上。"
         },
         {
-          "id": "c5_window",
-          "title": "回树屋，推开那扇小圆窗",
-          "hint": "飞艇落回码头后，走到树屋门前按 E。",
-          "target": "loc:tree_house",
+          "id": "c5_land",
+          "title": "飞艇慢慢落回小镇",
+          "hint": "坐稳了，飞艇会自己落回码头。",
+          "target": "",
           "done": {
             "event": "ending_seen"
           }
@@ -584,91 +846,6 @@
           "done": {
             "talk": "astronomer"
           }
-        }
-      ]
-    },
-    {
-      "id": "s_neighbors",
-      "title": "门缝里的邻居",
-      "giver": "gardener",
-      "unlock": {
-        "chapter_done": "c2"
-      },
-      "intro": "芽芽说，镇上的小屋里都住着人，只是他们很少出门。敲敲门试试？",
-      "outro": "你一个也没看见，可是他们都在。点灯人点了灯，面包师留了面包，奶奶写完了信，孩子记住了一张星图。",
-      "constellation": "door",
-      "stages": [
-        {
-          "id": "s_neighbors_knock",
-          "title": "敲开四扇门，听听门后的人说什么",
-          "hint": "广场和高台上的小屋。走到门前按 E 敲门。",
-          "target": "",
-          "done": {
-            "all": [
-              {
-                "flag": "door_baker"
-              },
-              {
-                "flag": "door_child"
-              },
-              {
-                "flag": "door_grandma"
-              },
-              {
-                "flag": "door_lamplighter"
-              }
-            ]
-          },
-          "progress": {
-            "flags": [
-              "door_baker",
-              "door_child",
-              "door_grandma",
-              "door_lamplighter"
-            ]
-          },
-          "visit": [
-            "door_baker",
-            "door_child",
-            "door_grandma",
-            "door_lamplighter"
-          ]
-        },
-        {
-          "id": "s_neighbors_help",
-          "title": "帮四位邻居各做一件小事",
-          "hint": "故事本里写着每个人的请求。做完再去敲一次门。",
-          "target": "",
-          "done": {
-            "all": [
-              {
-                "flag": "help_baker"
-              },
-              {
-                "flag": "help_child"
-              },
-              {
-                "flag": "help_grandma"
-              },
-              {
-                "flag": "help_lamplighter"
-              }
-            ]
-          },
-          "progress": {
-            "flags": [
-              "help_baker",
-              "help_child",
-              "help_grandma",
-              "help_lamplighter"
-            ]
-          },
-          "visit": [
-            "door_baker",
-            "door_child",
-            "door_grandma",
-            "door_lamplighter"
-          ]
         }
       ]
     },

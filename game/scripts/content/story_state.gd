@@ -27,7 +27,13 @@ static func defaults() -> Dictionary:
 		"heard_order": [],       # recent entry ids, oldest first
 		"track": "main",         # quest the guide follows
 		"guide_target": "",      # manual map target, "" follows the tracked quest
+		"player_name": "星仔",   # the player's star person; renamed on the title card or in settings
+		"story_rev": STORY_REV,  # which story the chapter/stage numbers belong to
 	}
+
+## The v16 story has different stages: a save from an older one keeps its chapter but
+## starts that chapter again from its first stage.
+const STORY_REV := 16
 
 func reset() -> void:
 	data = defaults()
@@ -48,6 +54,11 @@ func load_state() -> void:
 		return
 	data = migrate(parsed)
 	load_note = "loaded_v%d" % int(parsed.get("version", 0))
+	if int(parsed.get("story_rev", 0)) < STORY_REV:
+		data.story_rev = STORY_REV
+		if not bool(data.main.done):data.main.stage = 0
+		data.stage_events = {}
+		load_note += "_story_rev_reset"
 
 ## Fills missing fields and drops wrong types; never raises.
 static func migrate(raw: Dictionary) -> Dictionary:

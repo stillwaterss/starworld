@@ -143,6 +143,10 @@ func open_door(id: String, stay := false, animate := true) -> void:
 func close_door(id: String) -> void:
 	if not doors.has(id) or not doors[id].open:return
 	var d: Dictionary = doors[id]
+	# someone is still talking at this door: try again a little later
+	if d.get("hold", false):
+		get_tree().create_timer(3.0).timeout.connect(close_door.bind(id))
+		return
 	d.open = false
 	create_tween().tween_property(d.node, "rotation:y", float(d.rest), 1.1).set_trans(Tween.TRANS_SINE)
 	if d.has("light"):
@@ -381,23 +385,82 @@ func _build_keepsakes() -> void:
 				_piece(root, _cyl(.12, .22, .09), Vector3(0, 1.3, 0), _mat(Color("ffe0a0"), .1))
 		keepsakes[id] = root
 		registry.register(id + "_thing", base + Vector3.UP * .1, 1.6)
+		# the modelled version, when there is one: the simple pieces stay as hidden handles
+		var model_name := {"islet_e": "mailbox", "islet_sw": "bell_post", "isle_south_r": "lamp_post"}.get(id, "") as String
+		var model := prop(model_name, {"islet_e": 1.25, "islet_sw": 1.6, "isle_south_r": 1.5}.get(id, 1.0))
+		if model:
+			for piece in root.get_children():piece.visible = false
+			root.add_child(model)
+			root.set_meta("model", model)
+	_swap_telescope()
+
+## A Tripo prop from assets/props (made 1 unit tall, standing on its origin), `height` m.
+const PROPS := "res://assets/props/"
+
+func prop(prop_name: String, height: float) -> Node3D:
+	if prop_name == "" or not ResourceLoader.exists(PROPS + "prop_" + prop_name + ".glb"):return null
+	var node: Node3D = (load(PROPS + "prop_" + prop_name + ".glb") as PackedScene).instantiate()
+	node.scale = Vector3.ONE * height
+	return node
+
+## The modelled brass telescope in place of the scene's simple one, the same size and
+## turned the same way (its long side along the old one's).
+func _swap_telescope() -> void:
+	var parts: Array[MeshInstance3D] = []
+	for mesh: MeshInstance3D in world.find_children("Telescope_*", "MeshInstance3D", true, false):parts.append(mesh)
+	if parts.is_empty() or not ResourceLoader.exists(PROPS + "prop_telescope.glb"):return
+	var box: AABB = parts[0].global_transform * parts[0].get_aabb()
+	for mesh in parts:box = box.merge(mesh.global_transform * mesh.get_aabb())
+	var model := prop("telescope", box.size.y * 1.05)
+	if model == null:return
+	for mesh in parts:mesh.visible = false
+	add_child(model)
+	model.global_position = Vector3(box.get_center().x, box.position.y, box.get_center().z)
+	var own := AABB()
+	var first := true
+	for mesh: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		var b: AABB = model.global_transform.affine_inverse() * (mesh.global_transform * mesh.get_aabb())
+		own = b if first else own.merge(b)
+		first = false
+	if (own.size.x > own.size.z) != (box.size.x > box.size.z):model.rotation.y = PI / 2
 
 func light_keepsake_lamp() -> void:
 	if not keepsakes.has("isle_south_r"):return
 	var lamp: MeshInstance3D = keepsakes.isle_south_r.get_child(1)
 	lamp.material_override.emission_energy_multiplier = 2.4
+	if keepsakes.isle_south_r.has_meta("model"):_glow_model(keepsakes.isle_south_r.get_meta("model"), 2.0)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1, .84, .55)
 	l.omni_range = 3.0
 	keepsakes.isle_south_r.add_child(l)
 	l.position = Vector3(0, 1.3, 0)
 
+## Makes a model's lamp glass glow: every material gets a warm emission.
+func _glow_model(model: Node3D, energy: float) -> void:
+	for mesh: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		for i in mesh.get_surface_override_material_count():
+			var base := mesh.get_active_material(i)
+			if not base is StandardMaterial3D:continue
+			var m: StandardMaterial3D = base.duplicate()
+			m.emission_enabled = true
+			m.emission = Color(1, .8, .45)
+			m.emission_energy_multiplier = energy * .25
+			if m.albedo_texture:
+				m.emission_texture = m.albedo_texture
+				m.emission_energy_multiplier = energy * .5
+			mesh.set_surface_override_material(i, m)
+
 func ring_bell() -> void:
 	if not keepsakes.has("islet_sw"):return
 	var bell: Node3D = keepsakes.islet_sw.get_child(2)
+	# the modelled post rocks a little instead (its bell is part of the model)
+	var swing := .35
+	if keepsakes.islet_sw.has_meta("model"):
+		bell = keepsakes.islet_sw.get_meta("model")
+		swing = .05
 	var t := create_tween()
 	for k in 5:
-		t.tween_property(bell, "rotation:z", .35 * (1 - k / 5.0) * (1 if k % 2 == 0 else -1), .22)
+		t.tween_property(bell, "rotation:z", swing * (1 - k / 5.0) * (1 if k % 2 == 0 else -1), .22)
 	t.tween_property(bell, "rotation:z", 0.0, .3)
 	if world.get("audio"):world.audio.play_sfx("windchime")
 
