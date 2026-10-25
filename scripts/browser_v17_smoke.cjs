@@ -50,13 +50,13 @@ const fs=require('node:fs');
   await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
   await clickControl('出发吧',true);
   await page.waitForFunction(()=>window.starworldUi.title===false,{},{timeout:30000});
-  // Software rendering advances the intro more slowly than wall time. Repeated
-  // real skip keys wait for its visible, three-game-second skip affordance.
-  const openingDeadline=Date.now()+120000;
-  while(!(await page.evaluate(()=>window.starworldUi.chapter===true && window.starworldUi.opening===false))){
-   if(Date.now()>openingDeadline)throw Error('Opening did not reach the chapter page after skip input');
-   await page.keyboard.press('Space');await page.waitForTimeout(1500);
-  }
+  // Wait for the actual skip affordance. A Space loop could also dismiss the
+  // following chapter page before its real Start button is inspected.
+  await page.waitForFunction(()=>window.starworldUi.openingSkip?.visible,{},{timeout:120000});
+  const openingUi=await page.evaluate(()=>window.starworldUi),skip=openingUi.openingSkip;
+  const openingCanvas=await page.locator('canvas').boundingBox();
+  await page.mouse.click(openingCanvas.x+skip.x/openingUi.width*openingCanvas.width,openingCanvas.y+skip.y/openingUi.height*openingCanvas.height,{delay:150});
+  await page.waitForFunction(()=>window.starworldUi.chapter===true && window.starworldUi.opening===false,{},{timeout:60000});
   await page.screenshot({path:'browser-evidence/chapter.png'});
   await clickControl('开始第一章');
   await page.waitForFunction(()=>!window.starworldUi.chapter && !window.starworldUi.locked,{},{timeout:30000});
@@ -65,10 +65,10 @@ const fs=require('node:fs');
   await page.keyboard.down('ArrowUp');
   try{await page.waitForFunction(()=>window.starworldUi.position[2]<3.0,{},{timeout:30000});}
   finally{await page.keyboard.up('ArrowUp');}
-  // Reusing a prepared prop after 新游戏 reloads the scene must not access freed nodes.
+  // A prepared prop must remain usable after the normal New Game / opening flow.
   await page.keyboard.press('l');
   await page.waitForFunction(()=>window.starworldUi.performance==='wish',{},{timeout:20000});
-  await page.screenshot({path:'browser-evidence/wish-after-reload.png'});
+  await page.screenshot({path:'browser-evidence/wish-after-new-game.png'});
   await page.keyboard.press('e');await page.waitForFunction(()=>!window.starworldUi.performing,{},{timeout:30000});
   const before=await page.evaluate(()=>window.starworldUi.position);
   await page.keyboard.down('ArrowRight');await page.waitForTimeout(2200);await page.keyboard.up('ArrowRight');
@@ -78,7 +78,7 @@ const fs=require('node:fs');
   await page.keyboard.press('n');await page.waitForFunction(()=>window.starworldUi.panel==='map',{},{timeout:15000});
   await page.screenshot({path:'browser-evidence/map.png'});await page.keyboard.press('Escape');
   const result=await page.evaluate(()=>window.starworldDiagnostics());
-  Object.assign(result,{movementMetres:moved,startupReadyMs:readyMs,totalSmokeMs:Date.now()-begun,musicPeakDb:await page.evaluate(()=>window.starworldMusicPeakDb),verified:['home entries','settings return','about Escape','new game','chapter start button','post-reload wish prop','movement','map','font','real audio after reload'],testViewport:{width:400,height:250,renderer:'Chromium SwiftShader software rasterization'},errors});
+  Object.assign(result,{movementMetres:moved,startupReadyMs:readyMs,totalSmokeMs:Date.now()-begun,musicPeakDb:await page.evaluate(()=>window.starworldMusicPeakDb),verified:['home entries','settings return','about Escape','new game','chapter start button','wish after new game','movement','map','font','real audio after opening'],testViewport:{width:400,height:250,renderer:'Chromium SwiftShader software rasterization'},errors});
   fs.writeFileSync('browser-evidence/audio.json',JSON.stringify(result,null,2));
   await page.screenshot({path:'browser-evidence/game.png'});console.log('BROWSER_V17_VERIFIED',JSON.stringify(result));
   if(errors.length)throw Error(errors.join('\n'));

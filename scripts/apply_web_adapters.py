@@ -90,6 +90,7 @@ func _process(delta: float) -> void:
 \t\tvar size: Vector2 = root.size
 \t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "controls": controls, "about": about_panel.visible, "opening": content.opening.playing, "chapter": showing_card(), "locked": content.world.player.controls_locked, "performance": content.world.performance.kind, "performing": content.world.performance.busy, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
     s = s.replace('"title": title_card.visible, "buttons": buttons', '"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons')
+    s = s.replace('"opening": content.opening.playing, "chapter"', '"opening": content.opening.playing, "openingSkip": {"visible": content.opening.skip_button.is_visible_in_tree(), "x": content.opening.skip_button.get_global_rect().get_center().x, "y": content.opening.skip_button.get_global_rect().get_center().y}, "chapter"')
     changes[path] = s
     key = 'scripts/performance.gd'
     text = changes.get(key, read(key))
