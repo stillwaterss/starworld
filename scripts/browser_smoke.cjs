@@ -48,7 +48,8 @@ const fs=require('node:fs');
   if(errors.length)throw Error(errors.join('\n'));
  }finally{
   const diagnostics=await page.evaluate(()=>window.starworldDiagnostics?.()).catch(()=>null);
-  fs.writeFileSync('browser-evidence/diagnostics.json',JSON.stringify(diagnostics,null,2));
+  const ui=await page.evaluate(()=>window.starworldUi).catch(()=>null);
+  fs.writeFileSync('browser-evidence/diagnostics.json',JSON.stringify({diagnostics,ui},null,2));
   fs.writeFileSync('browser-evidence/console.log',logs.join('\n'));
   await page.screenshot({path:'browser-evidence/final.png'}).catch(()=>{});
   await browser.close();

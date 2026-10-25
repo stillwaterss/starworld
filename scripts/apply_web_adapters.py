@@ -76,7 +76,7 @@ func _process(delta: float) -> void:
 \t\t\tvar center: Vector2 = button.get_global_rect().get_center()
 \t\t\tbuttons.append({"text": button.text, "x": center.x, "y": center.y})
 \t\tvar pos: Vector3 = content.world.player.global_position
-\t\tvar size: Vector2 = get_viewport().get_visible_rect().size
+\t\tvar size: Vector2 = root.size
 \t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
     changes[path] = s
     # Validate every anchor before writing any file.

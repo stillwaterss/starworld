@@ -1154,7 +1154,7 @@ func _process(delta: float) -> void:
 			var center: Vector2 = button.get_global_rect().get_center()
 			buttons.append({"text": button.text, "x": center.x, "y": center.y})
 		var pos: Vector3 = content.world.player.global_position
-		var size: Vector2 = get_viewport().get_visible_rect().size
+		var size: Vector2 = root.size
 		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "buttons": buttons, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))
 	var world: Node3D = content.world
 	var idle: bool = world.interactions.mode == "idle"
