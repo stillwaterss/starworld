@@ -41,7 +41,7 @@ def apply(root):
     changes[path] = s
     path = 'scripts/content/content_root.gd'
     s = read(path)
-    s = replace(s, '\tgrid.bake(world.get_world_3d().direct_space_state, ignore)', '\tif not (OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")):\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)')
+    if 'grid.load_web_cache' not in s:s = replace(s, '\tgrid.bake(world.get_world_3d().direct_space_state, ignore)', '\tif not (OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")):\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)')
     if 'window.starworldSceneReady' not in s:
         s = replace(s, '\tguide.refresh_route(true)\n\tui.refresh()', '\tguide.refresh_route(true)\n\tui.refresh()\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")')
     changes[path] = s
@@ -91,9 +91,23 @@ func _process(delta: float) -> void:
 \t\tJavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "controls": controls, "about": about_panel.visible, "opening": content.opening.playing, "chapter": showing_card(), "locked": content.world.player.controls_locked, "performance": content.world.performance.kind, "performing": content.world.performance.busy, "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel}))''')
     s = s.replace('"title": title_card.visible, "buttons": buttons', '"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons')
     s = s.replace('"opening": content.opening.playing, "chapter"', '"opening": content.opening.playing, "openingSkip": {"visible": content.opening.skip_button.is_visible_in_tree(), "x": content.opening.skip_button.get_global_rect().get_center().x, "y": content.opening.skip_button.get_global_rect().get_center().y}, "chapter"')
+    s = s.replace('"performing": content.world.performance.busy, "width"', '"performing": content.world.performance.busy, "endingPlaying": content.ending.playing, "endingSky": content.ending.sky_layer.visible, "finale": is_instance_valid(content.ending.finale_panel) and content.ending.finale_panel.visible, "homeReturned": content.state.flag("xiaoguang_home"), "mainDone": content.director.main_done(), "shipAt": content.airship.at, "lanterns": content.ending.lanterns.size(), "width"')
     changes[path] = s
+    key = 'scripts/cozy_activities.gd'
+    text = changes.get(key, read(key))
+    if 'var _web_flower_pool' not in text:
+        text += '\n' + (ADAPTERS/'animation_warmup.gdinc').read_text(encoding='utf-8')
+    marker = '## Keep flower meshes and drop resources ready without changing game progress.'
+    if marker in text:
+        text = text[:text.index(marker)] + (ADAPTERS/'animation_warmup.gdinc').read_text(encoding='utf-8').lstrip('\n')
+    text = text.replace('var flower:=Flora.build(index)', 'var flower:=_web_flower(index)')
+    text = text.replace('var m:=SphereMesh.new();m.radius=.012;m.height=.03;m.radial_segments=4;m.rings=2', 'var m:=_web_pour_mesh()')
+    text = text.replace('var mat:=StandardMaterial3D.new();mat.albedo_color=Color(.75,.9,1,.8);mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA', 'var mat:=_web_pour_material()')
+    changes[key] = text
     key = 'scripts/performance.gd'
     text = changes.get(key, read(key))
+    # Hurrying the acting must not cut away from a still-running return glide.
+    text = text.replace('\t\tawait wait(back_seconds)', '\t\tif _glide:await _glide.finished')
     if 'func prepare_web_props()' not in text:
         text += (ADAPTERS/'performance_warmup.gdinc').read_text(encoding='utf-8')
         for factory in ['watering_can','paper_lantern','pebble','seed_pouch','cloth']:
@@ -142,6 +156,25 @@ func _process(delta: float) -> void:
     text = text.replace('views.append(_first_clear([CHAIR-FACING*3.0+Vector3.UP*4.4-side*1.7,CHAIR-FACING*3.0+Vector3.UP*4.4+side*1.7,CHAIR-FACING*2.2+Vector3.UP*5.2],town,town))', 'views.append([CHAIR+FACING*5.0+Vector3.UP*4.4,town])')
     changes[key] = text
     # Validate every anchor before writing any file.
+    key = 'scripts/main.gd'
+    text = changes.get(key, read(key))
+    if 'func _web_boot_mark(' not in text:
+        text = text.replace('func _ready() -> void:', 'func _ready() -> void:\n\t_web_boot_mark("scene_start")', 1)
+        for anchor,label in [('\t_add_collisions(island)','collisions_done'),('\tadd_child(preload("res://scripts/world_details.gd").new())','details_done'),('\tadd_child(player)','player_done'),('\tadd_child(activities)','activities_done'),('\tadd_child(content)','content_done')]:
+            text = text.replace(anchor,anchor+'\n\t_web_boot_mark("'+label+'")',1)
+        text += '\nfunc _web_boot_mark(label: String) -> void:\n\tif OS.has_feature("web"):JavaScriptBridge.eval("window.starworldBootTrace ??= []; window.starworldBootTrace.push({label:"+JSON.stringify(label)+",ms:performance.now()})")\n'
+    if 'res://scripts/content/ending_checkpoint.gd' not in text:
+        text = replace(text, '\tadd_child(content)\n', '\tadd_child(content)\n\tif "--ending-preview" in OS.get_cmdline_user_args():\n\t\tvar checkpoint = load("res://scripts/content/ending_checkpoint.gd")\n\t\tcheckpoint.seed(self)\n\t\tcheckpoint.place(self)\n')
+    if 'var _web_geometry_ready' not in text:
+        text = text.replace('\tadd_child(content)\n','\tadd_child(content)\n\t_web_stage_geometry()\n',1)
+        text += (ADAPTERS/'geometry_warmup.gdinc').read_text(encoding='utf-8')
+    changes[key] = text
+    key = 'scripts/content/content_root.gd'
+    text = changes.get(key, read(key))
+    old = '\tif not (OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")):\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)'
+    new = '\tif OS.has_feature("web"):world._web_boot_mark("grid_begin")\n\tvar used_cache: bool=OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")\n\tif not used_cache:\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)\n\tif OS.has_feature("web"):\n\t\tworld._web_boot_mark("grid_done")\n\t\tJavaScriptBridge.eval("window.starworldGridCacheHit = "+("true" if used_cache else "false"))'
+    if "var used_cache:" not in text:text = text.replace(old,new)
+    changes[key] = text
     for path, s in changes.items():
         (root/path).write_text(s, encoding='utf-8')
     print('Browser color, sound and navigation adapters applied:', root)

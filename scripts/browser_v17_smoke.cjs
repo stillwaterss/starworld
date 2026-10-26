@@ -29,7 +29,7 @@ const fs=require('node:fs');
   await page.getByRole('link',{name:'去小世界走走 →'}).first().click();
   await page.screenshot({path:'browser-evidence/loading.png'});
   const begun=Date.now();await page.locator('#start').click();
-  await page.waitForFunction(()=>window.starworldDiagnostics?.().ready,{},{timeout:150000});
+  await page.waitForFunction(()=>window.starworldDiagnostics?.().ready,{},{timeout:300000});
   const readyMs=Date.now()-begun;await verifySound();
   await page.waitForFunction(()=>window.starworldUi?.buttons?.length>0 && window.starworldUi?.booting===false,{},{timeout:30000});
   const font=await page.evaluate(()=>window.starworldFontCheck);

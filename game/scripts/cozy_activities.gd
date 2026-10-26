@@ -287,7 +287,7 @@ func toggle_seat() -> bool:
 
 ## The player's flower; starts tiny (a performance grows it from the soil).
 func _flower(index: int) -> Node3D:
-	var flower:=Flora.build(index)
+	var flower:=_web_flower(index)
 	flower.position=GARDEN+Vector3(-1.3+index*.72,.06,1.7)
 	flower.rotation.y=index*1.9
 	flower.scale=Vector3.ONE*.01
@@ -358,9 +358,9 @@ func _pour_stream() -> Node3D:
 	var drops:=CPUParticles3D.new()
 	drops.amount=60;drops.lifetime=.55;drops.emitting=true
 	drops.direction=Vector3(0,-1,.2);drops.spread=8;drops.initial_velocity_min=.4;drops.initial_velocity_max=.8;drops.gravity=Vector3(0,-6,0)
-	var m:=SphereMesh.new();m.radius=.012;m.height=.03;m.radial_segments=4;m.rings=2
+	var m:=_web_pour_mesh()
 	drops.mesh=m
-	var mat:=StandardMaterial3D.new();mat.albedo_color=Color(.75,.9,1,.8);mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+	var mat:=_web_pour_material()
 	drops.material_override=mat
 	root.add_child(drops)
 	var perf=world.performance
@@ -600,3 +600,52 @@ func save_photo() -> void:
 	photo_saved=true
 	if world.get("audio"):world.audio.play_sfx("shutter")
 	content_event.emit("photo_saved",{"pos":player.global_position})
+
+
+## Keep flower meshes and drop resources ready without changing game progress.
+var _web_flower_pool := {}
+var _web_flower_cache: Node3D
+var _web_drop_mesh: SphereMesh
+var _web_drop_material: StandardMaterial3D
+
+func _web_prepare_flowers() -> Array[Node3D]:
+	var result: Array[Node3D] = []
+	if not is_instance_valid(_web_flower_cache):
+		_web_flower_cache = Node3D.new()
+		_web_flower_cache.name = "PreparedGardenFlowers"
+		world.add_child(_web_flower_cache)
+	for i in 3:
+		if not is_instance_valid(_web_flower_pool.get(i)):
+			var flower := Flora.build(i)
+			_web_flower_cache.add_child(flower)
+			flower.position = GARDEN + Vector3(-1.3+i*.72,.06,1.7)
+			flower.rotation.y = i*1.9
+			flower.visible = false
+			_web_flower_pool[i] = flower
+		result.append(_web_flower_pool[i])
+	return result
+
+func _web_flower(index: int) -> Node3D:
+	if not OS.has_feature("web"):return Flora.build(index)
+	var flower: Node3D = _web_flower_pool.get(index)
+	if not is_instance_valid(flower):return Flora.build(index)
+	_web_flower_pool.erase(index)
+	flower.get_parent().remove_child(flower)
+	flower.visible = true
+	return flower
+
+func _web_pour_mesh() -> SphereMesh:
+	if _web_drop_mesh == null:
+		_web_drop_mesh = SphereMesh.new()
+		_web_drop_mesh.radius = .012
+		_web_drop_mesh.height = .03
+		_web_drop_mesh.radial_segments = 4
+		_web_drop_mesh.rings = 2
+	return _web_drop_mesh
+
+func _web_pour_material() -> StandardMaterial3D:
+	if _web_drop_material == null:
+		_web_drop_material = StandardMaterial3D.new()
+		_web_drop_material.albedo_color = Color(.75,.9,1,.8)
+		_web_drop_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	return _web_drop_material

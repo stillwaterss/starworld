@@ -38,6 +38,7 @@ static func from_blender(x: float, y: float, z := 0.0) -> Vector3:
 
 
 func _ready() -> void:
+	_web_boot_mark("scene_start")
 	_setup_input()
 	_setup_environment()
 	_setup_lights()
@@ -45,13 +46,16 @@ func _ready() -> void:
 	var island := ISLAND.instantiate()
 	add_child(island)
 	_add_collisions(island)
+	_web_boot_mark("collisions_done")
 	occlusion_materials = preload("res://scripts/scenery_effects.gd").apply(island)
 	add_child(preload("res://scripts/world_details.gd").new())
+	_web_boot_mark("details_done")
 
 	player = PlayerScript.new()
 	player.spawn_point = SPAWN
 	player.capture_mouse = not (autotest or "--visual-review" in OS.get_cmdline_user_args())
 	add_child(player)
+	_web_boot_mark("player_done")
 	player.global_position = SPAWN
 
 	_setup_hud()
@@ -70,12 +74,19 @@ func _ready() -> void:
 	activities=preload("res://scripts/cozy_activities.gd").new()
 	activities.world=self
 	add_child(activities)
+	_web_boot_mark("activities_done")
 	performance=preload("res://scripts/performance.gd").new()
 	performance.world=self
 	add_child(performance)
 	content=preload("res://scripts/content/content_root.gd").new()
 	content.world=self
 	add_child(content)
+	_web_boot_mark("content_done")
+	_web_stage_geometry()
+	if "--ending-preview" in OS.get_cmdline_user_args():
+		var checkpoint = load("res://scripts/content/ending_checkpoint.gd")
+		checkpoint.seed(self)
+		checkpoint.place(self)
 	if autotest:
 		_autotest()
 
@@ -345,3 +356,29 @@ func _shot(path: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(path)
 	print("SHOT ", path)
+
+func _web_boot_mark(label: String) -> void:
+	if OS.has_feature("web"):JavaScriptBridge.eval("window.starworldBootTrace ??= []; window.starworldBootTrace.push({label:"+JSON.stringify(label)+",ms:performance.now()})")
+
+var _web_geometry_ready:=false
+func _web_stage_geometry() -> void:
+	if not OS.has_feature("web"):return
+	if bool(JavaScriptBridge.eval("window.starworldAnimationsWarm === true")):
+		_web_geometry_ready=true
+		return
+	var geometry: Array[GeometryInstance3D]=[]
+	for node in find_children("*","GeometryInstance3D",true,false):
+		if node.visible:
+			geometry.append(node)
+			node.visible=false
+	_web_reveal_geometry.call_deferred(geometry)
+
+func _web_reveal_geometry(geometry: Array[GeometryInstance3D]) -> void:
+	# Yield between small groups so first-use shader work cannot monopolise a frame.
+	for index in range(0,geometry.size(),1):
+		JavaScriptBridge.eval("window.starworldWarmup = "+JSON.stringify({"stage":index,"total":geometry.size(),"label":"小镇画面"}))
+		for node in geometry.slice(index,mini(index+1,geometry.size())):
+			if is_instance_valid(node):node.visible=true
+		await RenderingServer.frame_post_draw
+		await get_tree().create_timer(.015).timeout
+	_web_geometry_ready=true

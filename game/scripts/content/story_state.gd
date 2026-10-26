@@ -69,7 +69,10 @@ static func migrate(raw: Dictionary) -> Dictionary:
 		var value = raw[key]
 		if typeof(value) == typeof(out[key]):out[key] = value
 	var main: Dictionary = out.main
-	main["chapter"] = clampi(int(main.get("chapter", 0)), 0, 3)
+	var last_chapter:=4
+	var story: Variant=JSON.parse_string(FileAccess.get_file_as_string("res://data/content/story.json"))
+	if story is Dictionary and story.get("main") is Array:last_chapter=maxi(0,story.main.size()-1)
+	main["chapter"] = clampi(int(main.get("chapter", 0)), 0, last_chapter)
 	main["stage"] = maxi(int(main.get("stage", 0)), 0)
 	main["done"] = bool(main.get("done", false))
 	var side := {}

@@ -164,7 +164,7 @@ func finish(back_seconds := .8) -> void:
 	set_pose("relaxed")
 	if is_instance_valid(_return_camera):
 		glide_to(_return_camera.global_transform, _return_camera.fov, back_seconds)
-		await wait(back_seconds)
+		if _glide:await _glide.finished
 		if is_instance_valid(_return_camera):_return_camera.current = true
 	drop_prop()
 	for layer in _hidden_layers:
@@ -360,38 +360,213 @@ static func cloth() -> Node3D:
 
 ## Compile prop material variants during the loading cover, then reuse their meshes.
 static var _web_prop_templates := {}
+static var _web_shader_keepalive: Array[Material]=[]
+static var _web_shader_variants:={}
 func prepare_web_props() -> void:
 	if not OS.has_feature("web"):return
+	while not world._web_geometry_ready:await get_tree().process_frame
 	if not _web_prop_templates.is_empty():
 		if is_instance_valid(_web_prop_templates.get("paper_lantern")):return
 		_web_prop_templates.clear()
-	var view:=SubViewport.new()
-	view.size=Vector2i(96,96)
-	view.own_world_3d=true
-	view.render_target_update_mode=SubViewport.UPDATE_ALWAYS
-	add_child(view)
-	view.world_3d.environment=world.get_world_3d().environment
-	var cam:=Camera3D.new()
-	view.add_child(cam)
-	cam.position=Vector3(0,1.2,3)
-	cam.look_at(Vector3(0,.2,0))
-	var sun:=DirectionalLight3D.new()
-	view.add_child(sun)
-	sun.rotation_degrees=Vector3(-35,-25,0)
 	var nodes: Array[Node3D]=[watering_can(),paper_lantern(),pebble(),seed_pouch(),cloth()]
 	var names: Array[String]=["watering_can","paper_lantern","pebble","seed_pouch","cloth"]
 	for i in nodes.size():
-		view.add_child(nodes[i])
-		nodes[i].position=Vector3((i-2)*.35,0,0)
-	for i in 3:await RenderingServer.frame_post_draw
-	for i in nodes.size():
-		nodes[i].reparent(self)
+		add_child(nodes[i])
 		nodes[i].visible=false
 		_web_prop_templates[names[i]]=nodes[i]
-	view.queue_free()
+	var cozy=world.activities
+	var flowers: Array[Node3D]=cozy._web_prepare_flowers()
+	# Programs survive a scene reload; never switch the visible opening camera.
+	if bool(JavaScriptBridge.eval("window.starworldAnimationsWarm === true")):return
+	var previous:=get_viewport().get_camera_3d()
+	var warm_camera:=Camera3D.new()
+	warm_camera.fov=44
+	warm_camera.far=1500
+	world.add_child(warm_camera)
+	# Render copies of the actual skinned costumes under both lighting paths.
+	# Moving the real player during loading could accidentally trigger visits.
+	var costumes:=Node3D.new()
+	world.add_child(costumes)
+	var swatches:=Node3D.new()
+	costumes.add_child(swatches)
+	var swatch_mesh:=BoxMesh.new()
+	swatch_mesh.size=Vector3.ONE*.12
+	var material_ids:={}
+	for visual in world.find_children("*","Node3D",true,false):
+		if visual.get_script()!=preload("res://scripts/actor_visual.gd"):continue
+		if visual.get_child_count()==0:continue
+		for mesh in visual.find_children("*","MeshInstance3D",true,false):
+			if mesh.mesh==null:continue
+			for surface in mesh.mesh.get_surface_count():
+				var material: Material=mesh.get_active_material(surface)
+				if material==null or material_ids.has(material.get_rid()):continue
+				material_ids[material.get_rid()]=true
+				var sample:=MeshInstance3D.new()
+				sample.mesh=swatch_mesh
+				sample.material_override=material
+				sample.position=Vector3((material_ids.size()%8-3.5)*.16,1.8,(material_ids.size()/8)*.16)
+				swatches.add_child(sample)
+	var stream: Node3D=cozy._pour_stream()
+	stream.global_position=cozy.GARDEN+Vector3(0,.9,1.7)
+	var ripple:=MeshInstance3D.new()
+	var torus:=TorusMesh.new()
+	torus.inner_radius=.24;torus.outer_radius=.27;torus.rings=24;torus.ring_segments=4
+	ripple.mesh=torus
+	var ripple_material:=StandardMaterial3D.new()
+	ripple_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+	ripple_material.albedo_color=Color("c6e6e7")
+	ripple.material_override=ripple_material
+	world.add_child(ripple)
+	ripple.global_position=cozy.WATER+Vector3.UP*.8
+	var jets: MultiMeshInstance3D=cozy.water_show.drops
+	var flies: MultiMeshInstance3D=cozy.swarm.flies
+	var jets_buffer: PackedFloat32Array=jets.multimesh.buffer
+	var flies_buffer: PackedFloat32Array=flies.multimesh.buffer
+	var jets_count:=jets.multimesh.visible_instance_count
+	var flies_count:=flies.multimesh.visible_instance_count
+	jets.multimesh.visible_instance_count=4
+	flies.multimesh.visible_instance_count=4
+	jets.visible=true
+	flies.visible=true
+	for i in 4:
+		jets.multimesh.set_instance_transform(i,Transform3D(Basis.IDENTITY,Vector3(i*.16,.8,0)))
+		jets.multimesh.set_instance_color(i,Color(.8,.9,1,.8))
+	for flower in flowers:
+		flower.visible=true
+		flower.scale=Vector3.ONE
+	var points: Array[Vector3]=[cozy.GARDEN+Vector3(0,.4,1.7),Vector3(0,60,0)]
+	var stage:=0
+	var warm_materials: Array[Material]=[jets.material_override,flies.material_override,cozy._web_pour_material(),ripple_material]
+	var ending=world.content.ending
+	var old_sky_visible: bool=ending.sky_layer.visible
+	var old_words_visible: bool=ending.layer.visible
+	var old_dream_alpha: float=ending.dream.modulate.a
+	ending.sky_layer.visible=true
+	ending.dream.modulate.a=.01
+	ending.layer.visible=true
+	warm_materials.append(ending.dream.material)
+	var words:={}
+	for lines in [ending.NARRATION_GROUND,ending.NARRATION_SHIP,ending.NARRATION_RELEASE,ending.NARRATION_DESCENT,ending.CREDITS,ending.NARRATION_LAST]:
+		for line in lines:
+			var size: int={"art":40,"title":46,"xg":30,"small":19}.get(String(line[1]),29)
+			if not words.has(size):words[size]=PackedStringArray()
+			var snippets: PackedStringArray=words[size]
+			snippets.append(world.content.named(String(line[0]).trim_prefix("小光：")))
+			words[size]=snippets
+	var type_samples:=CanvasLayer.new()
+	type_samples.layer=15
+	world.add_child(type_samples)
+	for size in words:
+		var label:=Label.new()
+		# Prime the text rendering path; rasterizing every line here would turn
+		# hundreds of cold outlined CJK glyphs into one long browser task.
+		label.text=String("\n".join(words[size])).substr(0,4)
+		label.size=Vector2(1180,2400)
+		label.position=Vector2(40,20)
+		label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		label.add_theme_font_override("font",ending._letter_font)
+		label.add_theme_font_size_override("font_size",size)
+		label.add_theme_constant_override("outline_size",4)
+		label.add_theme_constant_override("shadow_outline_size",18 if size>=40 else 10)
+		label.add_theme_color_override("font_shadow_color",Color(1,.8,.55,.5))
+		label.modulate.a=.01
+		type_samples.add_child(label)
+	for tree in nodes+flowers+[costumes]:
+		for mesh in tree.find_children("*","MeshInstance3D",true,false):
+			if mesh.mesh==null:continue
+			for surface in mesh.mesh.get_surface_count():
+				var material: Material=mesh.get_active_material(surface)
+				if material!=null and material not in warm_materials:warm_materials.append(material)
+	for at in points:
+		costumes.global_position=at+Vector3(0,-.4,1.0)
+		jets.global_position=at-Vector3(0,.4,0)
+		ripple.global_position=at+Vector3.UP*.2
+		stream.global_position=at+Vector3.UP*.7
+		for i in 4:
+			flies.multimesh.set_instance_transform(i,Transform3D(Basis.IDENTITY,at+Vector3(i*.16,1,0)))
+			flies.multimesh.set_instance_color(i,Color(1,.9,.6,.7))
+		for i in nodes.size():nodes[i].global_position=at+Vector3((i-2)*.35,.2,0);nodes[i].visible=true
+		for angle in [0,90,180,270]:
+			stage+=1
+			JavaScriptBridge.eval("window.starworldWarmup = "+JSON.stringify({"stage":stage,"total":points.size()*4,"label":"准备花朵、浇水和演出材质"}))
+			var eye: Vector3=at+Vector3(0,2.0,4.8).rotated(Vector3.UP,deg_to_rad(float(angle)))
+			warm_camera.look_at_from_position(eye,at)
+			warm_camera.current=true
+			for lamp in nodes[1].find_children("*","Light3D",true,false):lamp.visible=angle>=180
+			cozy.water_show.material.emission_enabled=angle in [90,270]
+			cozy.water_show.light.light_energy=1.6 if angle>=180 else 0.0
+			for flower in flowers:cozy.Flora.set_open(flower,1.0);cozy.Flora.set_glow(flower,1.0 if angle in [90,270] else 0.0)
+			for i in 2:await RenderingServer.frame_post_draw
+			for material in warm_materials:_web_pin_shader_variant(material)
+			# Let duplicate materials retain their variant before changing the source.
+			await RenderingServer.frame_post_draw
+			if stage==1:type_samples.queue_free()
+	# The last flight reveals distant scenery without local lights, then the
+	# lighthouse beam. Prime those real-world light paths before handing over.
+	var star_row=ending.Cozy.StarRow.new(5)
+	var final_samples:=CanvasLayer.new()
+	final_samples.layer=15
+	world.add_child(final_samples)
+	final_samples.add_child(star_row)
+	star_row.modulate.a=.01
+	var lights: Array[Light3D]=[]
+	for lamp in world.find_children("*","Light3D",true,false):
+		if (lamp is OmniLight3D or lamp is SpotLight3D) and lamp.visible:
+			lights.append(lamp)
+			lamp.visible=false
+	var spotlight:=SpotLight3D.new()
+	spotlight.spot_range=400
+	spotlight.spot_angle=89
+	spotlight.light_energy=1.0
+	world.add_child(spotlight)
+	spotlight.look_at_from_position(Vector3(0,100,0),Vector3.ZERO,Vector3.FORWARD)
+	for mode in 2:
+		JavaScriptBridge.eval("window.starworldWarmup = "+JSON.stringify({"stage":mode+1,"total":2,"label":"飞艇与告别画面"}))
+		spotlight.visible=mode==1
+		for lamp in lights:lamp.visible=mode==1
+		warm_camera.look_at_from_position(Vector3(80,75,100),Vector3(0,5,0))
+		for i in 2:await RenderingServer.frame_post_draw
+	for lamp in lights:lamp.visible=true
+	spotlight.queue_free()
+	final_samples.queue_free()
+	for flower in flowers:
+		cozy.Flora.set_open(flower,0.0)
+		cozy.Flora.set_glow(flower,world.day_cycle.weights.z)
+		flower.visible=false
+		flower.scale=Vector3.ONE*.01
+	for lamp in nodes[1].find_children("*","Light3D",true,false):lamp.visible=true
+	for node in nodes:node.visible=false;node.transform=Transform3D.IDENTITY
+	costumes.queue_free()
+	stream.queue_free()
+	ripple.queue_free()
+	jets.visible=false
+	flies.visible=false
+	jets.position=Vector3.ZERO
+	jets.multimesh.buffer=jets_buffer
+	flies.multimesh.buffer=flies_buffer
+	jets.multimesh.visible_instance_count=jets_count
+	flies.multimesh.visible_instance_count=flies_count
+	cozy.water_show.material.emission_enabled=false
+	cozy.water_show.light.light_energy=0.0
+	ending.sky_layer.visible=old_sky_visible
+	ending.dream.modulate.a=old_dream_alpha
+	ending.layer.visible=old_words_visible
+	if is_instance_valid(previous):previous.current=true
+	warm_camera.queue_free()
+	JavaScriptBridge.eval("window.starworldAnimationsWarm = true; window.starworldWarmup = null; window.starworldWarmupPrograms = "+str(_web_shader_keepalive.size()))
 
 static func _web_prop_copy(id: String) -> Node3D:
 	var node: Node3D=_web_prop_templates[id].duplicate()
 	node.visible=true
 	node.transform=Transform3D.IDENTITY
 	return node
+
+func _web_pin_shader_variant(material: Material) -> void:
+	var key:=str(material.get_instance_id())
+	if material is BaseMaterial3D:key+="/emission="+str(material.emission_enabled)
+	if _web_shader_variants.has(key):return
+	_web_shader_variants[key]=true
+	# Strong immutable snapshots prevent Godot from dropping a precompiled variant
+	# when an emission flag changes or a new story replaces the whole scene.
+	var keep: Material=material.duplicate()
+	_web_shader_keepalive.append(keep)

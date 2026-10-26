@@ -407,8 +407,11 @@ func fly(destination: String) -> void:
 	# step onto the deck
 	var board_from := player.global_position
 	player.set_physics_process(false)
-	camera.global_transform = world.get_viewport().get_camera_3d().global_transform
+	var initial_camera:=world.get_viewport().get_camera_3d()
+	camera.global_transform = initial_camera.global_transform
+	camera.fov = initial_camera.fov
 	camera.current = true
+	create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(camera,"fov",52.0,.8)
 	var plank := _gangway(deck_point(), board_from)
 	await _walk([board_from, plank[1], plank[0], deck_point()])
 	if world.get("audio"):world.audio.play_sfx("door")
@@ -538,15 +541,26 @@ func _land(destination: String, _from: String) -> void:
 	await _walk([from, plank[0], plank[1], step_to])
 	player.set_physics_process(true)
 	player.velocity = Vector3.ZERO
-	player.controls_locked = false
-	player.arm.get_child(0).current = true
-	for layer in _hidden_layers:
-		if is_instance_valid(layer):layer.visible = true
-	_hidden_layers.clear()
+	if _from != "summit":
+		await get_tree().physics_frame
+		var follow_camera: Camera3D=player.arm.get_child(0)
+		var back:=create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		back.tween_property(camera,"global_transform",follow_camera.global_transform,.8)
+		back.tween_property(camera,"fov",follow_camera.fov,.8)
+		await back.finished
+		player.controls_locked = false
+		follow_camera.current = true
+		for layer in _hidden_layers:
+			if is_instance_valid(layer):layer.visible = true
+		_hidden_layers.clear()
 	content.state.save()
 	content.events.emit("airship_arrived", {"place": destination})
 	arrived.emit(destination)
-	if _from == "summit":await content.ending.finale()
+	if _from == "summit":
+		await content.ending.finale()
+		for layer in _hidden_layers:
+			if is_instance_valid(layer):layer.visible = true
+		_hidden_layers.clear()
 
 func _input(event: InputEvent) -> void:
 	if not flying():return
