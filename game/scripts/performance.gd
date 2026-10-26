@@ -458,9 +458,12 @@ func prepare_web_props() -> void:
 	world.add_child(type_samples)
 	for size in words:
 		var label:=Label.new()
-		# Prime the text rendering path; rasterizing every line here would turn
-		# hundreds of cold outlined CJK glyphs into one long browser task.
-		label.text=String("\n".join(words[size])).substr(0,4)
+		# Prime each ending glyph at the actual outline size. Unique glyphs fit
+		# inside the viewport, including words first seen late in the farewell.
+		var glyphs:={}
+		for glyph in String("\n".join(words[size])):
+			if glyph!="\n":glyphs[glyph]=true
+		label.text="".join(PackedStringArray(glyphs.keys()))
 		label.size=Vector2(1180,2400)
 		label.position=Vector2(40,20)
 		label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
