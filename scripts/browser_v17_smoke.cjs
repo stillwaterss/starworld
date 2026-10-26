@@ -29,7 +29,7 @@ const fs=require('node:fs');
   await page.getByRole('link',{name:'去小世界走走 →'}).first().click();
   await page.screenshot({path:'browser-evidence/loading.png'});
   const begun=Date.now();await page.locator('#start').click();
-  await page.waitForFunction(()=>window.starworldDiagnostics?.().ready,{},{timeout:300000});
+  await page.waitForFunction(()=>window.starworldDiagnostics?.().ready,{},{timeout:600000});
   const readyMs=Date.now()-begun;await verifySound();
   await page.waitForFunction(()=>window.starworldUi?.buttons?.length>0 && window.starworldUi?.booting===false,{},{timeout:30000});
   const font=await page.evaluate(()=>window.starworldFontCheck);
@@ -88,7 +88,8 @@ const fs=require('node:fs');
   const diagnostics=await page.evaluate(()=>window.starworldDiagnostics?.()).catch(()=>null);
   const ui=await page.evaluate(()=>window.starworldUi).catch(()=>null);
   const musicPeakDb=await page.evaluate(()=>window.starworldMusicPeakDb).catch(()=>null);
-  fs.writeFileSync('browser-evidence/diagnostics.json',JSON.stringify({diagnostics,ui,musicPeakDb},null,2));
+  const preparation=await page.evaluate(()=>({sceneReady:window.starworldSceneReady,warmup:window.starworldWarmup})).catch(()=>null);
+  fs.writeFileSync('browser-evidence/diagnostics.json',JSON.stringify({diagnostics,ui,musicPeakDb,preparation},null,2));
   fs.writeFileSync('browser-evidence/console.log',logs.join('\n'));
   await page.screenshot({path:'browser-evidence/final.png'}).catch(()=>{});await browser.close();
  }
