@@ -36,7 +36,7 @@ func _ready() -> void:
 		JavaScriptBridge.get_interface("window").starworldEnableSound = _web_sound_callback
 	for bus in BUSES:
 		if AudioServer.get_bus_index(bus) < 0:
-			AudioServer.add_bus()
+			AudioServer.add_bus(AudioServer.bus_count)
 			var index := AudioServer.bus_count - 1
 			AudioServer.set_bus_name(index, bus)
 			AudioServer.set_bus_send(index, "Master")
@@ -56,8 +56,11 @@ func _ready() -> void:
 	_apply_gains()
 	apply_settings()
 	# Start every loop on the same frame: the three music pieces share length and tempo
-	for player in music + ambience:
-		if player.stream:player.play()
+	if OS.has_feature("web"):
+		_web_prepare_audio_samples()
+	else:
+		for player in music + ambience:
+			if player.stream:player.play()
 
 func bind_scene() -> void:
 	## Called by content_root once the scene's own sound nodes exist.
@@ -75,12 +78,15 @@ func bind_scene() -> void:
 		fountain.volume_db = -2.0
 		world.add_child(fountain)
 		fountain.global_position = registry.info("fountain").get("anchor_hint", registry.position_of("fountain") + Vector3(0, .6, -3.4))
-		if fountain.stream:fountain.play()
+		if OS.has_feature("web"):
+			fountain.playback_type=AudioServer.PLAYBACK_TYPE_SAMPLE
+			if fountain.stream:AudioServer.register_stream_as_sample(fountain.stream)
+		elif fountain.stream:fountain.play()
 
 func _player(id: String, bus: String) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
 	player.name = id
-	if OS.has_feature("web"):player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
+	if OS.has_feature("web"):player.playback_type = AudioServer.PLAYBACK_TYPE_SAMPLE
 	player.bus = bus
 	player.stream = _stream(id)
 	player.volume_db = -80
@@ -106,8 +112,7 @@ func _process(delta: float) -> void:
 	_web_meter_time += delta
 	if OS.has_feature("web") and _web_meter_time >= 1.0:
 		_web_meter_time = 0.0
-		var peak_db := AudioServer.get_bus_peak_volume_left_db(AudioServer.get_bus_index("Music"), 0)
-		JavaScriptBridge.eval("window.starworldMusicPeakDb = Math.max(window.starworldMusicPeakDb ?? -200, " + str(peak_db) + ")")
+		_web_report_audio_samples()
 	var cycle = world.get("day_cycle") if world else null
 	if cycle:
 		var target := _target(cycle.weights)
@@ -187,15 +192,33 @@ func report() -> Dictionary:
 	out["playing"] = music.map(func(p): return p.playing)
 	return out
 
-# The browser must receive an actual gesture after initialization to unlock audio.
-# This callback also handles the explicit HTML sound button without touching story saves.
+# Keep a native callback alive; a new scene replaces this callback after New Game.
 var _web_sound_callback: JavaScriptObject
-var _web_meter_time := 0.0
 
 func _enable_web_sound(_args: Array) -> void:
+	if not bool(JavaScriptBridge.eval("window.starworldGameAudioReady === true")):return
 	settings.muted = false
 	if settings.music <= 0.0:settings.music = .8
 	if settings.ambience <= 0.0:settings.ambience = .7
 	apply_settings()
 	for player in music + ambience:
 		if player.stream and not player.playing:player.play()
+	if fountain and fountain.stream and not fountain.playing:fountain.play()
+	_web_loops_started=true
+	_web_report_audio_samples()
+
+var _web_meter_time := 0.0
+## Browser-native sample loops run independently of the single-threaded game mixer.
+var _web_loops_started := false
+
+func _web_prepare_audio_samples() -> void:
+	for player in music + ambience:
+		player.playback_type = AudioServer.PLAYBACK_TYPE_SAMPLE
+		if player.stream:AudioServer.register_stream_as_sample(player.stream)
+	for stream in sfx_streams.values():
+		if stream is AudioStreamOggVorbis:AudioServer.register_stream_as_sample(stream)
+	if bool(JavaScriptBridge.eval("window.starworldGameAudioReady === true")):
+		_enable_web_sound.call_deferred([])
+
+func _web_report_audio_samples() -> void:
+	JavaScriptBridge.eval("window.starworldAudioStatus = "+JSON.stringify({"backend":"browser_samples","started":_web_loops_started,"musicPlaying":music.map(func(p):return p.playing),"musicPositions":music.map(func(p):return p.get_playback_position()),"musicLengths":music.map(func(p):return p.stream.get_length()),"musicTypes":music.map(func(p):return p.playback_type),"registered":music.map(func(p):return AudioServer.is_stream_registered_as_sample(p.stream)),"gains":[gains.x,gains.y,gains.z]}))

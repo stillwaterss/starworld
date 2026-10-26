@@ -1,11 +1,14 @@
-# The browser must receive an actual gesture after initialization to unlock audio.
-# This callback also handles the explicit HTML sound button without touching story saves.
+# Keep a native callback alive; a new scene replaces this callback after New Game.
 var _web_sound_callback: JavaScriptObject
 
 func _enable_web_sound(_args: Array) -> void:
+	if not bool(JavaScriptBridge.eval("window.starworldGameAudioReady === true")):return
 	settings.muted = false
 	if settings.music <= 0.0:settings.music = .8
 	if settings.ambience <= 0.0:settings.ambience = .7
 	apply_settings()
 	for player in music + ambience:
 		if player.stream and not player.playing:player.play()
+	if fountain and fountain.stream and not fountain.playing:fountain.play()
+	_web_loops_started=true
+	_web_report_audio_samples()

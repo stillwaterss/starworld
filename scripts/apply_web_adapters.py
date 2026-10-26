@@ -46,22 +46,16 @@ def apply(root):
         s = replace(s, '\tguide.refresh_route(true)\n\tui.refresh()', '\tguide.refresh_route(true)\n\tui.refresh()\n\tif OS.has_feature("web"):\n\t\tJavaScriptBridge.eval("window.starworldSceneReady = true")')
     changes[path] = s
     path = 'scripts/content/audio_director.gd'
-    s = read(path)
-    s = replace(s, '\tplayer.name = id', '\tplayer.name = id\n\tif OS.has_feature("web"):player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM')
-    s = replace(s, '\tload_settings()', '\tload_settings()\n\tif OS.has_feature("web"):\n\t\t_web_sound_callback = JavaScriptBridge.create_callback(_enable_web_sound)\n\t\tJavaScriptBridge.get_interface("window").starworldEnableSound = _web_sound_callback')
-    if 'func _enable_web_sound(' not in s:
-        s += '\n'+(ADAPTERS/'audio_callback.gdinc').read_text(encoding='utf-8')
-    if 'var _web_meter_time' not in s:
-        s = replace(s, 'var _web_sound_callback: JavaScriptObject', 'var _web_sound_callback: JavaScriptObject\nvar _web_meter_time := 0.0')
-    s = replace(s, 'func _process(delta: float) -> void:', 'func _process(delta: float) -> void:\n\t_web_meter_time += delta\n\tif OS.has_feature("web") and _web_meter_time >= 1.0:\n\t\t_web_meter_time = 0.0\n\t\tvar peak_db := AudioServer.get_bus_peak_volume_left_db(AudioServer.get_bus_index("Music"), 0)\n\t\tJavaScriptBridge.eval("window.starworldMusicPeakDb = Math.max(window.starworldMusicPeakDb ?? -200, " + str(peak_db) + ")")')
-    changes[path] = s
+    import runpy
+    changes[path] = runpy.run_path(str(ADAPTERS/'audio_adapter.py'))['adapt_audio'](read(path),ADAPTERS)
     path = 'project.godot'
     s = read(path)
     if 'general/default_playback_type.web' not in s:
         if '[audio]' in s:
-            s = replace(s, '[audio]', '[audio]\n\ngeneral/default_playback_type.web=1')
+            s = replace(s, '[audio]', '[audio]\n\ngeneral/default_playback_type.web=2')
         else:
-            s += '\n[audio]\n\ngeneral/default_playback_type.web=1\n'
+            s += '\n[audio]\n\ngeneral/default_playback_type.web=2\n'
+    s = s.replace('general/default_playback_type.web=1','general/default_playback_type.web=2')
     changes[path] = s
     # Read-only telemetry lets CI click the real in-game buttons and verify movement.
     path = 'scripts/content/content_ui.gd'
@@ -175,6 +169,18 @@ func _process(delta: float) -> void:
     new = '\tif OS.has_feature("web"):world._web_boot_mark("grid_begin")\n\tvar used_cache: bool=OS.has_feature("web") and grid.load_web_cache("res://data/content/walk_grid_web.bin")\n\tif not used_cache:\n\t\tgrid.bake(world.get_world_3d().direct_space_state, ignore)\n\tif OS.has_feature("web"):\n\t\tworld._web_boot_mark("grid_done")\n\t\tJavaScriptBridge.eval("window.starworldGridCacheHit = "+("true" if used_cache else "false"))'
     if "var used_cache:" not in text:text = text.replace(old,new)
     changes[key] = text
+    # Predeclare buses: runtime insertion misroutes the Web Audio sample graph.
+    layout_path=root/'default_bus_layout.tres'
+    layout=layout_path.read_text('utf8') if layout_path.exists() else '[gd_resource type="AudioBusLayout" format=3]\n\n[resource]\nbus/0/name = &"Master"\nbus/0/volume_db = 0.0\n'
+    import ast
+    buses={int(i):name for i,name in re.findall(r'bus/(\d+)/name\s*=\s*&?"([^"]+)"',layout)}
+    if buses.get(0)!='Master':raise RuntimeError('Browser audio layout requires Master at index zero')
+    wanted=ast.literal_eval(re.search(r'const BUSES := (\[[^\n]+\])',changes['scripts/content/audio_director.gd']).group(1))
+    for name in wanted:
+        if name in buses.values():continue
+        index=max(buses)+1;buses[index]=name
+        layout+=f'bus/{index}/name = &"{name}"\nbus/{index}/volume_db = 0.0\nbus/{index}/mute = false\nbus/{index}/solo = false\nbus/{index}/bypass_fx = false\nbus/{index}/send = &"Master"\n'
+    changes['default_bus_layout.tres']=layout
     for path, s in changes.items():
         (root/path).write_text(s, encoding='utf-8')
     print('Browser color, sound and navigation adapters applied:', root)

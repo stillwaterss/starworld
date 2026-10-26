@@ -19,7 +19,7 @@ const fs=require('node:fs');
   for(let attempt=0;attempt<3;attempt++){
    await page.locator('#sound').click({force:true,timeout:90000,noWaitAfter:true});
    try{
-    await page.waitForFunction(()=>window.starworldDiagnostics().peakRms>0.00002 && window.starworldMusicPeakDb>-65,{},{timeout:15000});return;
+    await page.waitForFunction(()=>window.starworldDiagnostics().peakRms>0.00002 && window.starworldAudioStatus?.backend==='browser_samples' && window.starworldAudioStatus?.registered.every(Boolean) && window.starworldAudioStatus?.musicPlaying.every(Boolean),{},{timeout:15000});return;
    }catch(error){if(attempt===2)throw error;}
   }
  }
@@ -80,7 +80,7 @@ const fs=require('node:fs');
   await page.keyboard.press('n');await page.waitForFunction(()=>window.starworldUi.panel==='map',{},{timeout:15000});
   await page.screenshot({path:'browser-evidence/map.png'});await page.keyboard.press('Escape');
   const result=await page.evaluate(()=>window.starworldDiagnostics());
-  Object.assign(result,{movementMetres:moved,startupReadyMs:readyMs,totalSmokeMs:Date.now()-begun,musicPeakDb:await page.evaluate(()=>window.starworldMusicPeakDb),verified:['home entries','settings return','about Escape','new game','chapter start button','wish after new game','movement','map','font','real audio after opening'],testViewport:{width:400,height:250,renderer:'Chromium SwiftShader software rasterization'},errors});
+  Object.assign(result,{movementMetres:moved,startupReadyMs:readyMs,totalSmokeMs:Date.now()-begun,nativeMusic:await page.evaluate(()=>window.starworldAudioStatus),verified:['home entries','settings return','about Escape','new game','chapter start button','wish after new game','movement','map','font','real audio after opening'],testViewport:{width:400,height:250,renderer:'Chromium SwiftShader software rasterization'},errors});
   fs.writeFileSync('browser-evidence/audio.json',JSON.stringify(result,null,2));
   await page.screenshot({path:'browser-evidence/game.png'});console.log('BROWSER_V17_VERIFIED',JSON.stringify(result));
   if(errors.length)throw Error(errors.join('\n'));

@@ -10,3 +10,6 @@ game/assets/fonts/*.woff2
 site/play/*
 !site/play/.gitkeep
 *.log
+
+local-backups/
+site/audio-probe/
