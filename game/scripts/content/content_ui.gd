@@ -3,9 +3,9 @@ extends CanvasLayer
 ## Panels are light cards over the scenery; one at a time; Esc closes.
 ## Keys: P 故事本 · N 地图 · Y 设置 · H 帮助 · Q 指引开关 · E 看看（小摊等）
 const MapView := preload("res://scripts/content/map_view.gd")
-const INK := Color("fff4dc")
-const SOFT := Color("d8d2c4")
-const ACCENT := Color("ffd27d")
+const INK := Color("5b3f2c")
+const SOFT := Color("8a6c55")
+const ACCENT := Color("b0652e")
 ## Shown from the title card and the help panel ("关于与免责声明"); the same text is in
 ## 免责声明.md at the project root.
 const ABOUT := """[b]关于这个游戏[/b]
@@ -102,11 +102,21 @@ func _ready() -> void:
 	theme.set_color("font_color", "Label", INK)
 	theme.set_color("font_color", "Button", INK)
 	theme.set_color("font_color", "CheckBox", INK)
-	theme.set_stylebox("normal", "Button", _box(Color(1, 1, 1, .10), 10, 12, 6))
-	theme.set_stylebox("hover", "Button", _box(Color(1, .9, .7, .22), 10, 12, 6))
-	theme.set_stylebox("pressed", "Button", _box(Color(1, .9, .7, .32), 10, 12, 6))
-	theme.set_stylebox("focus", "Button", StyleBoxEmpty.new())
-	theme.set_stylebox("disabled", "Button", _box(Color(1, 1, 1, .04), 10, 12, 6))
+	# every button in the star-theme states (see cozy_style.gd)
+	var sample := Button.new()
+	Cozy.style_button(sample)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var box: StyleBoxFlat = sample.get_theme_stylebox(state).duplicate()
+		box.set_corner_radius_all(18)
+		box.content_margin_left = 16
+		box.content_margin_right = 16
+		box.content_margin_top = 6
+		box.content_margin_bottom = 6
+		theme.set_stylebox(state, "Button", box)
+	sample.free()
+	theme.set_color("font_hover_color", "Button", INK)
+	theme.set_color("font_pressed_color", "Button", INK)
+	theme.set_color("font_focus_color", "Button", INK)
 	root.theme = theme
 	add_child(root)
 	_build_chip()
@@ -151,7 +161,8 @@ func _boot_card() -> void:
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	veil.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(veil)
-	var picture := _art("loading_screen.jpg")
+	var picture := _star_art("loading")
+	if picture == null:picture = _art("loading_screen.jpg")
 	if picture:
 		veil.add_child(picture)
 		var shade := ColorRect.new()
@@ -159,12 +170,15 @@ func _boot_card() -> void:
 		shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		veil.add_child(shade)
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", Cozy.card(.88, 24, 30))
+	card.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	card.grow_vertical = Control.GROW_DIRECTION_BOTH
+	veil.add_child(card)
 	var box := VBoxContainer.new()
-	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	box.grow_vertical = Control.GROW_DIRECTION_BOTH
 	box.add_theme_constant_override("separation", 14)
-	veil.add_child(box)
+	card.add_child(box)
 	var logo := _logo(Vector2(560, 280))
 	if logo:box.add_child(logo)
 	else:
@@ -177,7 +191,7 @@ func _boot_card() -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size.y = 30
 	box.add_child(gap)
-	var legal := _label("非商业、免费的爱好者作品，仅供学习与交流。\n“星星人”相关名称与形象归原权利人所有，本作与原权利人无关，也未获授权。\n完整说明见 帮助（H）→ 关于与免责声明。", 14, Color(.8, .78, .72))
+	var legal := _label("非商业、免费的爱好者作品，仅供学习与交流。\n“星星人”相关名称与形象归原权利人所有，本作与原权利人无关，也未获授权。\n完整说明见 帮助（H）→ 关于与免责声明。", 14, SOFT)
 	legal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	legal.custom_minimum_size.x = 640
 	legal.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -194,6 +208,17 @@ func _art(file: String) -> TextureRect:
 	if not ResourceLoader.exists(ART + file):return null
 	var rect := TextureRect.new()
 	rect.texture = load(ART + file)
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rect
+
+func _star_art(name: String) -> TextureRect:
+	var tex := Cozy.art(name)
+	if tex == null:return null
+	var rect := TextureRect.new()
+	rect.texture = tex
 	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -220,16 +245,18 @@ func _build_title_backdrop() -> void:
 	title_backdrop.visible = false
 	root.add_child(title_backdrop)
 	root.move_child(title_backdrop, 0)
-	var picture := _art("home_key_visual.jpg")
+	var picture := _star_art("home_background")
+	if picture == null:picture = _art("home_key_visual.jpg")
 	if picture:title_backdrop.add_child(picture)
 	var logo := _logo(Vector2(560, 280))
 	if logo:
 		# in the middle of the screen, the card right under it
 		logo.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-		logo.offset_left = -280
-		logo.offset_right = 280
-		logo.offset_top = -250
-		logo.offset_bottom = 30
+		# lowered (S10): the title sits right over the menu, clear of the sky's details
+		logo.offset_left = -290
+		logo.offset_right = 290
+		logo.offset_top = -232
+		logo.offset_bottom = 58
 		title_backdrop.add_child(logo)
 
 ## Between chapters, at the player's pace: first the end of the chapter just finished
@@ -276,8 +303,10 @@ func show_chapter_card(index: int, finished := -1) -> void:
 	var chapter: Dictionary = director.main[index]
 	var opening := _chapter_page("", String(chapter.title), content.named(String(chapter.intro)), "开始第%s章" % CHAPTER_NUMBERS[index])
 	opening.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	opening.offset_top = -250
-	opening.offset_bottom = -40
+	opening.offset_top = -560
+	opening.offset_bottom = -20
+	opening.scale = Vector2.ONE * .8
+	opening.resized.connect(func():opening.pivot_offset = Vector2(opening.size.x / 2, opening.size.y))
 	opening.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	chapter_card.add_child(opening)
 	await _fade_page(opening, chapter_card)
@@ -289,18 +318,20 @@ func show_chapter_card(index: int, finished := -1) -> void:
 ## A cream card with a title, a line of story and one button; returned unparented.
 func _chapter_page(_kicker: String, title: String, line: String, button_text: String) -> PanelContainer:
 	var page := PanelContainer.new()
-	page.add_theme_stylebox_override("panel", Cozy.card(.95, 26, 36))
+	page.add_theme_stylebox_override("panel", Cozy.frame("modal", [], [70, 62, 70, 92]))
+	page.custom_minimum_size = Vector2(720, 540)
 	page.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	page.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	page.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
-	box.custom_minimum_size.x = 600
+	box.custom_minimum_size.x = 560
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	page.add_child(box)
 	box.add_child(Cozy.label(title, 36))
 	box.add_child(Cozy.StarRow.new(3))
 	var words := Cozy.label(line, 21, Cozy.INK_SOFT)
-	words.custom_minimum_size.x = 560
+	words.custom_minimum_size.x = 540
 	box.add_child(words)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -308,6 +339,7 @@ func _chapter_page(_kicker: String, title: String, line: String, button_text: St
 	var go := Cozy.button(button_text + "  →", func():_card_skip = true, true, 21)
 	go.custom_minimum_size.x = 220
 	row.add_child(go)
+	go.grab_focus.call_deferred()
 	return page
 
 ## Fades `node` (or `fade`) in, waits for the button (or E / Enter / Space), fades out.
@@ -436,18 +468,15 @@ func _box(color: Color, radius := 14, h := 18, v := 14) -> StyleBoxFlat:
 	return style
 
 func _card() -> StyleBoxFlat:
-	var style := _box(Color(.12, .15, .25, .80), 16, 22, 16)
-	style.border_color = Color(1, .92, .78, .28)
-	style.set_border_width_all(1)
-	return style
+	return Cozy.card(.95, 18, 22)
 
 func _label(text: String, size := 17, color := INK) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
-	label.add_theme_color_override("font_outline_color", Color(.08, .1, .18, .85))
-	label.add_theme_constant_override("outline_size", 4)
+	label.add_theme_color_override("font_outline_color", Color(1, .98, .92, .6))
+	label.add_theme_constant_override("outline_size", 0)
 	return label
 
 func _button(text: String, callback: Callable, size := 16) -> Button:
@@ -463,9 +492,10 @@ func _play(id: String) -> void:
 	var audio = content.world.get("audio")
 	if audio:audio.play_sfx(id)
 
-func _panel(id: String, title: String, width: float, height: float) -> VBoxContainer:
+func _panel(id: String, title: String, width: float, height: float, frame := "modal") -> VBoxContainer:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _card())
+	var pad := {"modal": [.09, .13, .09, .17], "journal": [.075, .085, .075, .19], "map": [.085, .1, .085, .1]}[frame] as Array
+	panel.add_theme_stylebox_override("panel", Cozy.frame(frame, [], [width * pad[0], height * pad[1], width * pad[2], height * pad[3]]))
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	panel.offset_left = -width / 2
 	panel.offset_right = width / 2
@@ -492,15 +522,7 @@ func _panel(id: String, title: String, width: float, height: float) -> VBoxConta
 ## keys picked out. It sits apart from every other text at the top centre.
 func _build_chip() -> void:
 	chip = PanelContainer.new()
-	var style := _box(Color(.10, .12, .22, .84), 14, 22, 10)
-	style.border_color = Color(1, .84, .5, .75)
-	style.border_width_left = 5
-	style.border_width_bottom = 1
-	style.border_width_top = 1
-	style.border_width_right = 1
-	style.shadow_color = Color(0, 0, 0, .25)
-	style.shadow_size = 8
-	chip.add_theme_stylebox_override("panel", style)
+	chip.add_theme_stylebox_override("panel", Cozy.frame("objective", [80, 66, 66, 64], [52, 18, 40, 26]))
 	chip.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	chip.offset_left = -300
 	chip.offset_right = 300
@@ -519,7 +541,7 @@ func _build_chip() -> void:
 	chip_title = _label("", 25, ACCENT)
 	var bold := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	chip_title.add_theme_font_override("font", bold)
-	chip_title.add_theme_constant_override("outline_size", 6)
+	chip_title.add_theme_constant_override("outline_size", 0)
 	chip_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	chip_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	chip_title.custom_minimum_size.x = 540
@@ -544,11 +566,9 @@ func _build_chip() -> void:
 	chip_hint.add_theme_font_size_override("normal_font_size", 17)
 	chip_hint.add_theme_font_size_override("bold_font_size", 17)
 	chip_hint.add_theme_font_override("bold_font", bold)
-	chip_hint.add_theme_color_override("default_color", Color("f2ead8"))
-	chip_hint.add_theme_color_override("font_outline_color", Color(.08, .1, .18, .85))
-	chip_hint.add_theme_constant_override("outline_size", 4)
+	chip_hint.add_theme_color_override("default_color", INK)
 	box.add_child(chip_hint)
-	glow_meter = _label("", 15, Color("ffd98a"))
+	glow_meter = _label("", 15, Color("c27a2c"))
 	glow_meter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	glow_meter.visible = false
 	box.add_child(glow_meter)
@@ -561,7 +581,7 @@ func keys_bbcode(text: String) -> String:
 		_key_pattern = RegEx.new()
 		_key_pattern.compile("(?<![A-Za-z])(Esc|Tab|Enter|Shift|空格|[A-Z])(?![A-Za-z])")
 	var safe := text.replace("[", "［").replace("]", "］")
-	return _key_pattern.sub(safe, "[bgcolor=#5a4520][color=#ffd27d][b] $1 [/b][/color][/bgcolor]", true)
+	return _key_pattern.sub(safe, "[bgcolor=#f3d7ae][color=#7a3f15][b] $1 [/b][/color][/bgcolor]", true)
 
 func _draw_arrow() -> void:
 	var c := chip_arrow.size / 2
@@ -572,7 +592,7 @@ func _draw_arrow() -> void:
 
 func _build_toast() -> void:
 	toast_panel = PanelContainer.new()
-	toast_panel.add_theme_stylebox_override("panel", _box(Color(.12, .15, .25, .70), 12, 16, 8))
+	toast_panel.add_theme_stylebox_override("panel", Cozy.card(.93, 16, 14))
 	toast_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	toast_panel.offset_left = -300
 	toast_panel.offset_right = 300
@@ -589,7 +609,7 @@ func _build_toast() -> void:
 
 func _build_banner() -> void:
 	banner = PanelContainer.new()
-	banner.add_theme_stylebox_override("panel", _box(Color(.14, .16, .26, .72), 16, 26, 14))
+	banner.add_theme_stylebox_override("panel", Cozy.card(.94, 20, 24))
 	banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	banner.offset_left = -300
 	banner.offset_right = 300
@@ -611,6 +631,7 @@ func _build_banner() -> void:
 
 func _build_prompt() -> void:
 	prompt = _button("", func():content.examine(content.examine_target), 18)
+	Cozy.style_button(prompt, true)
 	prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt.offset_left = -130
 	prompt.offset_right = 130
@@ -645,12 +666,12 @@ var _new_confirm := false
 
 func _build_title_card() -> void:
 	title_card = PanelContainer.new()
-	title_card.add_theme_stylebox_override("panel", Cozy.card(.93, 28, 30))
+	title_card.add_theme_stylebox_override("panel", Cozy.frame("modal", [], [58, 52, 58, 70]))
 	title_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	title_card.offset_left = -250
-	title_card.offset_right = 250
-	title_card.offset_top = 40
-	title_card.offset_bottom = 300
+	title_card.offset_left = -280
+	title_card.offset_right = 280
+	title_card.offset_top = 28
+	title_card.offset_bottom = 340
 	title_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	title_card.grow_vertical = Control.GROW_DIRECTION_END
 	title_card.visible = false
@@ -725,6 +746,9 @@ func _show_title_menu() -> void:
 			if spec[0] == "新游戏":title_new_button = b
 			if row_spec.size() == 1:b.custom_minimum_size.x = 320
 			row.add_child(b)
+	# keyboard: the first choice holds the focus (arrows / Tab move, Enter picks)
+	if title_menu.get_child_count() > 0 and title_menu.get_child(0).get_child_count() > 0:
+		(title_menu.get_child(0).get_child(0) as Control).grab_focus.call_deferred()
 	if started:
 		var where := Cozy.label("上次停在：" + String(content.director.chapter().get("title", "")), 15, Cozy.INK_SOFT, false)
 		title_menu.add_child(where)
@@ -770,13 +794,14 @@ func _title_settings() -> void:
 	_open("settings")
 
 func _build_story() -> void:
-	var box := _panel("story", "故事本", 820, 520)
+	var box := _panel("story", "故事本", 900, 600, "journal")
 	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 18)
+	# the two pages of the book, clear of its middle fold
+	columns.add_theme_constant_override("separation", 62)
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(columns)
 	var left := ScrollContainer.new()
-	left.custom_minimum_size = Vector2(440, 400)
+	left.custom_minimum_size = Vector2(370, 360)
 	left.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	columns.add_child(left)
 	story_box = VBoxContainer.new()
@@ -784,11 +809,11 @@ func _build_story() -> void:
 	story_box.add_theme_constant_override("separation", 8)
 	left.add_child(story_box)
 	var right := VBoxContainer.new()
-	right.custom_minimum_size.x = 300
+	right.custom_minimum_size.x = 330
 	columns.add_child(right)
 	right.add_child(_label("手记", 18, ACCENT))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(300, 360)
+	scroll.custom_minimum_size = Vector2(330, 320)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	right.add_child(scroll)
 	log_box = VBoxContainer.new()
@@ -796,20 +821,20 @@ func _build_story() -> void:
 	scroll.add_child(log_box)
 
 func _build_map() -> void:
-	var box := _panel("map", "地图", 900, 560)
+	var box := _panel("map", "地图", 880, 660, "map")
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 16)
 	box.add_child(columns)
 	map_view = MapView.new()
 	map_view.content = content
-	map_view.custom_minimum_size = Vector2(560, 420)
+	map_view.custom_minimum_size = Vector2(470, 380)
 	map_view.picked.connect(func(id):pick_place(id))
 	columns.add_child(map_view)
 	var right := VBoxContainer.new()
-	right.custom_minimum_size.x = 270
+	right.custom_minimum_size.x = 240
 	columns.add_child(right)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(270, 380)
+	scroll.custom_minimum_size = Vector2(240, 360)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	right.add_child(scroll)
 	map_list = VBoxContainer.new()
@@ -820,7 +845,7 @@ func _build_map() -> void:
 	box.add_child(_label("地图按场景碰撞自动生成：绿色是能走到的地方，灰色是走不到的远景或屋顶。路线沿桥和台阶走。", 13, SOFT))
 
 func _build_settings() -> void:
-	var box := _panel("settings", "声音与指引", 520, 480)
+	var box := _panel("settings", "声音与指引", 640, 480)
 	var audio = content.world.get("audio")
 	for item in [["music", "音乐"], ["ambience", "环境声"], ["sfx", "提示音"]]:
 		var row := HBoxContainer.new()
@@ -830,7 +855,7 @@ func _build_settings() -> void:
 		slider.min_value = 0
 		slider.max_value = 1
 		slider.step = .05
-		slider.custom_minimum_size.x = 300
+		slider.custom_minimum_size.x = 280
 		slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		slider.value = float(audio.settings[item[0]]) if audio else .8
 		slider.value_changed.connect(func(v):if audio:audio.set_volume(item[0], v))
@@ -872,12 +897,12 @@ func _set_option(key: String, on: bool) -> void:
 ## the title card leaves the title card where it was.
 func _build_about() -> void:
 	about_panel = PanelContainer.new()
-	about_panel.add_theme_stylebox_override("panel", _card())
+	about_panel.add_theme_stylebox_override("panel", Cozy.frame("modal", [], [64, 66, 64, 86]))
 	about_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	about_panel.offset_left = -330
-	about_panel.offset_right = 330
-	about_panel.offset_top = -250
-	about_panel.offset_bottom = 250
+	about_panel.offset_left = -350
+	about_panel.offset_right = 350
+	about_panel.offset_top = -262
+	about_panel.offset_bottom = 262
 	about_panel.visible = false
 	root.add_child(about_panel)
 	var box := VBoxContainer.new()
@@ -893,7 +918,7 @@ func _build_about() -> void:
 	var text := RichTextLabel.new()
 	text.bbcode_enabled = true
 	text.scroll_active = true
-	text.custom_minimum_size = Vector2(610, 410)
+	text.custom_minimum_size = Vector2(560, 330)
 	text.add_theme_font_size_override("normal_font_size", 15)
 	text.add_theme_font_size_override("bold_font_size", 16)
 	text.add_theme_color_override("default_color", INK)
@@ -906,11 +931,13 @@ func show_about() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _build_help() -> void:
-	var box := _panel("help", "帮助", 640, 470)
+	var box := _panel("help", "帮助", 720, 540)
 	var text := RichTextLabel.new()
 	text.bbcode_enabled = true
 	text.fit_content = true
-	text.custom_minimum_size = Vector2(580, 360)
+	text.custom_minimum_size = Vector2(560, 300)
+	text.scroll_active = true
+	text.fit_content = false
 	text.add_theme_font_size_override("normal_font_size", 16)
 	text.add_theme_font_size_override("bold_font_size", 17)
 	text.add_theme_color_override("default_color", INK)
@@ -957,9 +984,10 @@ func _build_note() -> void:
 	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note_panel.add_child(shadow)
 	var paper: Control
-	if ResourceLoader.exists(ART + "letter_page.jpg"):
+	var star_letter := Cozy.art("letter")
+	if star_letter or ResourceLoader.exists(ART + "letter_page.jpg"):
 		var page := TextureRect.new()
-		page.texture = load(ART + "letter_page.jpg")
+		page.texture = star_letter if star_letter else load(ART + "letter_page.jpg")
 		page.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		page.stretch_mode = TextureRect.STRETCH_SCALE
 		paper = page
@@ -974,15 +1002,28 @@ func _build_note() -> void:
 	var decor := Control.new()
 	decor.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note_panel.add_child(decor)
-	var pen := FountainPen.new()
-	pen.position = Vector2(468, 470)
-	pen.rotation = -.62
-	decor.add_child(pen)
+	# the fountain pen resting by the letter's lower right corner
+	var pen_art := Cozy.art("pen")
+	if pen_art:
+		var pen_pic := TextureRect.new()
+		pen_pic.texture = pen_art
+		pen_pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pen_pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		pen_pic.size = Vector2(300, 250)
+		pen_pic.position = Vector2(370, 470)
+		pen_pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		decor.add_child(pen_pic)
+	else:
+		var pen := FountainPen.new()
+		pen.position = Vector2(468, 470)
+		pen.rotation = -.62
+		decor.add_child(pen)
+	# the words stay in the upper part of the page, clear of the island picture below
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 54)
-	margin.add_theme_constant_override("margin_right", 46)
-	margin.add_theme_constant_override("margin_top", 70)
-	margin.add_theme_constant_override("margin_bottom", 44)
+	margin.add_theme_constant_override("margin_left", 62)
+	margin.add_theme_constant_override("margin_right", 58)
+	margin.add_theme_constant_override("margin_top", 64)
+	margin.add_theme_constant_override("margin_bottom", 178)
 	note_panel.add_child(margin)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 16)
@@ -998,7 +1039,7 @@ func _build_note() -> void:
 	note_body.add_theme_font_size_override("font_size", 23)
 	note_body.add_theme_color_override("font_color", Color("33261b"))
 	note_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note_body.custom_minimum_size = Vector2(390, 420)
+	note_body.custom_minimum_size = Vector2(370, 330)
 	note_body.add_theme_constant_override("line_spacing", 9)
 	note_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(note_body)
@@ -1010,11 +1051,12 @@ func _build_note() -> void:
 	panels["note"] = note_panel
 	envelope = preload("res://scripts/content/letter_envelope.gd").new()
 	envelope.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	envelope.offset_left = -210
-	envelope.offset_right = 210
-	envelope.offset_top = -130
-	envelope.offset_bottom = 130
-	envelope.pivot_offset = Vector2(210, 130)
+	envelope.offset_left = -240
+	envelope.offset_right = 240
+	envelope.offset_top = -120
+	envelope.offset_bottom = 120
+	envelope.custom_minimum_size = Vector2(480, 240)
+	envelope.pivot_offset = Vector2(240, 120)
 	envelope.visible = false
 	root.add_child(envelope)
 
@@ -1029,8 +1071,8 @@ func _animate_note(letter: bool) -> void:
 		envelope.modulate.a = 1.0
 		envelope.flap = 0.0
 		envelope.seal = 1.0
-		envelope.position.y = envelope.get_parent_area_size().y / 2 - 130 + 420
-		var rest: float = envelope.get_parent_area_size().y / 2 - 130
+		envelope.position.y = envelope.get_parent_area_size().y / 2 - 120 + 420
+		var rest: float = envelope.get_parent_area_size().y / 2 - 120
 		_note_anim.tween_property(envelope, "position:y", rest, .4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_note_anim.tween_property(envelope, "seal", 0.0, .22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 		_note_anim.tween_property(envelope, "flap", 1.0, .28)
@@ -1246,7 +1288,7 @@ func _fill_story() -> void:
 			story_box.add_child(line)
 			var hint := _label(stage.hint, 14, SOFT)
 			hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			hint.custom_minimum_size.x = 400
+			hint.custom_minimum_size.x = 350
 			story_box.add_child(hint)
 			if data.track != "main":story_box.add_child(_button("追踪主线", func():director.track("main"); _fill_story(), 15))
 	story_box.add_child(_label("小故事", 18, ACCENT))
@@ -1275,7 +1317,7 @@ func _fill_story() -> void:
 	for i in range(entries.size() - 1, maxi(-1, entries.size() - 30), -1):
 		var row := _label(entries[i].text, 14)
 		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		row.custom_minimum_size.x = 280
+		row.custom_minimum_size.x = 310
 		log_box.add_child(row)
 	if entries.is_empty():log_box.add_child(_label("还没有记下什么。", 14, SOFT))
 
@@ -1313,7 +1355,7 @@ func _fill_map_list() -> void:
 		if not reachable:notes = ["远景，走不到"]
 		var info := _label("  " + "  ".join(notes), 13, SOFT)
 		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		info.custom_minimum_size.x = 250
+		info.custom_minimum_size.x = 220
 		map_list.add_child(info)
 
 func _sync_settings() -> void:
@@ -1402,6 +1444,11 @@ func _process(delta: float) -> void:
 	if is_instance_valid(world.interactions.status):world.interactions.status.visible = not story
 	if is_instance_valid(world.interactions.journal_button):world.interactions.journal_button.visible = not story
 	if is_instance_valid(title_backdrop):title_backdrop.visible = title_card.visible or _settings_from_title
+	# any page you click on shows the pointer (it can come back captured after a talk or
+	# a flight); the game's own mode returns when the page closes
+	var finale_open: bool = content.ending != null and is_instance_valid(content.ending.finale_panel) and content.ending.finale_panel.is_visible_in_tree()
+	if (showing_card() or title_card.visible or open_panel != "" or finale_open or (is_instance_valid(about_panel) and about_panel.visible)) and Input.mouse_mode != Input.MOUSE_MODE_VISIBLE:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if _pending_card >= 0 and idle and open_panel == "" and not _performing() and not content.airship.flying() and not showing_card():
 		var index := _pending_card
 		_pending_card = -1
@@ -1470,6 +1517,7 @@ func _update_glow() -> void:
 	var total: int = light.DEEDS.size()
 	glow_meter.text = "小光的光  " + "★".repeat(level) + "☆".repeat(total - level)
 	if _glow_level >= 0 and level > _glow_level:
+		light.react("grow")
 		toast("★ 小光亮了一点（%d / %d）" % [level, total], 4.0)
 	_glow_level = level
 

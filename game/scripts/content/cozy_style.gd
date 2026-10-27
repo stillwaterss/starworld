@@ -37,11 +37,11 @@ static func card(alpha := .96, radius := 26, pad := 34) -> StyleBoxFlat:
 	s.shadow_offset = Vector2(0, 6)
 	return s
 
-static func _pill(bg: Color, edge: Color) -> StyleBoxFlat:
+static func _pill(bg: Color, edge: Color, width := 3) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
 	s.border_color = edge
-	s.set_border_width_all(2)
+	s.set_border_width_all(width)
 	s.set_corner_radius_all(24)
 	s.content_margin_left = 26
 	s.content_margin_right = 26
@@ -49,26 +49,59 @@ static func _pill(bg: Color, edge: Color) -> StyleBoxFlat:
 	s.content_margin_bottom = 9
 	return s
 
-## A rounded button: "main" ones are warm orange with white words, the others cream.
+## Button states in the colours of the star-theme SVGs (assets/ui/star/buttons): cream with
+## a gold edge; hover warmer, pressed deeper, a blue ring for keyboard focus, grey when
+## off. "main" buttons get a thicker gold edge and the warm accent for their words.
+static func style_button(b: Button, main := false) -> void:
+	var edge := 4 if main else 3
+	b.add_theme_stylebox_override("normal", _pill(Color("fff6e4"), Color("b28a39") if main else Color("c6a35e"), edge))
+	b.add_theme_stylebox_override("hover", _pill(Color("fff0c9"), Color("b28a39"), edge))
+	b.add_theme_stylebox_override("pressed", _pill(Color("ecd39b"), Color("947333"), edge))
+	b.add_theme_stylebox_override("disabled", _pill(Color("e8e3d9"), Color("c8c1b3"), 3))
+	b.add_theme_stylebox_override("focus", _pill(Color(0, 0, 0, 0), Color("56749b"), 5))
+	var fg := Color("9a4f1f") if main else INK
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		b.add_theme_color_override(state, fg)
+	b.add_theme_color_override("font_disabled_color", Color("a59e90"))
+
+## A rounded button: cream pill, gold edge, keyboard focus kept (Tab / arrows / Enter).
 static func button(text: String, callback: Callable, main := false, size := 20) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
+	b.focus_mode = Control.FOCUS_ALL
 	b.add_theme_font_override("font", hand())
 	b.add_theme_font_size_override("font_size", size)
-	var bg := ACCENT if main else Color("fffaf0")
-	var fg := Color.WHITE if main else INK
-	b.add_theme_stylebox_override("normal", _pill(bg, ACCENT.darkened(.15) if main else PAPER_EDGE))
-	b.add_theme_stylebox_override("hover", _pill(bg.lightened(.12) if main else Color("ffecd2"), ACCENT))
-	b.add_theme_stylebox_override("pressed", _pill(bg.darkened(.08), ACCENT.darkened(.2)))
-	b.add_theme_stylebox_override("disabled", _pill(Color(bg, .45), Color(PAPER_EDGE, .5)))
-	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(state, fg)
-	b.add_theme_color_override("font_disabled_color", Color(fg, .45))
+	style_button(b, main)
 	b.custom_minimum_size = Vector2(150, 46)
 	b.pressed.connect(callback)
 	return b
+
+## The star-theme pictures (assets/ui/star): backgrounds and frames.
+const ART := "res://assets/ui/star/"
+
+static func art(name: String) -> Texture2D:
+	for ext in [".png", ".jpg"]:
+		if ResourceLoader.exists(ART + name + ext):return load(ART + name + ext)
+	return null
+
+## A frame picture as a panel style. margins (left, top, right, bottom) are the parts of
+## the picture kept unstretched (its ornamented corners); [] stretches the whole picture,
+## for panels sized to the picture's own proportions. pad is where the content starts.
+static func frame(name: String, margins: Array, pad: Array) -> StyleBox:
+	var tex := art(name)
+	if tex == null:return card()
+	var s := StyleBoxTexture.new()
+	s.texture = tex
+	if margins.size() == 4:
+		s.texture_margin_left = margins[0]
+		s.texture_margin_top = margins[1]
+		s.texture_margin_right = margins[2]
+		s.texture_margin_bottom = margins[3]
+	s.content_margin_left = pad[0]
+	s.content_margin_top = pad[1]
+	s.content_margin_right = pad[2]
+	s.content_margin_bottom = pad[3]
+	return s
 
 static func label(text: String, size := 18, color := INK, use_hand := true) -> Label:
 	var l := Label.new()

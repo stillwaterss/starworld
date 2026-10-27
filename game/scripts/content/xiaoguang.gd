@@ -18,6 +18,14 @@ var _blink := 2.5
 var _smile := 0.0                # > 0: eyes squint into a smile
 var _scared := 0.0               # > 0: shrinks and hides behind the shoulder
 var _hop := 0.0
+## Growth you can see, level 0..10: size, halo, warmth; a second ring of points from
+## level 4, two small orbiting stars from level 8; a pulse ring and a spin on each step.
+var rays: MeshInstance3D
+var orbiters: Array[MeshInstance3D] = []
+var pulse_ring: MeshInstance3D
+var _pulse := 0.0
+var _spin := 0.0
+var trail: CPUParticles3D
 var clock := 0.0
 var flight_tween: Tween
 ## The ten things 小光 lights (content/island_lights.gd), one notch each on the meter under
@@ -58,6 +66,7 @@ func _ready() -> void:
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(halo)
 	_build_face()
+	_build_growth()
 	light = OmniLight3D.new()
 	light.light_color = Color("ffe2a0")
 	light.omni_range = 3.2
@@ -104,13 +113,82 @@ func _dot(mat: Material, size: Vector3) -> MeshInstance3D:
 	dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return dot
 
-## A small reaction: "happy" (hop and a smile), "scared" (shrinks behind the shoulder).
+func _build_growth() -> void:
+	var glow := StandardMaterial3D.new()
+	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow.albedo_color = Color(1, .86, .5, .55)
+	glow.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	rays = MeshInstance3D.new()
+	rays.mesh = preload("res://scripts/actor_visual.gd")._soft_star()
+	rays.material_override = glow
+	rays.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rays.position.z = -.06
+	rays.rotation.z = PI / 5
+	rays.scale = Vector3.ONE * 1.5
+	rays.visible = false
+	star.add_child(rays)
+	for i in 2:
+		var o := MeshInstance3D.new()
+		o.mesh = rays.mesh
+		o.material_override = material
+		o.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		o.scale = Vector3.ONE * .045
+		o.visible = false
+		add_child(o)
+		orbiters.append(o)
+	pulse_ring = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = .9
+	ring.outer_radius = 1.0
+	ring.rings = 24
+	ring.ring_segments = 6
+	pulse_ring.mesh = ring
+	var ring_mat := glow.duplicate()
+	ring_mat.albedo_color = Color(1, .9, .6, 0)
+	pulse_ring.material_override = ring_mat
+	pulse_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	pulse_ring.visible = false
+	add_child(pulse_ring)
+	trail = CPUParticles3D.new()
+	trail.amount = 60
+	trail.lifetime = .9
+	trail.local_coords = false
+	trail.emitting = false
+	trail.gravity = Vector3(0, -.2, 0)
+	trail.initial_velocity_min = .05
+	trail.initial_velocity_max = .3
+	trail.spread = 180
+	trail.scale_amount_min = .5
+	trail.scale_amount_max = 1.0
+	var dot := SphereMesh.new()
+	dot.radius = .03
+	dot.height = .06
+	dot.radial_segments = 6
+	dot.rings = 3
+	trail.mesh = dot
+	var trail_mat := glow.duplicate()
+	trail_mat.albedo_color = Color(1, .9, .6, .9)
+	trail.material_override = trail_mat
+	add_child(trail)
+
+## 0..10: how far 小光 has grown (the meter's stars).
+func growth() -> int:
+	return 10 if content.director.main_done() else level()
+
+## A small reaction: "happy" (hop and a smile), "scared" (shrinks behind the shoulder),
+## "grow" (one step brighter: a ring of light spreads, a quick spin, a little hop).
 func react(kind: String) -> void:
 	if kind == "happy":
 		_smile = 1.8
 		_hop = 1.0
 	elif kind == "scared":
 		_scared = 2.5
+	elif kind == "grow":
+		_pulse = 1.0
+		_spin = 1.0
+		_smile = 2.5
+		_hop = 1.0
 
 ## shy, warm or close: how near and how lively 小光 is, from the story so far.
 func mood() -> String:
@@ -126,9 +204,11 @@ func light_up(point: Vector3, hold := 1.6) -> void:
 	where = "perform"
 	if flight_tween:flight_tween.kill()
 	var start := global_position
+	trail.emitting = true
 	flight_tween = create_tween()
 	flight_tween.tween_method(func(t: float):
 		global_position = start.lerp(point, t) + Vector3.UP * sin(t * PI) * 1.2, 0.0, 1.0, .9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	flight_tween.tween_callback(func():trail.emitting = false)
 	flight_tween.tween_method(func(t: float):
 		halo.scale = Vector3.ONE * lerpf(1.3, 7.0, sin(t * PI))
 		light.light_energy = lerpf(.6, 6.0, sin(t * PI))
@@ -198,6 +278,7 @@ func _process(delta: float) -> void:
 	_scared = maxf(0, _scared - delta)
 	_hop = maxf(0, _hop - delta * 1.6)
 	_update_face(delta)
+	_update_growth(delta)
 	var player: CharacterBody3D = content.world.player
 	match where:
 		"grass":
@@ -213,10 +294,10 @@ func _process(delta: float) -> void:
 			visible = true
 			halo.visible = true
 			var m := mood()
-			var size: float = {"shy": .22, "warm": .27, "close": .27}[m] * (1.0 - .3 * minf(_scared, 1.0))
+			var size: float = {"shy": .22, "warm": .27, "close": .27}[m] * (1.0 - .3 * minf(_scared, 1.0)) * (1.0 + .06 * growth())
 			star.scale = star.scale.lerp(Vector3.ONE * size, clampf(delta * 3.0, 0, 1))
 			star.position = Vector3.UP * absf(sin(_hop * PI * 2.0)) * .25 * _hop
-			halo.scale = Vector3.ONE * (1.4 + .3 * glow)
+			halo.scale = Vector3.ONE * (1.3 + .22 * growth() + .3 * glow)
 			light.light_energy = glow * .7 * pulse
 			# shy: half behind the shoulder and trembling; warm: out in front, lively;
 			# close: right by the cheek
@@ -233,6 +314,32 @@ func _process(delta: float) -> void:
 			star.scale = star.scale.lerp(Vector3.ONE * .3, clampf(delta * 3.0, 0, 1))
 		"sky":
 			visible = false
+
+func _update_growth(delta: float) -> void:
+	var g := float(growth()) / 10.0
+	# warmer and richer with every step: pale cream at first, gold at the end
+	material.albedo_color = Color("fff6dc").lerp(Color("ffd88a"), g)
+	material.emission = Color("fff0c8").lerp(Color("ffc860"), g)
+	rays.visible = g >= .4 and where != "grass"
+	rays.scale = Vector3.ONE * (1.25 + .5 * g + .08 * sin(clock * 2.0))
+	rays.rotation.z += delta * .25
+	for i in orbiters.size():
+		var o := orbiters[i]
+		o.visible = g >= .8 and where in ["lantern", "perform"]
+		var a := clock * 1.6 + PI * i
+		o.position = star.position + Vector3(cos(a) * .32, sin(a * .7) * .08, sin(a) * .32)
+	_spin = maxf(0, _spin - delta * 1.2)
+	if _spin > 0:star.rotate_object_local(Vector3.FORWARD, delta * 9.0 * _spin)
+	_pulse = maxf(0, _pulse - delta * .8)
+	pulse_ring.visible = _pulse > 0
+	if _pulse > 0:
+		var k := 1.0 - _pulse
+		pulse_ring.position = star.position
+		pulse_ring.scale = Vector3.ONE * lerpf(.15, 1.4, k)
+		var cam := get_viewport().get_camera_3d()
+		if cam:pulse_ring.look_at(cam.global_position, Vector3.UP)
+		pulse_ring.rotate_object_local(Vector3.RIGHT, PI / 2)
+		pulse_ring.material_override.albedo_color.a = .8 * _pulse
 
 ## Faces the camera (gently wobbling), blinks every few seconds, squints when happy.
 func _update_face(delta: float) -> void:

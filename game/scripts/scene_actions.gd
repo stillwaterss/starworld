@@ -110,6 +110,9 @@ func _enter_vista() -> void:
 	# Hide the close foreground silhouette in both seated vistas.
 	player.model.visible=false
 	vista=0;vista_clock=0.0;_vista_views=_plan_vistas()
+	# (from the host's V17.1) the player's own hat right under the high camera showed as a
+	# pale triangle: the seated views leave the player out of the picture
+	player.model.visible=false
 	var cycle=world.get("day_cycle")
 	if cycle and "fog_scale" in cycle:cycle.fog_scale=.3;cycle._apply(cycle.weights)
 	_vista_hidden.clear()
@@ -133,6 +136,7 @@ func _update_corner() -> void:
 func _leave_vista() -> void:
 	player.model.visible=true
 	corner.visible=false
+	player.model.visible=true
 	var cycle=world.get("day_cycle")
 	if cycle and "fog_scale" in cycle:cycle.fog_scale=1.0;cycle._apply(cycle.weights)
 	for node in _vista_hidden:

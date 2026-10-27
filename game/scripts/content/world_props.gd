@@ -43,6 +43,7 @@ func _setup() -> void:
 	_build_keepsakes()
 	if content.state.flag("reaction_lighthouse_lit"):light_lighthouse(false)
 	if content.state.flag("window_polished") or content.state.flag("ev_window_polished"):light_window(false)
+	_guard_keeper_isle()
 	if content.state.flag("keeper_door_open"):open_door("keeper", true, false)
 	elif doors.has("keeper"):_block_doorway("keeper")
 	content.registry.refresh()
@@ -166,6 +167,66 @@ func _block_doorway(id: String) -> void:
 	add_child(body)
 	body.global_position = _v(d.info.centre)
 	d.blocker = body
+
+# ------------------------------------------------------------------ lighthouse island guard
+## The lighthouse island's edge and pier get an invisible rail, 1.3 m high: the visible
+## fences have gaps the player could slip through. The edge is measured, not assumed:
+## for each direction, rays step outward until there is no more ground at the island's
+## height; the rail stands just inside that. The pier's land end stays open.
+func _guard_keeper_isle() -> void:
+	var keeper: Dictionary = _meta().get("keeper_isle", {})
+	if not keeper.has("center"):return
+	var centre := _v(keeper.center)
+	var y := float(keeper.pier_start[1]) if keeper.has("pier_start") else centre.y
+	var pier_start := _v(keeper.pier_start) if keeper.has("pier_start") else centre
+	var pier_end := _v(keeper.pier_end) if keeper.has("pier_end") else centre
+	var space := world.get_world_3d().direct_space_state
+	var body := StaticBody3D.new()
+	body.name = "KeeperIsleGuard"
+	body.collision_layer = 1
+	add_child(body)
+	var steps := 72
+	var edge: Array[Vector3] = []
+	for i in steps:
+		var a := TAU * i / steps
+		var dir := Vector3(cos(a), 0, sin(a))
+		var last := 3.0
+		var r := 3.0
+		while r < 16.0:
+			var p := centre + dir * r
+			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, y + 12.0, p.z), Vector3(p.x, y - 2.5, p.z), 1))
+			# a roof or the tower above counts as island; only nothing, or ground well below, is the edge
+			if hit.is_empty() or hit.position.y < y - 1.2:break
+			last = r
+			r += .25
+		edge.append(centre + dir * (last - .15))
+	var pier_dir := (pier_end - pier_start)
+	pier_dir.y = 0
+	pier_dir = pier_dir.normalized()
+	for i in steps:
+		var a: Vector3 = edge[i]
+		var b: Vector3 = edge[(i + 1) % steps]
+		var mid := (a + b) / 2
+		# leave the way onto the pier open
+		var off := mid - pier_start
+		off.y = 0
+		if off.length() < 2.2:continue
+		_guard_wall(body, a, b, y)
+	var across := pier_dir.cross(Vector3.UP).normalized()
+	for s in [-1.0, 1.0]:
+		_guard_wall(body, pier_start + across * s * .95, pier_end + across * s * .95, y)
+
+func _guard_wall(body: StaticBody3D, a: Vector3, b: Vector3, floor_y: float) -> void:
+	var length := Vector2(b.x - a.x, b.z - a.z).length()
+	if length < .05:return
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(length + .1, 1.3, .12)
+	shape.shape = box
+	body.add_child(shape)
+	var mid := (a + b) / 2
+	shape.global_position = Vector3(mid.x, floor_y + .65, mid.z)
+	shape.rotation.y = -atan2(b.z - a.z, b.x - a.x)
 
 # ------------------------------------------------------------------ tree-house window
 func light_window(animate := true) -> void:
@@ -392,6 +453,17 @@ func _build_keepsakes() -> void:
 			for piece in root.get_children():piece.visible = false
 			root.add_child(model)
 			root.set_meta("model", model)
+		# solid, so the player stands beside it instead of inside it (the examine reaches 1.6 m)
+		if id in ["islet_e", "islet_sw", "isle_south_r", "islet_nw"]:
+			var solid := StaticBody3D.new()
+			var shape := CollisionShape3D.new()
+			var post := CylinderShape3D.new()
+			post.radius = .34 if id == "islet_e" else .24
+			post.height = 1.4
+			shape.shape = post
+			shape.position.y = .7
+			solid.add_child(shape)
+			root.add_child(solid)
 	_swap_telescope()
 
 ## A Tripo prop from assets/props (made 1 unit tall, standing on its origin), `height` m.
@@ -428,7 +500,18 @@ func light_keepsake_lamp() -> void:
 	if not keepsakes.has("isle_south_r"):return
 	var lamp: MeshInstance3D = keepsakes.isle_south_r.get_child(1)
 	lamp.material_override.emission_energy_multiplier = 2.4
-	if keepsakes.isle_south_r.has_meta("model"):_glow_model(keepsakes.isle_south_r.get_meta("model"), 2.0)
+	# only the lantern glows (lighting the whole model's colours washed it white)
+	if keepsakes.isle_south_r.has_meta("model"):
+		var spot: Vector3 = preload("res://scripts/content/island_lights.gd").lantern_spot(keepsakes.isle_south_r.get_meta("model"))
+		var glow := MeshInstance3D.new()
+		var ball := SphereMesh.new()
+		ball.radius = .1
+		ball.height = .2
+		glow.mesh = ball
+		glow.material_override = _mat(Color(1, .86, .55), 3.0)
+		glow.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		add_child(glow)
+		glow.global_position = spot
 	var l := OmniLight3D.new()
 	l.light_color = Color(1, .84, .55)
 	l.omni_range = 3.0

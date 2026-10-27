@@ -81,12 +81,12 @@ func _ready() -> void:
 	content=preload("res://scripts/content/content_root.gd").new()
 	content.world=self
 	add_child(content)
-	_web_boot_mark("content_done")
 	_web_stage_geometry()
 	if "--ending-preview" in OS.get_cmdline_user_args():
 		var checkpoint = load("res://scripts/content/ending_checkpoint.gd")
 		checkpoint.seed(self)
 		checkpoint.place(self)
+	_web_boot_mark("content_done")
 	if autotest:
 		_autotest()
 

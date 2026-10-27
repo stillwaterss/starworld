@@ -139,9 +139,8 @@ func _line(text: String, style: String) -> void:
 	var total := fade_in + hold + fade_out
 	while t < total:
 		t += get_process_delta_time() * (4.0 if hurry else 1.0)
+		# still: only the opacity changes (a moving line read as shaking)
 		label.modulate.a = smoothstep(0.0, 1.0, clampf(t / fade_in, 0, 1)) * smoothstep(0.0, 1.0, clampf((total - t) / fade_out, 0, 1))
-		label.offset_top = 110 - 14 * clampf(t / total, 0, 1)
-		label.offset_bottom = label.offset_top + 140
 		await get_tree().process_frame
 	label.queue_free()
 	await _wait(1.1)
@@ -372,8 +371,31 @@ func release_at_summit() -> void:
 	var target: Vector3 = content.home_star_point(camera.global_position)
 	content.xiaoguang.leave_for(target, 18.0)
 	player.model.set_pose(perf.pose("release"), 4.0)
-	_follow(camera, 18.0)
-	await _words(NARRATION_RELEASE)
+	_words_alongside(NARRATION_RELEASE)
+	await _wait(3.0)
+	# the whole island below, the lanterns, the ship and the little light going up
+	var island_centre := Vector3(0, 2, 4)
+	var pano_dir := (island_centre - deck)
+	pano_dir.y = 0
+	pano_dir = pano_dir.normalized()
+	var pano_side := pano_dir.cross(Vector3.UP).normalized()
+	var pano_eye := island_centre + pano_side * 52.0 + pano_dir * 18.0 + Vector3.UP * 16.0
+	await _cut(.5)
+	camera.global_transform = Transform3D(Basis.looking_at(island_centre.lerp(deck, .45) + Vector3.UP * 6.0 - pano_eye), pano_eye)
+	camera.fov = 58
+	await _uncut(.7)
+	_glide(camera, Transform3D(Basis.looking_at(island_centre.lerp(deck, .55) + Vector3.UP * 14.0 - pano_eye), pano_eye + Vector3.UP * 2.0), 8.0)
+	await _wait(8.0)
+	# and everyone in the square, looking up as it goes
+	await _cut(.5)
+	var crowd_eye := square - to_ship * 8.0 + across * 1.5 + Vector3.UP * 1.6
+	camera.global_transform = Transform3D(Basis.looking_at(square + Vector3.UP * 14.0 + to_ship * 4.0 - crowd_eye), crowd_eye)
+	camera.fov = 62
+	await _uncut(.7)
+	_follow(camera, 7.0)
+	if _side_words:await side_words_done
+	camera.global_transform = Transform3D(Basis.looking_at(island - low_eye), low_eye)
+	camera.fov = 60
 	player.model.set_pose(perf.pose("look_up"), 2.0)
 	if world.get("audio"):world.audio.play_sfx("objective")
 	content.events.emit("xiaoguang_home", {"place": "summit"})
@@ -409,22 +431,25 @@ func _follow(camera: Camera3D, seconds: float) -> void:
 ## Off the ship: a walk to the square, a long look up at 归家座 and the lighthouse beam,
 ## the last line, then the end page.
 func finale() -> void:
-	playing = true
 	var world: Node3D = content.world
 	var player: CharacterBody3D = world.player
 	player.controls_locked = true
 	_scatter()
 	if _words_running:await words_done
 	var spot: Vector3 = content.registry.position_of("spawn")
+	# walking like walking: the performance pose off so arms and legs swing
+	player.model.set_performing(false)
 	await _walk_to(spot)
 	var home: Vector3 = content.home_star_point(spot) - spot
 	var home_h := Vector3(home.x, 0, home.z).normalized()
 	var perf = world.get("performance")
 	await perf.turn_to(spot + home_h * 4.0, .8)
 	var camera: Camera3D = content.airship.camera
-	var eye: Vector3 = player.global_position - home_h * 3.6 + Vector3.UP * 1.0 + home_h.cross(Vector3.UP) * .6
-	camera.global_transform = Transform3D(Basis.looking_at(player.global_position + home.normalized() * 12.0 - eye), eye)
-	camera.fov = 62
+	# low behind the shoulder: the player's back and head and shoulders, the constellation
+	# and the lighthouse's beam above
+	var eye: Vector3 = player.global_position - home_h * 3.4 + Vector3.UP * 1.35 + home_h.cross(Vector3.UP) * .8
+	camera.global_transform = Transform3D(Basis.looking_at(player.global_position + home_h * 8.0 + Vector3.UP * 4.2 - eye), eye)
+	camera.fov = 66
 	camera.current = true
 	player.model.set_performing(true)
 	player.model.set_pose(perf.pose("look_up"), 2.0)
@@ -437,8 +462,8 @@ func finale() -> void:
 	dream.modulate.a = 0
 	if content.lights:content.lights.boost = 1.0
 	layer.visible = false
+	playing = false
 	if content.test_session and not "--show-finale" in OS.get_cmdline_user_args():
-		playing = false
 		player.arm.get_child(0).current = true
 		player.controls_locked = false
 		return
@@ -451,7 +476,6 @@ func finale() -> void:
 	create_tween().tween_property(finale_panel, "modulate:a", 1.0, 1.2)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await finale_closed
-	playing = false
 	player.arm.get_child(0).current = true
 	player.controls_locked = false
 
@@ -492,13 +516,24 @@ func _build_finale(left: Array[String]) -> void:
 	var top := CanvasLayer.new()
 	top.layer = 10
 	add_child(top)
+	# the painted night of the end, behind the page
 	var dim := ColorRect.new()
 	dim.color = Color(.05, .04, .12, .35)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	top.add_child(dim)
+	var night := Cozy.art("ending_background")
+	if night:
+		var picture := TextureRect.new()
+		picture.texture = night
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dim.add_child(picture)
 	finale_panel = PanelContainer.new()
-	finale_panel.add_theme_stylebox_override("panel", Cozy.card(.96, 30, 44))
+	finale_panel.add_theme_stylebox_override("panel", Cozy.frame("modal", [], [76, 60, 76, 98]))
+	finale_panel.custom_minimum_size = Vector2(760, 570)
 	finale_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	finale_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	finale_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -506,8 +541,18 @@ func _build_finale(left: Array[String]) -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
 	box.custom_minimum_size.x = 600
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	finale_panel.add_child(box)
-	box.add_child(Cozy.label("故事完结", 46))
+	var title_art := Cozy.art("title_ending")
+	if title_art:
+		var title_pic := TextureRect.new()
+		title_pic.texture = title_art
+		title_pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		title_pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		title_pic.custom_minimum_size = Vector2(0, 92)
+		title_pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(title_pic)
+	box.add_child(Cozy.label("故事完结", 30))
 	box.add_child(Cozy.StarRow.new(5))
 	box.add_child(Cozy.label(content.named("小光回家了。谢谢你，{name}。"), 24, Cozy.INK))
 	box.add_child(Cozy.label("你已经走完了《星星人的小世界》的故事。", 17, Cozy.INK_SOFT, false))
@@ -540,7 +585,9 @@ func _build_finale(left: Array[String]) -> void:
 		top.queue_free()
 		finale_closed.emit()
 		if open_book:content.ui.toggle_panel.call_deferred("story")
-	row.add_child(Cozy.button("去玩小故事", close.bind(true), true))
+	var first_button := Cozy.button("去玩小故事", close.bind(true), true)
+	row.add_child(first_button)
+	first_button.grab_focus.call_deferred()
 	row.add_child(Cozy.button("继续在岛上走走", close.bind(false)))
 	row.add_child(Cozy.button("退出游戏", func():preload("res://scripts/web_platform.gd").exit_game(get_tree())))
 

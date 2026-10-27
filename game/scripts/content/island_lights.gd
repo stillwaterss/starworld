@@ -51,6 +51,7 @@ func _setup() -> void:
 	await get_tree().physics_frame
 	for site in SITES:
 		if is_lit(site):_show(site, false)
+	_build_door_lamps()
 	_build_blinks()
 	_find_glowing()
 	factor = target_factor()
@@ -74,9 +75,9 @@ func point(site: String) -> Vector3:
 		"treehouse":return Vector3(0, 2.8, -.2)
 		"lamps":return registry.position_of("spawn") + Vector3(0, 3.2, 0)
 		"oven":return _door_point("baker", .0, .9, 1.0)
-		"child":return _door_point("child", .75, .35, .75)
+		"child":return _door_lamps["child"][1] if _door_lamps.has("child") else _door_point("child", .75, .35, .75)
 		"fountain":return registry.position_of("fountain") + Vector3(0, 1.4, 0)
-		"grandma":return _door_point("grandma", .75, .35, .75)
+		"grandma":return _door_lamps["grandma"][1] if _door_lamps.has("grandma") else _door_point("grandma", .75, .35, .75)
 		"lighthouse":return registry.position_of("keeper_lamp") + Vector3(0, 1.2, 0)
 		"ship":
 			var ship = content.airship
@@ -113,6 +114,7 @@ func perform(site: String) -> void:
 		await perf.wait(.95)
 		light(site, true)
 		await perf.wait(1.7)
+		if site == "grandma":await signal_shot(perf)
 		perf.set_pose("admire", 4.0)
 		await perf.wait(1.0)
 		await perf.finish(.8)
@@ -127,6 +129,7 @@ func light(site: String, animate: bool) -> void:
 	_show(site, animate)
 	if animate:
 		content.props._sparkle(point(site))
+		_burst(point(site))
 		content.xiaoguang.react("happy")
 		if world.get("audio"):world.audio.play_sfx("objective")
 		if site == "lamps":
@@ -146,9 +149,16 @@ func _show(site: String, animate: bool) -> void:
 			content.state.set_flag("reaction_garden_glow")
 			content._apply_reactions()
 		"treehouse":content.props.light_window(animate)
-		"oven":_glow_at(point(site) + Vector3.DOWN * .4, Color("ff9a4a"), 2.4, 4.5, animate, true)
-		"child":_lantern_at(point(site), Color("ffe3a8"), animate)
-		"grandma":_lantern_at(point(site), Color("ffd58a"), animate)
+		"oven":
+			_glow_at(point(site) + Vector3.DOWN * .4, Color("ff9a4a"), 2.4, 4.5, animate, true)
+			_porch_light("baker", animate)
+		"child":
+			_light_door_lamp("child", Color("ffe3a8"), animate)
+			_porch_light("child", animate)
+		"grandma":
+			_light_door_lamp("grandma", Color("ffd58a"), animate)
+			_porch_light("grandma", animate)
+		"lamps":_porch_light("lamplighter", animate)
 		"fountain":
 			_glow_at(point(site), Color(.72, .9, 1.0), 2.6, 7.5, animate, false)
 			_motes_at(point(site) + Vector3.DOWN * .6, Color(.8, .95, 1.0))
@@ -167,6 +177,116 @@ func _glow_at(at: Vector3, color: Color, energy: float, reach: float, animate: b
 	light.global_position = at
 	if animate:create_tween().tween_property(light, "light_energy", energy, 1.4)
 	return light
+
+## The moment a place lights: a ball of light swells and fades, with a bright flash.
+func _burst(at: Vector3) -> void:
+	var ball := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = 1.0
+	mesh.height = 2.0
+	mesh.radial_segments = 16
+	mesh.rings = 8
+	ball.mesh = mesh
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.albedo_color = Color(1, .85, .55, .7)
+	ball.material_override = m
+	ball.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(ball)
+	ball.global_position = at
+	ball.scale = Vector3.ONE * .2
+	var flash := OmniLight3D.new()
+	flash.light_color = Color(1, .85, .55)
+	flash.light_energy = 7.0
+	flash.omni_range = 9.0
+	add_child(flash)
+	flash.global_position = at
+	var t := create_tween().set_parallel(true)
+	t.tween_property(ball, "scale", Vector3.ONE * 2.6, 1.1).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(m, "albedo_color:a", 0.0, 1.1)
+	t.tween_property(flash, "light_energy", 0.0, 1.4)
+	t.chain().tween_callback(func():
+		ball.queue_free()
+		flash.queue_free())
+
+## A warm light on the doorstep of a house that has been lit: the house itself glows.
+func _porch_light(door: String, animate: bool) -> void:
+	var props = content.props
+	if not props.doors.has(door):return
+	var d: Dictionary = props.doors[door]
+	var c: Vector3 = props._v(d.info.centre)
+	_glow_at(c + d.front * .9 + Vector3.UP * .5, Color(1, .8, .55), 2.2, 6.5, animate, false)
+
+## Lamp posts (the hanging-lantern post model) by the child's and grandma's doors, there
+## from the start with the lantern dark: 小光 lights the lantern itself.
+var _door_lamps := {}            # door -> [post, lantern point, glow mesh]
+
+func _build_door_lamps() -> void:
+	var props = content.props
+	for door in ["child", "grandma"]:
+		if not props.doors.has(door):continue
+		var post: Node3D = props.prop("lamp_post", 1.7)
+		if post == null:continue
+		var d: Dictionary = props.doors[door]
+		var c: Vector3 = props._v(d.info.centre)
+		var front: Vector3 = d.front
+		var across := front.cross(Vector3.UP).normalized()
+		var floor := c - Vector3.UP * float(d.info.height) / 2.0
+		add_child(post)
+		# against the wall beside the door, out of the way of anyone walking past
+		post.global_position = props._ground(floor + across * (float(d.info.width) / 2.0 + .5) + front * .22)
+		# the arm (the model's +X) reaches toward the door
+		post.rotation.y = atan2(across.z, -across.x)
+		var spot := lantern_spot(post)
+		var glow := MeshInstance3D.new()
+		var ball := SphereMesh.new()
+		ball.radius = .09
+		ball.height = .18
+		glow.mesh = ball
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = Color(.45, .38, .3)
+		glow.material_override = m
+		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(glow)
+		glow.global_position = spot
+		# the post is solid
+		var solid := StaticBody3D.new()
+		var shape := CollisionShape3D.new()
+		var cyl := CylinderShape3D.new()
+		cyl.radius = .12
+		cyl.height = 1.6
+		shape.shape = cyl
+		shape.position.y = .8
+		solid.add_child(shape)
+		post.add_child(solid)
+		_door_lamps[door] = [post, spot, glow]
+
+## Where the lantern hangs on a lamp-post model: the end of its arm, a little below the
+## top (measured from the model's own bounds, so any size or turn works).
+static func lantern_spot(model: Node3D) -> Vector3:
+	var box := AABB()
+	var first := true
+	for mesh: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		var b: AABB = model.global_transform.affine_inverse() * (mesh.global_transform * mesh.get_aabb())
+		box = b if first else box.merge(b)
+		first = false
+	var local := Vector3(box.end.x - box.size.x * .13, box.position.y + box.size.y * .46, box.get_center().z)
+	return model.global_transform * local
+
+func _light_door_lamp(door: String, color: Color, animate: bool) -> void:
+	if not _door_lamps.has(door):
+		_lantern_at(_door_point(door, .75, .35, .75), color, animate)
+		return
+	var glow: MeshInstance3D = _door_lamps[door][2]
+	var m: StandardMaterial3D = glow.material_override
+	m.albedo_color = color
+	m.emission_enabled = true
+	glow.scale = Vector3.ONE * (.3 if animate else 1.0)
+	if animate:create_tween().tween_property(glow, "scale", Vector3.ONE, .7).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_glow_at(_door_lamps[door][1], color, 2.0, 5.5, animate, false)
 
 ## A paper lantern hung by a window, glowing.
 func _lantern_at(at: Vector3, color: Color, animate: bool) -> void:
@@ -237,27 +357,62 @@ func _find_glowing() -> void:
 func _build_blinks() -> void:
 	var keeper: Dictionary = world.meta.get("keeper_isle", {})
 	var far := Vector3(keeper.window_view[0], keeper.window_view[1], keeper.window_view[2]) if keeper.has("window_view") else Vector3(45.8, 15.5, 24.4)
-	for spec in [[far, .55], [_door_point("grandma", .75, .35, .75), .16]]:
+	# 老星's little lamp shines from the top of the tower: high enough to be seen over the
+	# town from the seat on the north-west islet
+	if content.registry.has("keeper_lamp"):far = content.registry.position_of("keeper_lamp") + Vector3.UP * 2.0
+	# a soft round glint that always faces the camera; the far one is big enough to read
+	# from the seat across the town (about a hundred metres)
+	var glint := GradientTexture2D.new()
+	var g := Gradient.new()
+	g.set_color(0, Color(1, .95, .8, 1))
+	g.set_color(1, Color(1, .8, .5, 0))
+	g.add_point(.25, Color(1, .88, .62, .85))
+	glint.gradient = g
+	glint.fill = GradientTexture2D.FILL_RADIAL
+	glint.fill_from = Vector2(.5, .5)
+	glint.fill_to = Vector2(1, .5)
+	glint.width = 128
+	glint.height = 128
+	for spec in [[far, 5.0], [point("grandma"), .9]]:
 		var dot := MeshInstance3D.new()
-		var ball := SphereMesh.new()
-		ball.radius = 1.0
-		ball.height = 2.0
-		ball.radial_segments = 10
-		ball.rings = 5
-		dot.mesh = ball
+		var quad := QuadMesh.new()
+		quad.size = Vector2.ONE * 2.0
+		dot.mesh = quad
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		m.albedo_color = Color(1, .85, .55, 0)
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		m.billboard_keep_scale = true
+		m.albedo_texture = glint
+		m.albedo_color = Color(1, .9, .7, 0)
+		m.no_depth_test = false
 		dot.material_override = m
 		dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		dot.scale = Vector3.ONE * float(spec[1])
+		dot.extra_cull_margin = 64
 		add_child(dot)
 		dot.global_position = spec[0]
 		_blinks.append(dot)
 
-## Three blinks every seven seconds; the lighthouse island answers half a beat later.
+## The answer across the clouds, staged (after grandma's lamp is lit): the camera turns
+## to the lighthouse island and its light blinks three times, slowly, clearly.
+var _signal := -1.0
+
+func signal_shot(perf) -> void:
+	var keeper_lamp: Vector3 = content.registry.position_of("keeper_lamp") if content.registry.has("keeper_lamp") else _blinks[0].global_position
+	_blinks[0].global_position = keeper_lamp + Vector3.UP * 1.0
+	var player: Vector3 = world.player.global_position
+	var toward := keeper_lamp - player
+	var flat := Vector3(toward.x, 0, toward.z).normalized()
+	var eye := player - flat * 3.0 + Vector3.UP * 2.2 + flat.cross(Vector3.UP) * 1.2
+	perf.glide_to(Transform3D(Basis.looking_at(keeper_lamp - eye), eye), 38.0, 1.6)
+	await perf.wait(1.8)
+	_signal = 0.0
+	await perf.wait(4.6)
+	_signal = -1.0
+
+## Three blinks every seven seconds## Three blinks every seven seconds; the lighthouse island answers half a beat later.
 func _blink_level(t: float) -> float:
 	var phase := fmod(t, 7.0)
 	if phase > 2.1:return 0.0
@@ -294,4 +449,7 @@ func _process(delta: float) -> void:
 		var keeper_on: bool = not content.state.flag("reaction_lighthouse_lit") and player.distance_to(_blinks[0].global_position) > 30.0
 		var grandma_on: bool = not is_lit("grandma")
 		_blinks[0].material_override.albedo_color.a = (_blink_level(_clock - .35) * dark * .95) if keeper_on else 0.0
+		if _signal >= 0:
+			_signal += delta
+			_blinks[0].material_override.albedo_color.a = 1.0 if fmod(_signal, 1.3) < .65 and _signal < 3.9 else 0.0
 		_blinks[1].material_override.albedo_color.a = (_blink_level(_clock) * dark * .9) if grandma_on else 0.0

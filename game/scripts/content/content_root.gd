@@ -90,6 +90,7 @@ func _ready() -> void:
 	events.content_event.connect(_on_event)
 	if world.get("audio"):world.audio.bind_scene()
 	_apply_reactions()
+	world.player.respawn_hook = _respawn_point
 	_bake.call_deferred()
 
 func player_name() -> String:
@@ -119,6 +120,16 @@ func _bake() -> void:
 	if OS.has_feature("web"):
 		await world.performance.prepare_web_props()
 		JavaScriptBridge.eval("window.starworldSceneReady = true")
+
+## Where a fall lands: on the lighthouse island's pier while the ship is moored there (so
+## the ship is always within reach), otherwise the square.
+func _respawn_point() -> Vector3:
+	var player: CharacterBody3D = world.player
+	var keeper: Vector3 = registry.position_of("keeper_isle") if registry.has("keeper_isle") else Vector3(45, 14, 27)
+	var fell_near_keeper: bool = Vector2(player.global_position.x - keeper.x, player.global_position.z - keeper.z).length() < 30.0
+	if airship and airship.at == "keeper_isle" and fell_near_keeper:
+		return registry.position_of("keeper_dock") + Vector3.UP * .3
+	return world.player.spawn_point
 
 ## Uses a fresh story save at `path` (tests, or a second profile). Never touches the real save.
 func use_save(path: String) -> void:
@@ -155,6 +166,7 @@ func special(id: String, entry: Dictionary, _variant: Dictionary) -> void:
 		"find_xiaoguang":xiaoguang.found()
 		"polish_window":props.light_window()
 		"airship_board":airship.board()
+		"airship_recall":airship.recall()
 		"ship_lamp":airship.light_lamp()
 		"light_lighthouse":props.light_lighthouse()
 		"ending":ending.play()

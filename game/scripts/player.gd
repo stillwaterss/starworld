@@ -98,8 +98,12 @@ func jump() -> void:
 	_jump_buf = JUMP_BUFFER
 
 
+## A fall puts the player back on the island they fell from (content sets respawn_hook:
+## the lighthouse island's pier while the ship is moored there), else the square.
+var respawn_hook: Callable
+
 func respawn() -> void:
-	global_position = spawn_point
+	global_position = respawn_hook.call() if respawn_hook.is_valid() else spawn_point
 	velocity = Vector3.ZERO
 
 

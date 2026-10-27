@@ -204,6 +204,23 @@ func _show_gangway(shown: bool) -> void:
 
 func flying() -> bool:return at == "flying"
 
+## The ship left at the lighthouse island while the player is back in town (a fall, a
+## reload): it comes back to the town dock on its own.
+func recall() -> void:
+	if flying() or not rig or at != "keeper_isle":return
+	_show_gangway(false)
+	at = "dock"
+	content.state.data.flags.erase("airship_at_keeper")
+	var from := rig.global_transform
+	var t := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_method(func(k: float):
+		var a := from.origin.lerp(home_transform.origin, k) + Vector3.UP * sin(k * PI) * 14.0
+		rig.global_transform = Transform3D(from.basis.slerp(home_transform.basis, k), a), 0.0, 1.0, 8.0)
+	await t.finished
+	rig.global_transform = home_transform
+	content.state.save()
+	content.ui.toast("飞艇自己飞回了码头。", 4.0)
+
 func _setup() -> void:
 	for i in 2:await get_tree().physics_frame
 	var parts: Array[Node] = world.find_children("Airship_*", "MeshInstance3D", true, false)
@@ -407,11 +424,11 @@ func fly(destination: String) -> void:
 	# step onto the deck
 	var board_from := player.global_position
 	player.set_physics_process(false)
-	var initial_camera:=world.get_viewport().get_camera_3d()
+	var initial_camera := world.get_viewport().get_camera_3d()
 	camera.global_transform = initial_camera.global_transform
 	camera.fov = initial_camera.fov
 	camera.current = true
-	create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(camera,"fov",52.0,.8)
+	create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(camera, "fov", 52.0, .8)
 	var plank := _gangway(deck_point(), board_from)
 	await _walk([board_from, plank[1], plank[0], deck_point()])
 	if world.get("audio"):world.audio.play_sfx("door")
@@ -451,12 +468,22 @@ func fly(destination: String) -> void:
 		rig.global_transform = Transform3D(Basis(Vector3.UP, yaw - atan2(-home_transform.basis.z.x, -home_transform.basis.z.z)) * home_transform.basis, Vector3.ZERO)
 		rig.global_position = deck_world - rig.global_basis * (home_transform.basis.inverse() * deck_offset)
 		player.global_position = deck_world
-		player.model.rotation.y = yaw
-		# slow orbit; moving the mouse left or right turns it, up or down raises it
+		# slow orbit; moving the mouse left or right turns it, up or down raises it. The
+		# last night's climb is seen from far out to the side: ship and island together.
 		_cam_yaw += dt * .05
-		var orbit := _orbit(dt)
+		# (far out and below on the last night: the ship above, the island below, both in frame)
+		var orbit := _orbit(dt) if destination != "summit" else Vector3(sin(_cam_yaw) * 45.0, -15.0, cos(_cam_yaw) * 45.0)
+		# the player turns a three-quarter face to the camera, never their back
+		var to_cam := orbit
+		to_cam.y = 0
+		if to_cam.length() > .1:player.model.rotation.y = lerp_angle(player.model.rotation.y, atan2(-to_cam.x, -to_cam.z) + .55, clampf(dt * 3.0, 0, 1))
 		camera.global_position = deck_world + orbit if skip else camera.global_position.lerp(deck_world + orbit, clampf(dt * 2.0, 0, 1))
-		camera.look_at(deck_world + Vector3.UP * 1.2, Vector3.UP)
+		# the last night's climb looks a little down past the ship to the island below
+		var aim := deck_world + Vector3.UP * 1.2
+		if destination == "summit":
+			aim = deck_world.lerp(Vector3(0, 0, 2), .39)
+			camera.fov = lerpf(camera.fov, 70.0, clampf(dt, 0, 1))
+		camera.look_at(aim, Vector3.UP)
 		await get_tree().process_frame
 		if destination == "summit" and t >= seconds:break
 	_show_skip(false)
@@ -496,10 +523,18 @@ func fly_home_from_summit() -> void:
 		player.global_position = p
 		_cam_yaw += dt * .05
 		if ending:
-			# far out and a little below: the ship small among the lanterns, the lit island beneath
+			# far out and a little below: the ship small among the lanterns, the lit island
+			# beneath; the last stretch from beside the dock, clear of rails and gondola
+			var k := clampf(t / seconds, 0, 1)
+			var dock: Vector3 = content.registry.position_of("dock")
 			var wide := p + Vector3(sin(_cam_yaw * .6), 0, cos(_cam_yaw * .6)) * 26.0 + Vector3.UP * 2.0
-			camera.global_position = camera.global_position.lerp(wide, clampf(dt * .8, 0, 1))
-			camera.look_at(p.lerp(Vector3(0, 0, 2), .35) + Vector3.UP * 2.0, Vector3.UP)
+			var look_at := p.lerp(Vector3(0, 0, 2), .35) + Vector3.UP * 2.0
+			if k > .72:
+				var side := Vector3(0, 0, 1)
+				wide = dock + side * 13.0 + Vector3(6, 5.5, 0)
+				look_at = dock.lerp(p, .5) + Vector3.UP * 1.0
+			camera.global_position = camera.global_position.lerp(wide, clampf(dt * (.8 if k <= .72 else .6), 0, 1))
+			camera.look_at(look_at, Vector3.UP)
 			player.global_position = p
 			await get_tree().process_frame
 			continue
@@ -542,11 +577,12 @@ func _land(destination: String, _from: String) -> void:
 	player.set_physics_process(true)
 	player.velocity = Vector3.ZERO
 	if _from != "summit":
+		# (host V17.1) glide back to the follow camera instead of cutting
 		await get_tree().physics_frame
-		var follow_camera: Camera3D=player.arm.get_child(0)
-		var back:=create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		back.tween_property(camera,"global_transform",follow_camera.global_transform,.8)
-		back.tween_property(camera,"fov",follow_camera.fov,.8)
+		var follow_camera: Camera3D = player.arm.get_child(0)
+		var back := create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		back.tween_property(camera, "global_transform", follow_camera.global_transform, .8)
+		back.tween_property(camera, "fov", follow_camera.fov, .8)
 		await back.finished
 		player.controls_locked = false
 		follow_camera.current = true

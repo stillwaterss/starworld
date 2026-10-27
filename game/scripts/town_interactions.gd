@@ -1,4 +1,5 @@
 extends CanvasLayer
+const Cozy := preload("res://scripts/content/cozy_style.gd")
 signal star_recorded(index: int)
 ## Emitted when a conversation is read to the end (or skipped to the end); Esc does not count.
 signal dialogue_finished(npc_id: String)
@@ -118,6 +119,7 @@ func _build_ui() -> void:
 	journal_button.offset_top=80
 	journal_button.offset_bottom=122
 	prompt=_button("",_interact_nearest)
+	Cozy.style_button(prompt,true)
 	root_ui.add_child(prompt)
 	prompt.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt.offset_left=-165
@@ -131,9 +133,10 @@ func _build_ui() -> void:
 	card.border_color=Color(1,.92,.78,.28)
 	card.content_margin_top=12
 	card.content_margin_bottom=12
-	dialogue_panel.add_theme_stylebox_override("panel",card)
-	dialogue_card=card
+	# townsfolk speak on the star-lamp card (its name tab top left holds the speaker);
 	# 小光 speaks on a night-blue card with a soft glow, in the handwriting font
+	dialogue_card=Cozy.frame("dialogue",[262,60,122,100],[86,15,62,22])
+	dialogue_panel.add_theme_stylebox_override("panel",dialogue_card)
 	xiaoguang_card=card.duplicate()
 	xiaoguang_card.bg_color=Color(.10,.16,.34,.88)
 	xiaoguang_card.border_color=Color(.75,.86,1.0,.85)
@@ -142,8 +145,8 @@ func _build_ui() -> void:
 	xiaoguang_card.shadow_size=14
 	root_ui.add_child(dialogue_panel)
 	dialogue_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	dialogue_panel.offset_left=-320
-	dialogue_panel.offset_right=320
+	dialogue_panel.offset_left=-370
+	dialogue_panel.offset_right=370
 	dialogue_panel.offset_top=-176
 	dialogue_panel.offset_bottom=-24
 	dialogue_panel.grow_vertical=Control.GROW_DIRECTION_BEGIN
@@ -151,10 +154,10 @@ func _build_ui() -> void:
 	box.add_theme_constant_override("separation",8)
 	dialogue_panel.add_child(box)
 	dialogue_title=_label("",19)
-	dialogue_title.add_theme_color_override("font_color",Color("ffd27d"))
+	dialogue_title.add_theme_color_override("font_color",Color("9a4f1f"))
 	dialogue_body=_label("",19)
 	dialogue_body.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-	dialogue_body.custom_minimum_size=Vector2(590,52)
+	dialogue_body.custom_minimum_size=Vector2(590,58)
 	box.add_child(dialogue_title)
 	box.add_child(dialogue_body)
 	var buttons:=HBoxContainer.new()
@@ -162,10 +165,12 @@ func _build_ui() -> void:
 	buttons.add_theme_constant_override("separation",10)
 	box.add_child(buttons)
 	dialogue_skip=_button("跳过",skip_dialogue)
+	Cozy.style_button(dialogue_skip)
 	dialogue_skip.custom_minimum_size=Vector2(90,36)
 	dialogue_skip.add_theme_font_size_override("font_size",15)
 	buttons.add_child(dialogue_skip)
 	dialogue_next=_button("继续  E",next_dialogue)
+	Cozy.style_button(dialogue_next,true)
 	dialogue_next.custom_minimum_size=Vector2(150,36)
 	dialogue_next.add_theme_font_size_override("font_size",16)
 	buttons.add_child(dialogue_next)
@@ -230,26 +235,38 @@ func _build_ui() -> void:
 	record_button.offset_bottom=-32
 	scope_ui.visible=false
 	journal_panel=PanelContainer.new()
-	journal_panel.add_theme_stylebox_override("panel",_panel())
+	journal_panel.add_theme_stylebox_override("panel",Cozy.frame("modal",[],[74,60,74,96]))
 	root_ui.add_child(journal_panel)
 	journal_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	journal_panel.offset_left=-400
 	journal_panel.offset_right=400
-	journal_panel.offset_top=-250
-	journal_panel.offset_bottom=250
-	journal_panel.custom_minimum_size=Vector2(800,500)
+	journal_panel.offset_top=-300
+	journal_panel.offset_bottom=300
+	journal_panel.custom_minimum_size=Vector2(800,600)
 	var journal_box:=VBoxContainer.new()
 	journal_box.add_theme_constant_override("separation",16)
 	journal_panel.add_child(journal_box)
-	journal_box.add_child(_label("小镇手记",28))
+	var title_art:=Cozy.art("title_journal")
+	if title_art:
+		var title_pic:=TextureRect.new()
+		title_pic.texture=title_art
+		title_pic.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+		title_pic.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		title_pic.custom_minimum_size=Vector2(0,76)
+		title_pic.mouse_filter=Control.MOUSE_FILTER_IGNORE
+		journal_box.add_child(title_pic)
+	else:
+		journal_box.add_child(_label("星图手记",28))
 	var scroll:=ScrollContainer.new()
-	scroll.custom_minimum_size=Vector2(740,340)
+	scroll.custom_minimum_size=Vector2(640,300)
 	journal_box.add_child(scroll)
 	journal_rows=VBoxContainer.new()
 	journal_rows.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	journal_rows.add_theme_constant_override("separation",18)
 	scroll.add_child(journal_rows)
-	journal_box.add_child(_button("合上手记  J / Esc",close_modal))
+	var close_journal:=_button("合上手记  J / Esc",close_modal)
+	Cozy.style_button(close_journal)
+	journal_box.add_child(close_journal)
 	journal_panel.visible=false
 
 func _process(_delta: float) -> void:
@@ -421,7 +438,7 @@ func next_dialogue() -> void:
 
 var speaker_title := ""
 var journal_button: Button
-var dialogue_card: StyleBoxFlat
+var dialogue_card: StyleBox
 var xiaoguang_card: StyleBoxFlat
 var _hand_font: Font
 ## Who else may speak inside one conversation: a line "芽芽：……" switches the name shown.
@@ -452,10 +469,10 @@ func _show_line(index: int) -> void:
 	else:
 		dialogue_panel.add_theme_stylebox_override("panel",dialogue_card)
 		dialogue_title.text=speaker if speaker!="" else speaker_title
-		dialogue_title.add_theme_color_override("font_color",Color("ffd27d"))
+		dialogue_title.add_theme_color_override("font_color",Color("9a4f1f"))
 		dialogue_body.remove_theme_font_override("font")
 		dialogue_body.add_theme_font_size_override("font_size",19)
-		dialogue_body.add_theme_color_override("font_color",Color("eee3cf"))
+		dialogue_body.add_theme_color_override("font_color",Color("5b3f2c"))
 	dialogue_body.text=line
 
 ## Jumps to the end of the conversation; counts as read.
@@ -492,15 +509,21 @@ func toggle_journal() -> void:
 		if not is_unlocked(i):continue
 		var known: bool=i in journal.stars
 		var row:=_label(("已记录  ·  " if known else "待发现  ·  ")+constellations[i].title,21)
+		row.add_theme_color_override("font_color",Color("9a4f1f") if known else Color("8a6c55"))
 		journal_rows.add_child(row)
 		var description:=_label(story_of(i) if known else "去观星台，用望远镜寻找这张星图。",17)
+		description.add_theme_color_override("font_color",Color("5b3f2c"))
 		description.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-		description.custom_minimum_size.x=700
+		description.custom_minimum_size.x=620
 		journal_rows.add_child(description)
 	for item in [["gardener","芽芽","在花园相识，带着一株小小的嫩芽。"],["astronomer","眠眠","观星台的伙伴，等你一起看完三张星图。"]]:
 		var known: bool=item[0] in journal.friends
-		journal_rows.add_child(_label(("已相识  ·  " if known else "待相识  ·  ")+item[1],21))
-		journal_rows.add_child(_label(item[2] if known else "靠近交谈，把新朋友记在手记里。",17))
+		var friend:=_label(("已相识  ·  " if known else "待相识  ·  ")+item[1],21)
+		friend.add_theme_color_override("font_color",Color("9a4f1f"))
+		journal_rows.add_child(friend)
+		var note:=_label(item[2] if known else "靠近交谈，把新朋友记在手记里。",17)
+		note.add_theme_color_override("font_color",Color("5b3f2c"))
+		journal_rows.add_child(note)
 	journal_panel.visible=true
 
 func _load_constellations() -> void:
