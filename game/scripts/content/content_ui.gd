@@ -494,7 +494,7 @@ func _play(id: String) -> void:
 
 func _panel(id: String, title: String, width: float, height: float, frame := "modal") -> VBoxContainer:
 	var panel := PanelContainer.new()
-	var pad := {"modal": [.09, .13, .09, .17], "journal": [.075, .085, .075, .19], "map": [.085, .1, .085, .1]}[frame] as Array
+	var pad := {"modal": [.09, .13, .09, .17], "journal": [.075, .085, .075, .38], "map": [.085, .1, .085, .1]}[frame] as Array
 	panel.add_theme_stylebox_override("panel", Cozy.frame(frame, [], [width * pad[0], height * pad[1], width * pad[2], height * pad[3]]))
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	panel.offset_left = -width / 2
@@ -801,7 +801,7 @@ func _build_story() -> void:
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(columns)
 	var left := ScrollContainer.new()
-	left.custom_minimum_size = Vector2(370, 360)
+	left.custom_minimum_size = Vector2(370, 240)
 	left.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	columns.add_child(left)
 	story_box = VBoxContainer.new()
@@ -813,7 +813,7 @@ func _build_story() -> void:
 	columns.add_child(right)
 	right.add_child(_label("手记", 18, ACCENT))
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(330, 320)
+	scroll.custom_minimum_size = Vector2(330, 200)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	right.add_child(scroll)
 	log_box = VBoxContainer.new()
