@@ -149,6 +149,16 @@ func _process(delta: float) -> void:
         text = text.replace('func _leave_vista() -> void:', 'func _leave_vista() -> void:\n\tplayer.model.visible=true')
     text = text.replace('views.append(_first_clear([CHAIR-FACING*3.0+Vector3.UP*4.4-side*1.7,CHAIR-FACING*3.0+Vector3.UP*4.4+side*1.7,CHAIR-FACING*2.2+Vector3.UP*5.2],town,town))', 'views.append([CHAIR+FACING*5.0+Vector3.UP*4.4,town])')
     changes[key] = text
+    # Keep explicit bold emphasis after replacing system fonts with the bundled primary.
+    key = 'scripts/town_interactions.gd'
+    text = changes.get(key, read(key))
+    text = text.replace('_body_bold=preload("res://assets/fonts/LXGWWenKai-Regular.ttf")', '_body_bold=FontVariation.new();_body_bold.set("base_font",preload("res://assets/fonts/LXGWWenKai-Regular.ttf"));_body_bold.set("variation_embolden",.8)')
+    changes[key] = text
+    key = 'scripts/content/content_ui.gd'
+    text = changes.get(key, read(key))
+    if '"saveSlots": SaveSlots.list().size()' not in text and 'const SaveSlots' in text:
+        text = text.replace('"panel": open_panel}', '"panel": open_panel, "saveSlots": SaveSlots.list().size()}')
+    changes[key] = text
     # Validate every anchor before writing any file.
     key = 'scripts/main.gd'
     text = changes.get(key, read(key))

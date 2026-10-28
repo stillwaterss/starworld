@@ -38,13 +38,41 @@ func nearest(p: Vector3) -> Dictionary:
 	return best
 
 func variant(entry: Dictionary) -> Dictionary:
+	var found: Dictionary = {}
 	for v in entry.get("variants", []):
-		if content.director._check(v.get("when", {}), ""):return v
-	return {}
+		if content.director._check(v.get("when", {}), ""):
+			found = v
+			break
+	# after the story a knock brings the resident's new lines (story variants still win)
+	if content.director.main_done() and (found.is_empty() or String(found.get("id", "")) in AFTER_STORY_OVER):
+		var door := String(entry.get("door", found.get("door", "")))
+		if door == "":
+			for v in entry.get("variants", []):
+				if v.has("door"):
+					door = String(v.door)
+					break
+		var who: String = content.npcs.resident_of_door(door) if content.npcs else ""
+		if who != "" and content.npcs.BARKS.has(who):
+			return {"id": "after_story", "prompt": "敲敲门，聊两句", "door": door, "barks": who, "talk": {"title": content.npcs.resident_name(who), "lines": []}}
+	return found
+
+## Plain variants (the "come back later" kind) that the after-story lines replace.
+const AFTER_STORY_OVER := ["later", "knock", "first", "inside", "open"]
 
 func prompt(entry: Dictionary) -> String:
 	var v := variant(entry)
+	var who := _standing_outside(v)
+	if who != "":return "E  和%s交谈" % content.npcs.resident_name(who)
 	return "E  " + String(v.get("prompt", entry.get("prompt", "看看")))
+
+## The resident of the variant's door when they are already out on the doorstep (the
+## door open): then there is nothing to knock on, you just talk. "" otherwise.
+func _standing_outside(v: Dictionary) -> String:
+	var door := String(v.get("door", ""))
+	if door == "" or not content.props.doors.has(door) or not bool(content.props.doors[door].open):return ""
+	var who: String = content.npcs.resident_of_door(door) if content.npcs else ""
+	if who == "" or not content.npcs.actors.has(who) or not bool(content.npcs.actors[who].shown):return ""
+	return who
 
 ## A doorway conversation: {"talk": {"title": "面包师", "lines": [...]}}. The door (the
 ## variant's or the entry's "door") stays open while it lasts, its resident in view.
@@ -80,6 +108,19 @@ func _talk(entry: Dictionary, v: Dictionary, at: Vector3) -> void:
 func use(entry: Dictionary) -> bool:
 	var v := variant(entry)
 	if v.is_empty():return false
+	if v.has("barks"):v.talk.lines = [content.npcs.after_story_line(String(v.barks))]
+	# someone already standing outside: no knock (no camera move); what they say comes in
+	# the dialogue box
+	var outside := _standing_outside(v)
+	if outside != "" and String(v.get("perform", "")) == "knock":
+		v = v.duplicate(true)
+		v.erase("perform")
+		if not v.has("talk") and v.has("text"):
+			var said: String = content.named(String(v.text))
+			var cut: int = said.find("：")
+			if cut > 0 and cut < 14:said = said.substr(cut + 1)
+			v["talk"] = {"title": content.npcs.resident_name(outside), "lines": [said.strip_edges().trim_prefix("“").trim_suffix("”")]}
+			v.erase("text")
 	var state = content.state
 	var once_key := "examined:" + String(entry.id) + ":" + String(v.get("id", "default"))
 	var first: bool = not state.flag(once_key)

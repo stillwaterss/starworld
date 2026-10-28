@@ -6,9 +6,8 @@ extends Node3D
 ## the player lifts both hands, 小光 flies to the place, the place lights up (with its
 ## own glow, sparkles and, for the street lamps, a wave of lamps coming on outward from
 ## the square) and 小光 comes back a little brighter.
-## Before the lighthouse is lit, a faint light blinks three times every few seconds at
-## dusk and night on the lighthouse island and in grandma's window: the two of them
-## still signalling each other across the cloud sea.
+## Before the lighthouse is lit, the lighthouse island's light blinks three times when
+## the sky turns to dusk or night: 老星 still signalling across the cloud sea.
 const SITES := {
 	"garden": {"label": "花园的夜光花", "weight": .08},
 	"treehouse": {"label": "树屋的小圆窗", "weight": .08},
@@ -20,7 +19,7 @@ const SITES := {
 	"lighthouse": {"label": "灯塔", "weight": .15},
 	"grandma": {"label": "奶奶窗台的灯", "weight": .1},
 }
-const DIM := .2
+const DIM := .06
 const WAVE_SPEED := 14.0          # metres per second the street lamps come on at
 
 var content
@@ -36,7 +35,7 @@ var _blinks: Array[MeshInstance3D] = []
 ## The scene's own glowing parts that dim with the lamps: the lamp heads, the house
 ## windows and the bridge bulbs. [material, its full emission, its colour]
 var _glowing: Array = []
-const GLOWING := ["Lamps_star", "Decor_Details_window", "Bridge_L_bulb", "Bridge_R_bulb"]
+const GLOWING := ["Lamps_star", "Decor_Details_window", "Decor_Details_star", "Bridge_L_bulb", "Bridge_R_bulb"]
 
 func _ready() -> void:
 	name = "IslandLights"
@@ -53,7 +52,10 @@ func _setup() -> void:
 		if is_lit(site):_show(site, false)
 	_build_door_lamps()
 	_build_blinks()
+	_split_fountain_star()
 	_find_glowing()
+	_find_site_lamps()
+	_find_tree_stars()
 	factor = target_factor()
 
 func is_lit(site: String) -> bool:
@@ -115,6 +117,7 @@ func perform(site: String) -> void:
 		light(site, true)
 		await perf.wait(1.7)
 		if site == "grandma":await signal_shot(perf)
+		if site == "lamps":await tree_shot(perf)
 		perf.set_pose("admire", 4.0)
 		await perf.wait(1.0)
 		await perf.finish(.8)
@@ -148,10 +151,12 @@ func _show(site: String, animate: bool) -> void:
 		"garden":
 			content.state.set_flag("reaction_garden_glow")
 			content._apply_reactions()
-		"treehouse":content.props.light_window(animate)
+		"treehouse":
+			content.props.light_window(animate)
 		"oven":
 			_glow_at(point(site) + Vector3.DOWN * .4, Color("ff9a4a"), 2.4, 4.5, animate, true)
 			_porch_light("baker", animate)
+			_pop_site_lamp(site, animate)
 		"child":
 			_light_door_lamp("child", Color("ffe3a8"), animate)
 			_porch_light("child", animate)
@@ -161,6 +166,7 @@ func _show(site: String, animate: bool) -> void:
 		"lamps":_porch_light("lamplighter", animate)
 		"fountain":
 			_glow_at(point(site), Color(.72, .9, 1.0), 2.6, 7.5, animate, false)
+			_pop_site_lamp(site, animate)
 			_motes_at(point(site) + Vector3.DOWN * .6, Color(.8, .95, 1.0))
 		"ship":
 			content.airship.light_lamp(animate)
@@ -233,6 +239,8 @@ func _build_door_lamps() -> void:
 		var c: Vector3 = props._v(d.info.centre)
 		var front: Vector3 = d.front
 		var across := front.cross(Vector3.UP).normalized()
+		# the child's post stood in the way of the path: it goes on the other side of the door
+		if door == "child":across = -across
 		var floor := c - Vector3.UP * float(d.info.height) / 2.0
 		add_child(post)
 		# against the wall beside the door, out of the way of anyone walking past
@@ -282,10 +290,17 @@ func _light_door_lamp(door: String, color: Color, animate: bool) -> void:
 		return
 	var glow: MeshInstance3D = _door_lamps[door][2]
 	var m: StandardMaterial3D = glow.material_override
-	m.albedo_color = color
+	m.albedo_color = color.lightened(.25)
 	m.emission_enabled = true
-	glow.scale = Vector3.ONE * (.3 if animate else 1.0)
-	if animate:create_tween().tween_property(glow, "scale", Vector3.ONE, .7).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	m.emission = color
+	m.emission_energy_multiplier = 4.0
+	var full := Vector3.ONE * 1.5
+	glow.scale = full * (.3 if animate else 1.0)
+	if animate:create_tween().tween_property(glow, "scale", full, .7).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var halo := _glint(_door_lamps[door][1], 1.1, color)
+	if animate:
+		halo.scale = Vector3.ONE * .1
+		create_tween().tween_property(halo, "scale", Vector3.ONE * 1.1, .9).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_glow_at(_door_lamps[door][1], color, 2.0, 5.5, animate, false)
 
 ## A paper lantern hung by a window, glowing.
@@ -353,6 +368,175 @@ func _find_glowing() -> void:
 			mesh.set_surface_override_material(i, own)
 			_glowing.append([own, own.emission_energy_multiplier, own.albedo_color])
 
+# ------------------------------------------------------------------ the lamps of a place
+## The street lamp that belongs to a lit place (the one by the bakery door, the one by the
+## fountain): dark until 小光 lights the place, then clearly on, with a glow on its head.
+const SITE_LAMPS := {"oven": Vector3(5.0, 2.9, -8.6), "fountain": Vector3(4.8, 2.9, 4.8)}
+var _site_lamps := {}            # site -> [OmniLight3D, glow quad]
+
+func _find_site_lamps() -> void:
+	for site in SITE_LAMPS:
+		var best: OmniLight3D = null
+		var d := 3.0
+		for lamp: OmniLight3D in get_tree().get_nodes_in_group("town_lamps"):
+			var dist: float = lamp.global_position.distance_to(SITE_LAMPS[site])
+			if dist < d:
+				d = dist
+				best = lamp
+		if best == null:continue
+		best.remove_from_group("town_lamps")
+		# lit, the lantern glows as brightly as 小光 itself: a hot core and a wide glow
+		var head: Vector3 = best.global_position + Vector3.UP * .22
+		var glow := _glint(head, 2.2, Color(1, .9, .65))
+		(glow.material_override as StandardMaterial3D).albedo_color.a = 1.0
+		var core := MeshInstance3D.new()
+		var ball := SphereMesh.new()
+		ball.radius = .11
+		ball.height = .22
+		core.mesh = ball
+		var hot := StandardMaterial3D.new()
+		hot.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		hot.albedo_color = Color(1, .96, .8)
+		core.material_override = hot
+		core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		glow.add_child(core)
+		glow.visible = is_lit(site)
+		_site_lamps[site] = [best, glow]
+
+func _pop_site_lamp(site: String, animate: bool) -> void:
+	if not _site_lamps.has(site):return
+	var glow: MeshInstance3D = _site_lamps[site][1]
+	glow.visible = true
+	if animate:
+		glow.scale = Vector3.ONE * .1
+		create_tween().tween_property(glow, "scale", Vector3.ONE * 2.2, .9).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## The star on top of the fountain is part of the merged decorative stars: it is taken
+## out into its own mesh so it can stay dark until 小光 lights the fountain.
+var _fountain_star: StandardMaterial3D
+var _fountain_star_base := [0.0, Color.WHITE]
+var _fountain_level := 0.0
+
+func _split_fountain_star() -> void:
+	var source: MeshInstance3D = world.find_child("Decor_Details_star", true, false)
+	if source == null or source.mesh == null:return
+	var box := AABB(Vector3(5.7, 2.6, .2), Vector3(1.6, 1.6, 1.6))
+	var to_world := source.global_transform
+	var kept := ArrayMesh.new()
+	var star := ArrayMesh.new()
+	for surf in source.mesh.get_surface_count():
+		var arrays: Array = source.mesh.surface_get_arrays(surf)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var index: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array(range(verts.size()))
+		var stay := PackedInt32Array()
+		var take := PackedInt32Array()
+		for t in range(0, index.size(), 3):
+			var inside := box.has_point(to_world * verts[index[t]]) and box.has_point(to_world * verts[index[t + 1]]) and box.has_point(to_world * verts[index[t + 2]])
+			if inside:take.append_array([index[t], index[t + 1], index[t + 2]])
+			else:stay.append_array([index[t], index[t + 1], index[t + 2]])
+		var material := source.get_active_material(surf)
+		for pair in [[kept, stay], [star, take]]:
+			if (pair[1] as PackedInt32Array).is_empty():continue
+			var copy := arrays.duplicate()
+			copy[Mesh.ARRAY_INDEX] = pair[1]
+			pair[0].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, copy)
+			pair[0].surface_set_material(pair[0].get_surface_count() - 1, material)
+	if star.get_surface_count() == 0:return
+	source.mesh = kept
+	var piece := MeshInstance3D.new()
+	piece.name = "FountainStar"
+	piece.mesh = star
+	source.get_parent().add_child(piece)
+	piece.global_transform = to_world
+	var base := star.surface_get_material(0)
+	_fountain_star = (base.duplicate() if base is StandardMaterial3D else StandardMaterial3D.new()) as StandardMaterial3D
+	_fountain_star.emission_enabled = true
+	_fountain_star_base = [maxf(_fountain_star.emission_energy_multiplier, 1.0), _fountain_star.albedo_color]
+	piece.material_override = _fountain_star
+	_fountain_level = 1.0 if is_lit("fountain") or target_factor() >= 1.0 else 0.0
+
+func _update_fountain_star(delta: float) -> void:
+	if _fountain_star == null:return
+	var goal := 1.0 if is_lit("fountain") or target_factor() >= 1.0 else 0.0
+	_fountain_level = move_toward(_fountain_level, goal, delta * .8)
+	var k := .2 + .8 * _fountain_level
+	var base: Color = _fountain_star_base[1]
+	_fountain_star.albedo_color = Color(base.r * k, base.g * k, base.b * k, base.a)
+	_fountain_star.emission_energy_multiplier = float(_fountain_star_base[0]) * (.05 + 1.3 * _fountain_level) * boost
+
+func _update_site_lamps(_delta: float) -> void:
+	for site in _site_lamps:
+		var lamp: OmniLight3D = _site_lamps[site][0]
+		var base := float(lamp.get_meta("base_energy", 1.0))
+		var on: bool = is_lit(site) or target_factor() >= 1.0
+		lamp.light_energy = base * (6.0 * boost if on else .02)
+		if on and not _site_lamps[site][1].visible:_site_lamps[site][1].visible = true
+		elif not on:_site_lamps[site][1].visible = false
+
+## The stars hanging in the wishing tree have gone dim with the rest of the island; after
+## the street lamps 小光 flies up and lights them (tree_shot).
+var _tree_stars: Array = []      # [material, emission, albedo]
+var _tree_level := 0.0
+
+func _find_tree_stars() -> void:
+	for mesh: MeshInstance3D in world.find_children("Decor_WishingTree_star*", "MeshInstance3D", true, false):
+		for i in mesh.mesh.get_surface_count():
+			var base := mesh.get_active_material(i)
+			if not base is StandardMaterial3D:continue
+			var own: StandardMaterial3D = base.duplicate()
+			mesh.set_surface_override_material(i, own)
+			_tree_stars.append([own, own.emission_energy_multiplier if own.emission_enabled else 0.0, own.albedo_color])
+	_tree_level = _tree_goal()
+
+func _tree_goal() -> float:
+	return 1.0 if content.state.flag("lit_tree_stars") or target_factor() >= 1.0 else 0.0
+
+func _update_tree_stars(delta: float) -> void:
+	_tree_level = move_toward(_tree_level, _tree_goal(), delta * .5)
+	for entry in _tree_stars:
+		var k := .22 + .78 * _tree_level
+		var base: Color = entry[2]
+		entry[0].albedo_color = Color(base.r * k, base.g * k, base.b * k, base.a)
+		if entry[1] > 0:entry[0].emission_energy_multiplier = float(entry[1]) * (.08 + 1.1 * _tree_level) * boost
+
+## A soft round glow that always faces the camera.
+func _glint(at: Vector3, size: float, color: Color) -> MeshInstance3D:
+	var dot := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * 2.0
+	dot.mesh = quad
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.albedo_texture = _glint_texture()
+	m.albedo_color = Color(color, .85)
+	dot.material_override = m
+	dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	dot.scale = Vector3.ONE * size
+	add_child(dot)
+	dot.global_position = at
+	return dot
+
+var _glint_tex: GradientTexture2D
+
+func _glint_texture() -> GradientTexture2D:
+	if _glint_tex:return _glint_tex
+	_glint_tex = GradientTexture2D.new()
+	var g := Gradient.new()
+	g.set_color(0, Color(1, .95, .8, 1))
+	g.set_color(1, Color(1, .8, .5, 0))
+	g.add_point(.25, Color(1, .88, .62, .85))
+	_glint_tex.gradient = g
+	_glint_tex.fill = GradientTexture2D.FILL_RADIAL
+	_glint_tex.fill_from = Vector2(.5, .5)
+	_glint_tex.fill_to = Vector2(1, .5)
+	_glint_tex.width = 128
+	_glint_tex.height = 128
+	return _glint_tex
+
 # ------------------------------------------------------------------ the two blinking lights
 func _build_blinks() -> void:
 	var keeper: Dictionary = world.meta.get("keeper_isle", {})
@@ -373,7 +557,8 @@ func _build_blinks() -> void:
 	glint.fill_to = Vector2(1, .5)
 	glint.width = 128
 	glint.height = 128
-	for spec in [[far, 5.0], [point("grandma"), .9]]:
+	# the far one big and strong enough to read across the town from the seat at dusk
+	for spec in [[far, 9.0], [point("grandma"), .9]]:
 		var dot := MeshInstance3D.new()
 		var quad := QuadMesh.new()
 		quad.size = Vector2.ONE * 2.0
@@ -395,6 +580,33 @@ func _build_blinks() -> void:
 		dot.global_position = spec[0]
 		_blinks.append(dot)
 
+## After the street lamps (the lamplighter's lighting): 小光 flies on to the wishing tree
+## and its top star and all the hanging star lamps come on, the camera turned to the tree.
+const TREE_STARS := Vector3(0, 12.5, -2.6)
+
+func tree_shot(perf) -> void:
+	var player: Vector3 = world.player.global_position
+	var toward := TREE_STARS - player
+	var flat := Vector3(toward.x, 0, toward.z).normalized()
+	var eye := player - flat * 4.0 + Vector3.UP * 2.0 + flat.cross(Vector3.UP) * 1.5
+	perf.glide_to(Transform3D(Basis.looking_at(TREE_STARS + Vector3.UP * 1.5 - eye), eye), 52.0, 1.4)
+	await perf.wait(1.0)
+	content.xiaoguang.light_up(TREE_STARS, 2.2)
+	await perf.wait(1.0)
+	light_tree_stars(true)
+	await perf.wait(2.8)
+
+func light_tree_stars(animate: bool) -> void:
+	if content.state.flag("lit_tree_stars"):return
+	content.state.set_flag("lit_tree_stars")
+	if animate:
+		content.props._sparkle(TREE_STARS)
+		_burst(TREE_STARS)
+		_burst(Vector3(0, 19.4, -2.6))
+		if world.get("audio"):world.audio.play_sfx("bloom")
+	else:
+		_tree_level = 1.0
+
 ## The answer across the clouds, staged (after grandma's lamp is lit): the camera turns
 ## to the lighthouse island and its light blinks three times, slowly, clearly.
 var _signal := -1.0
@@ -412,11 +624,14 @@ func signal_shot(perf) -> void:
 	await perf.wait(4.6)
 	_signal = -1.0
 
-## Three blinks every seven seconds## Three blinks every seven seconds; the lighthouse island answers half a beat later.
+## Three blinks, once: t is the time since the sky turned (the signal is a thing that
+## happens at nightfall, not a light that keeps flashing).
 func _blink_level(t: float) -> float:
-	var phase := fmod(t, 7.0)
-	if phase > 2.1:return 0.0
-	return 1.0 if fmod(phase, .7) < .4 else 0.0
+	if t < 0 or t > 2.1:return 0.0
+	return 1.0 if fmod(t, .7) < .4 else 0.0
+
+var _sky_seen := -1
+var _sky_clock := 99.0
 
 func _process(delta: float) -> void:
 	_clock += delta
@@ -433,7 +648,11 @@ func _process(delta: float) -> void:
 		entry[0].emission_energy_multiplier = float(entry[1]) * factor * boost
 		# pale glass reads as lit even without glow: darken it too while the island is dim
 		var base: Color = entry[2]
-		entry[0].albedo_color = Color(base.r * (.3 + .7 * factor), base.g * (.3 + .7 * factor), base.b * (.3 + .7 * factor), base.a)
+		var k := .15 + .85 * factor
+		entry[0].albedo_color = Color(base.r * k, base.g * k, base.b * k, base.a)
+	_update_site_lamps(delta)
+	_update_tree_stars(delta)
+	_update_fountain_star(delta)
 	for child in get_children():
 		if child is OmniLight3D and child.has_meta("flicker"):
 			child.light_energy = float(child.get_meta("flicker")) * (.85 + .15 * sin(_clock * 9.0) * sin(_clock * 3.7))
@@ -446,10 +665,15 @@ func _process(delta: float) -> void:
 	var dark: float = (cycle.weights.y * .8 + cycle.weights.z) if cycle else 1.0
 	if _blinks.size() == 2:
 		var player: Vector3 = world.player.global_position
+		# when the sky turns to dusk or night the lighthouse island blinks three times; grandma's
+		# window never flashes (the story says she answers, the lamp needn't)
+		if cycle and cycle.current != _sky_seen:
+			if _sky_seen >= 0 and cycle.current in [1, 2]:_sky_clock = 0.0
+			_sky_seen = cycle.current
+		_sky_clock += delta
 		var keeper_on: bool = not content.state.flag("reaction_lighthouse_lit") and player.distance_to(_blinks[0].global_position) > 30.0
-		var grandma_on: bool = not is_lit("grandma")
-		_blinks[0].material_override.albedo_color.a = (_blink_level(_clock - .35) * dark * .95) if keeper_on else 0.0
+		_blinks[0].material_override.albedo_color.a = (_blink_level(_sky_clock - 2.5) * maxf(dark, .6)) if keeper_on else 0.0
 		if _signal >= 0:
 			_signal += delta
 			_blinks[0].material_override.albedo_color.a = 1.0 if fmod(_signal, 1.3) < .65 and _signal < 3.9 else 0.0
-		_blinks[1].material_override.albedo_color.a = (_blink_level(_clock) * dark * .9) if grandma_on else 0.0
+		_blinks[1].material_override.albedo_color.a = 0.0

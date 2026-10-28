@@ -468,22 +468,16 @@ func fly(destination: String) -> void:
 		rig.global_transform = Transform3D(Basis(Vector3.UP, yaw - atan2(-home_transform.basis.z.x, -home_transform.basis.z.z)) * home_transform.basis, Vector3.ZERO)
 		rig.global_position = deck_world - rig.global_basis * (home_transform.basis.inverse() * deck_offset)
 		player.global_position = deck_world
-		# slow orbit; moving the mouse left or right turns it, up or down raises it. The
-		# last night's climb is seen from far out to the side: ship and island together.
+		# slow orbit; moving the mouse left or right turns it, up or down raises it (the
+		# last night's climb too: seen from the ship)
 		_cam_yaw += dt * .05
-		# (far out and below on the last night: the ship above, the island below, both in frame)
-		var orbit := _orbit(dt) if destination != "summit" else Vector3(sin(_cam_yaw) * 45.0, -15.0, cos(_cam_yaw) * 45.0)
+		var orbit := _orbit(dt)
 		# the player turns a three-quarter face to the camera, never their back
 		var to_cam := orbit
 		to_cam.y = 0
 		if to_cam.length() > .1:player.model.rotation.y = lerp_angle(player.model.rotation.y, atan2(-to_cam.x, -to_cam.z) + .55, clampf(dt * 3.0, 0, 1))
 		camera.global_position = deck_world + orbit if skip else camera.global_position.lerp(deck_world + orbit, clampf(dt * 2.0, 0, 1))
-		# the last night's climb looks a little down past the ship to the island below
-		var aim := deck_world + Vector3.UP * 1.2
-		if destination == "summit":
-			aim = deck_world.lerp(Vector3(0, 0, 2), .39)
-			camera.fov = lerpf(camera.fov, 70.0, clampf(dt, 0, 1))
-		camera.look_at(aim, Vector3.UP)
+		camera.look_at(deck_world + Vector3.UP * 1.2, Vector3.UP)
 		await get_tree().process_frame
 		if destination == "summit" and t >= seconds:break
 	_show_skip(false)

@@ -82,7 +82,7 @@ func _plan_vistas() -> Array:
 	var views:=[]
 	# 0: the whole island from high above and behind the chair, like a bird resting there:
 	#    higher than anyone could sit, so the town, the islets and the sea of clouds all fit
-	views.append(_first_clear([CHAIR-FACING*7.0+Vector3.UP*13.0-side*2.0,CHAIR-FACING*6.0+Vector3.UP*11.0+side*2.0,CHAIR-FACING*4.0+Vector3.UP*9.0],town+Vector3.DOWN*2.5,town))
+	views.append(_first_clear([CHAIR-FACING*7.0+Vector3.UP*13.0-side*2.0,CHAIR-FACING*6.0+Vector3.UP*11.0+side*2.0,CHAIR-FACING*4.0+Vector3.UP*9.0],town+Vector3.UP*1.5,town))
 	# 1: the sky, from above the chair back, over the fence line
 	var sky:=CHAIR+FACING*30+Vector3.UP*12
 	views.append(_first_clear([CHAIR-FACING*.5+Vector3.UP*2.3+side*.5,CHAIR-FACING*.2+Vector3.UP*2.6-side*.5,CHAIR+Vector3.UP*2.9],sky,sky))
@@ -104,7 +104,7 @@ func _first_clear(eyes: Array,look: Vector3,must_see: Vector3) -> Array:
 	return [eyes[0],look]
 
 func vista_fov(index: int) -> float:
-	return [50.0,58.0,46.0][index]
+	return [42.0,58.0,46.0][index]
 
 func _enter_vista() -> void:
 	# Hide the close foreground silhouette in both seated vistas.
@@ -114,7 +114,8 @@ func _enter_vista() -> void:
 	# pale triangle: the seated views leave the player out of the picture
 	player.model.visible=false
 	var cycle=world.get("day_cycle")
-	if cycle and "fog_scale" in cycle:cycle.fog_scale=.3;cycle._apply(cycle.weights)
+	# the haze thinned right down (at dusk it hid the town): the same clear view in every mode
+	if cycle and "fog_scale" in cycle:cycle.fog_scale=0.0;cycle._apply(cycle.weights)
 	_vista_hidden.clear()
 	for node in world.get_children():
 		if node is CanvasLayer and node.visible:_vista_hidden.append(node);node.visible=false

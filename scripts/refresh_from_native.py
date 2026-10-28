@@ -41,6 +41,7 @@ if not args.code_only:
     print('Browser NPC optimization:', optimization)
 for path in (OUT/'scripts').rglob('*.gd'):
     text = path.read_text(encoding='utf-8')
+    text = text.replace('"res://save/"', '"user://"')
     text = re.sub(r'"D:/claude/starworld/game/save/([^"/]+)"', r'"user://\1"', text)
     text = re.sub(r'"res://save/([^"/]+)"', r'"user://\1"', text)
     text = text.replace('"res://save/" + file_name', '"user://" + file_name')

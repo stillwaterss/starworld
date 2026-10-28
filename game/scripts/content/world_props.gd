@@ -447,7 +447,8 @@ func _build_keepsakes() -> void:
 		keepsakes[id] = root
 		registry.register(id + "_thing", base + Vector3.UP * .1, 1.6)
 		# the modelled version, when there is one: the simple pieces stay as hidden handles
-		var model_name := {"islet_e": "mailbox", "islet_sw": "bell_post", "isle_south_r": "lamp_post"}.get(id, "") as String
+		# (the east islet keeps its own simple mailbox: the modelled one read as broken)
+		var model_name := {"islet_sw": "bell_post", "isle_south_r": "lamp_post"}.get(id, "") as String
 		var model := prop(model_name, {"islet_e": 1.25, "islet_sw": 1.6, "isle_south_r": 1.5}.get(id, 1.0))
 		if model:
 			for piece in root.get_children():piece.visible = false

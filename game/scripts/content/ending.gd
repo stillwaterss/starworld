@@ -5,10 +5,11 @@ extends Node
 ## lanterns going up toward the far light of the ship; back on board, forty lanterns all
 ## around the ship; a look down at the lit island; the player lifts both hands and 小光
 ## rises out of them into the empty roof star of 归家座 as the sky turns dreamy.
+## The release is seen from the airship: the camera stays by the deck and follows 小光 up.
 ## descent(): the ship drifts slowly back down among the lanterns while the closing words
 ## and the credits are read, one line at a time, like a letter.
 ## finale(): off the ship, the player walks to the square and stands looking up at the
-## constellation and the lighthouse's beam; the last line; then the end page.
+## constellation and the lighthouse's beam; the last line; then the end page (its card).
 const NARRATION_GROUND := [
 	["那天夜里，全岛的人都来到了广场，抬起了头。", ""],
 	["芽芽点亮了花园，奶奶擦亮了窗台，修灯的邻居没有落下一盏灯。", ""],
@@ -372,30 +373,10 @@ func release_at_summit() -> void:
 	content.xiaoguang.leave_for(target, 18.0)
 	player.model.set_pose(perf.pose("release"), 4.0)
 	_words_alongside(NARRATION_RELEASE)
-	await _wait(3.0)
-	# the whole island below, the lanterns, the ship and the little light going up
-	var island_centre := Vector3(0, 2, 4)
-	var pano_dir := (island_centre - deck)
-	pano_dir.y = 0
-	pano_dir = pano_dir.normalized()
-	var pano_side := pano_dir.cross(Vector3.UP).normalized()
-	var pano_eye := island_centre + pano_side * 52.0 + pano_dir * 18.0 + Vector3.UP * 16.0
-	await _cut(.5)
-	camera.global_transform = Transform3D(Basis.looking_at(island_centre.lerp(deck, .45) + Vector3.UP * 6.0 - pano_eye), pano_eye)
-	camera.fov = 58
-	await _uncut(.7)
-	_glide(camera, Transform3D(Basis.looking_at(island_centre.lerp(deck, .55) + Vector3.UP * 14.0 - pano_eye), pano_eye + Vector3.UP * 2.0), 8.0)
-	await _wait(8.0)
-	# and everyone in the square, looking up as it goes
-	await _cut(.5)
-	var crowd_eye := square - to_ship * 8.0 + across * 1.5 + Vector3.UP * 1.6
-	camera.global_transform = Transform3D(Basis.looking_at(square + Vector3.UP * 14.0 + to_ship * 4.0 - crowd_eye), crowd_eye)
-	camera.fov = 62
-	await _uncut(.7)
-	_follow(camera, 7.0)
+	# seen from the ship: the camera stays by the deck and turns to follow the little light
+	_follow(camera, 16.0)
+	await _wait(16.0)
 	if _side_words:await side_words_done
-	camera.global_transform = Transform3D(Basis.looking_at(island - low_eye), low_eye)
-	camera.fov = 60
 	player.model.set_pose(perf.pose("look_up"), 2.0)
 	if world.get("audio"):world.audio.play_sfx("objective")
 	content.events.emit("xiaoguang_home", {"place": "summit"})
@@ -516,21 +497,12 @@ func _build_finale(left: Array[String]) -> void:
 	var top := CanvasLayer.new()
 	top.layer = 10
 	add_child(top)
-	# the painted night of the end, behind the page
+	# only the card: the island itself stays behind it (a light veil keeps the words clear)
 	var dim := ColorRect.new()
-	dim.color = Color(.05, .04, .12, .35)
+	dim.color = Color(.05, .04, .12, .18)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	top.add_child(dim)
-	var night := Cozy.art("ending_background")
-	if night:
-		var picture := TextureRect.new()
-		picture.texture = night
-		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		dim.add_child(picture)
 	finale_panel = PanelContainer.new()
 	finale_panel.add_theme_stylebox_override("panel", Cozy.frame("modal", [], [76, 60, 76, 98]))
 	finale_panel.custom_minimum_size = Vector2(760, 570)

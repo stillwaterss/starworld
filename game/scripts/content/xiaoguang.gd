@@ -248,9 +248,11 @@ func level() -> int:
 	for deed in DEEDS:n += 1 if deed_done(deed[0]) else 0
 	return n
 
+## Dim at first (a star that has fallen and lost most of its light), full at the end:
+## the step from 1 to 10 should be plain to see.
 func brightness() -> float:
 	if content.director.main_done():return 1.6
-	return .55 + level() * .1
+	return lerpf(.12, 1.45, pow(level() / float(DEEDS.size()), 1.15))
 
 ## The ending: flies from the lantern to a point in the sky and stays there.
 func leave_for(sky_point: Vector3, seconds := 9.0) -> void:
@@ -273,7 +275,7 @@ func _process(delta: float) -> void:
 	clock += delta
 	var glow := brightness()
 	var pulse := .85 + .15 * sin(clock * 2.3)
-	material.emission_energy_multiplier = 1.2 + glow * 1.6 * pulse
+	material.emission_energy_multiplier = .25 + glow * 2.6 * pulse
 	_smile = maxf(0, _smile - delta)
 	_scared = maxf(0, _scared - delta)
 	_hop = maxf(0, _hop - delta * 1.6)
@@ -297,8 +299,8 @@ func _process(delta: float) -> void:
 			var size: float = {"shy": .22, "warm": .27, "close": .27}[m] * (1.0 - .3 * minf(_scared, 1.0)) * (1.0 + .06 * growth())
 			star.scale = star.scale.lerp(Vector3.ONE * size, clampf(delta * 3.0, 0, 1))
 			star.position = Vector3.UP * absf(sin(_hop * PI * 2.0)) * .25 * _hop
-			halo.scale = Vector3.ONE * (1.3 + .22 * growth() + .3 * glow)
-			light.light_energy = glow * .7 * pulse
+			halo.scale = Vector3.ONE * (1.1 + .2 * growth() + .4 * glow)
+			light.light_energy = glow * .75 * pulse
 			# shy: half behind the shoulder and trembling; warm: out in front, lively;
 			# close: right by the cheek
 			var lively: float = {"shy": .03, "warm": .09, "close": .05}[m]
@@ -318,8 +320,9 @@ func _process(delta: float) -> void:
 func _update_growth(delta: float) -> void:
 	var g := float(growth()) / 10.0
 	# warmer and richer with every step: pale cream at first, gold at the end
-	material.albedo_color = Color("fff6dc").lerp(Color("ffd88a"), g)
-	material.emission = Color("fff0c8").lerp(Color("ffc860"), g)
+	material.albedo_color = Color("c9c2b2").lerp(Color("ffd88a"), g)
+	material.emission = Color("d9d2c0").lerp(Color("ffc860"), g)
+	(halo.material_override as StandardMaterial3D).albedo_color.a = lerpf(.035, .2, g)
 	rays.visible = g >= .4 and where != "grass"
 	rays.scale = Vector3.ONE * (1.25 + .5 * g + .08 * sin(clock * 2.0))
 	rays.rotation.z += delta * .25

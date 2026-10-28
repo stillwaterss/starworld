@@ -344,6 +344,9 @@ func _physics_process(_delta: float) -> void:
 	if reactions.has("player_star"):
 		var camera := world.get_viewport().get_camera_3d()
 		if camera:reactions.player_star.global_position = camera.global_position
+		# through the telescope its own chart draws 归家座; the sky one would be a second outline
+		var talk = world.get("interactions")
+		reactions.player_star.visible = not (talk and talk.mode == "scope")
 		var t := Time.get_ticks_msec() / 1000.0
 		for part in reactions.player_star.get_meta("parts"):
 			part.material_override.albedo_color.a = clampf(w.z * 1.1 - .1, 0, 1) * ((.55 + .1 * sin(t * 1.7)) if part is MeshInstance3D else 1.0)

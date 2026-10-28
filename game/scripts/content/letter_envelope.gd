@@ -16,23 +16,9 @@ func _init() -> void:
 	custom_minimum_size = Vector2(420, 260)
 	size = custom_minimum_size
 
-var _art: Texture2D = preload("res://scripts/content/cozy_style.gd").art("envelope")
-
 func _draw() -> void:
 	var w := size.x
 	var h := size.y
-	# the star-theme envelope (gold star seal, airship postmark): as the seal breaks a
-	# warm glow opens from it, and the envelope lifts a little as the flap opens
-	if _art:
-		var lift := -flap * 10.0
-		draw_rect(Rect2(Vector2(6, 10 + lift), size), Color(0, 0, 0, .16))
-		draw_texture_rect(_art, Rect2(Vector2(0, lift), size), false)
-		var at := Vector2(w * .5, h * .55 + lift)
-		var glow := (1.0 - seal)
-		if glow > .01:
-			for k in 4:
-				draw_circle(at, (18.0 + k * 16.0) * glow, Color(1, .85, .5, .22 * (1.0 - k / 4.0) * (1.0 - flap * .6)))
-		return
 	var kraft := Color("d9b98c")
 	var shade := Color("b8935f")
 	draw_rect(Rect2(Vector2(4, 6), size), Color(0, 0, 0, .18))

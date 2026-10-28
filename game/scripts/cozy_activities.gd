@@ -318,7 +318,10 @@ func _perform_plant(flower: Node3D) -> void:
 	var spot: Vector3=flower.global_position
 	var toward:=(player.global_position-spot);toward.y=0
 	var mark_at:=spot+(toward.normalized() if toward.length()>.1 else Vector3.BACK)*.62
-	if not perf.begin("plant",spot,{"distance":2.6,"height":1.1,"look_height":.35,"mix":.6}):_grow(flower);return
+	# the camera on the far side of the flower: the player faces it and the flower grows in between
+	var dir:=toward.normalized() if toward.length()>.1 else Vector3.BACK
+	var eye:=spot-dir*3.4+Vector3.UP*1.5+dir.cross(Vector3.UP)*.6
+	if not perf.begin("plant",spot,{"distance":2.6,"height":1.1,"look_height":.35,"mix":.6,"eye":eye}):_grow(flower);return
 	perf.hold_prop(perf.seed_pouch())
 	await perf.approach(mark_at,spot)
 	await perf.animate_pose("kneel",1.6)

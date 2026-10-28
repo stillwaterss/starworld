@@ -45,6 +45,7 @@ func _ready() -> void:
 
 	var island := ISLAND.instantiate()
 	add_child(island)
+	_cut_out(island)
 	_add_collisions(island)
 	_web_boot_mark("collisions_done")
 	occlusion_materials = preload("res://scripts/scenery_effects.gd").apply(island)
@@ -189,6 +190,58 @@ func _setup_lights() -> void:
 		omni.add_to_group("town_lamps")
 		add_child(omni)
 
+
+# ------------------------------------------------------------------ 拿掉的部分
+## Pieces of the merged island meshes taken out at load: [world-space box, mesh name
+## prefixes]. A triangle of those meshes with all three corners inside is dropped,
+## before the collisions are made from them.
+const COUNTER_PARTS := ["Decor_Details_wood", "Decor_Details_bush", "Decor_Details_petal", "Decor_Details_roof", "Decor_Details_brass", "Physics_Props"]
+const CUT_OUT := [
+	# the counters flush in front of the stall and the bakery doors (they hid the keepers)
+	[AABB(Vector3(-16.95, -.05, 6.85), Vector3(2.9, 1.8, 1.0)), COUNTER_PARTS],
+	[AABB(Vector3(4.05, -.05, -9.42), Vector3(2.9, 1.55, .9)), COUNTER_PARTS],
+	# the ball left hanging low by the bakery door
+	[AABB(Vector3(4.3, .8, -9.45), Vector3(2.4, .92, 1.0)), ["Decor_Details_roof"]],
+]
+
+func _cut_out(root: Node) -> void:
+	for mi: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):
+		if mi.mesh == null:continue
+		var bounds: AABB = mi.global_transform * mi.get_aabb()
+		var boxes: Array = []
+		for cut in CUT_OUT:
+			if bounds.intersects(cut[0]) and (cut[1] as Array).any(func(p): return String(mi.name).begins_with(p)):boxes.append(cut[0])
+		if boxes.is_empty():continue
+		var to_world := mi.global_transform
+		var rebuilt := ArrayMesh.new()
+		var overrides: Array[Material] = []
+		var changed := false
+		for surf in mi.mesh.get_surface_count():
+			var arrays: Array = mi.mesh.surface_get_arrays(surf)
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var index: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+			if index.is_empty():
+				index.resize(verts.size())
+				for i in verts.size():index[i] = i
+			var kept := PackedInt32Array()
+			for t in range(0, index.size(), 3):
+				var inside := false
+				for box: AABB in boxes:
+					if box.has_point(to_world * verts[index[t]]) and box.has_point(to_world * verts[index[t + 1]]) and box.has_point(to_world * verts[index[t + 2]]):
+						inside = true
+						break
+				if inside:
+					changed = true
+				else:
+					kept.append_array([index[t], index[t + 1], index[t + 2]])
+			if kept.is_empty():continue   # the whole surface was inside: drop it
+			arrays[Mesh.ARRAY_INDEX] = kept
+			rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			rebuilt.surface_set_material(rebuilt.get_surface_count() - 1, mi.mesh.surface_get_material(surf))
+			overrides.append(mi.get_surface_override_material(surf))
+		if changed:
+			mi.mesh = rebuilt
+			for i in overrides.size():mi.set_surface_override_material(i, overrides[i])
 
 # ------------------------------------------------------------------ 碰撞
 func _add_collisions(root: Node) -> void:

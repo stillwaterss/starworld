@@ -402,6 +402,11 @@ func dialogue_for(npc: String) -> Dictionary:
 	var chosen: Array = []
 	if not best.is_empty():chosen.append_array(best.lines)
 	if not offer.is_empty():chosen.append_array(offer.lines)
+	# after the story, small talk gives way to their new lines (quests and offers stay)
+	if main_done() and _quest_of(best) == "" and offer.is_empty():
+		var content = world.get("content")
+		var line: String = content.npcs.after_story_line(npc) if content and content.npcs else ""
+		if line != "":chosen = [line]
 	if chosen.is_empty():chosen = ["……"]
 	served[npc] = {"entry": best.get("id", ""), "offer": offer.get("id", ""), "quest": _quest_of(best), "sets": best.get("sets", ""), "unlocks": offer.get("unlocks", "")}
 	return {"title": registry.npc_name(npc) + "  ·  " + String(book.get("title", "")), "lines": chosen, "quest": _quest_of(best)}

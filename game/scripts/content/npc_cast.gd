@@ -6,13 +6,11 @@ extends Node3D
 ## Swapping models in later is only a matter of dropping the files into that folder.
 const MODEL_DIR := "res://assets/characters/npc/"
 const SLOTS := [
-	# the baker stands on the doorstep: a table stands right in front of the bakery door
-	{"id": "baker", "door": "baker", "name": "面包师", "height": 1.45, "tint": Color("c9874a"), "out": .12, "aside": .05},
+	{"id": "baker", "door": "baker", "name": "面包师", "height": 1.45, "tint": Color("c9874a")},
 	{"id": "grandma", "door": "grandma", "name": "写信的奶奶", "height": 1.3, "tint": Color("8f7fb8")},
 	{"id": "child", "door": "child", "name": "数星星的孩子", "height": 1.05, "tint": Color("4f86c9")},
 	{"id": "lamplighter", "door": "lamplighter", "name": "修灯的邻居", "height": 1.6, "tint": Color("c99a2e")},
-	# the stall has a counter right outside its door: the keeper stands behind it, in the doorway
-	{"id": "shopkeeper", "door": "shop", "name": "小摊店主", "height": 1.4, "tint": Color("c4566e"), "out": -.05, "aside": 0.0},
+	{"id": "shopkeeper", "door": "shop", "name": "小摊店主", "height": 1.4, "tint": Color("c4566e")},
 	{"id": "islet_nw", "door": "islet_nw", "name": "做椅子的木匠", "height": 1.5, "tint": Color("8a6a44")},
 	{"id": "islet_e", "door": "islet_e", "name": "信箱看守人", "height": 1.4, "tint": Color("4a6fb0")},
 	{"id": "islet_sw", "door": "islet_sw", "name": "摇铃人", "height": 1.35, "tint": Color("3f9a72")},
@@ -34,11 +32,13 @@ func _setup() -> void:
 	# the doors are found by world_props after the scene settles
 	var props = content.props
 	var guard := 0
-	while props.doors.is_empty() and guard < 600:
+	while (props.doors.is_empty() or not content.grid.ready) and guard < 600:
 		await get_tree().physics_frame
 		guard += 1
 	for slot in SLOTS:
 		if not props.doors.has(slot.door):continue
+		# which side of the door is outside: the side you can stand on (world_props)
+		props.door_front(slot.door)
 		var door: Dictionary = props.doors[slot.door]
 		var info: Dictionary = door.info
 		var front: Vector3 = door.front
@@ -73,7 +73,7 @@ func _setup() -> void:
 		cap.disabled = true
 		bump.add_child(cap)
 		root.add_child(bump)
-		actors[slot.id] = {"node": root, "door": slot.door, "shown": false, "model": body.name != "Silhouette", "rest": root.global_position, "inside": inside, "facing": root.rotation.y, "bump": cap}
+		actors[slot.id] = {"node": root, "door": slot.door, "shown": false, "model": body.name != "Silhouette", "rest": root.global_position, "inside": inside, "threshold": floor + front * .45, "facing": root.rotation.y, "bump": cap}
 
 ## The slot's model if its file is there, standing on the origin and slot.height tall.
 func _model(slot: Dictionary) -> Node3D:
@@ -178,7 +178,6 @@ func _silhouette(slot: Dictionary) -> Node3D:
 func _process(delta: float) -> void:
 	clock += delta
 	if actors.is_empty():return
-	_bark_process(delta)
 	var doors: Dictionary = content.props.doors
 	for id in actors:
 		var a: Dictionary = actors[id]
@@ -208,11 +207,20 @@ func _walk(node: Node3D, a: Dictionary, out: bool) -> void:
 		node.visible = true
 		_play(body, "walk")
 		t.tween_interval(.35)
+		# straight out over the threshold first, then (if their spot is to one side) a short
+		# side step there, still facing out: no turning on the way
+		var threshold: Vector3 = a.threshold
+		var side := to - threshold
+		side.y = 0
+		if side.length() > .3:
+			t.tween_property(node, "global_position", threshold, .8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+			t.tween_property(node, "global_position", to, side.length() / 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			from = to
 	else:
 		_play(body, "walk")
 		var face := (to - from)
 		node.rotation.y = atan2(-face.x, -face.z) if face.length() > .05 else node.rotation.y
-	t.tween_property(node, "global_position", to, 1.1 if out else .9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if from != to:t.tween_property(node, "global_position", to, 1.1 if out else .9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	if out:
 		t.tween_callback(func():
 			a.bump.disabled = false
@@ -273,64 +281,24 @@ const BARKS := {
 	"gardener": ["我抬头的次数比以前多了。花没意见。", "眠眠送了我一张星图，我把它贴在花圃旁的墙上了。"],
 	"astronomer": ["归家座最小的那颗，今晚眨了三下。你也看见了吧？", "我跟芽芽说好了，下次一起去喷泉打水漂。我已经很多年没输过了。"],
 }
-var _bark_clock := 0.0
-var _bark_last := {}             # who -> last line index
-var _bark_ready := {}            # who -> time it may speak again
-var _bubble: Label3D
+var _told := {}                  # who -> the index of their next line
 
-func _bark_process(delta: float) -> void:
-	_bark_clock += delta
-	if not content.director.main_done():return
-	var world: Node3D = content.world
-	if world.interactions.mode != "idle" or (world.performance and world.performance.busy) or content.ending.playing:return
-	if _bark_clock < float(_bark_ready.get("_any", 0.0)):return
-	var player: Vector3 = world.player.global_position
-	var best := ""
-	var best_d := 3.2
-	var where := Vector3.ZERO
-	for id in actors:
-		var d: float = player.distance_to(actors[id].rest)
-		if d < best_d and _bark_clock >= float(_bark_ready.get(id, 0.0)):
-			best = id
-			best_d = d
-			where = actors[id].rest
-	for npc in world.interactions.npcs:
-		var d: float = player.distance_to(npc.global_position)
-		if d < best_d and _bark_clock >= float(_bark_ready.get(npc.profile_id, 0.0)):
-			best = npc.profile_id
-			best_d = d
-			where = npc.global_position
-	if best == "" or not BARKS.has(best):return
-	var lines: Array = BARKS[best]
-	var pick := randi() % lines.size()
-	if lines.size() > 1 and pick == int(_bark_last.get(best, -1)):pick = (pick + 1) % lines.size()
-	_bark_last[best] = pick
-	_bark_ready[best] = _bark_clock + 35.0
-	_bark_ready["_any"] = _bark_clock + 7.0
-	if actors.has(best):content.props.open_door(String(actors[best].door))
-	_say(where + Vector3.UP * 2.0, String(lines[pick]))
+## After the story, talking to someone gives one of these new lines in the dialogue box
+## (each time the next one), instead of anything floating over their heads.
+func after_story_line(id: String) -> String:
+	if not BARKS.has(id):return ""
+	var lines: Array = BARKS[id]
+	var i := int(_told.get(id, 0)) % lines.size()
+	_told[id] = i + 1
+	return String(lines[i])
 
-func _say(at: Vector3, text: String) -> void:
-	if not is_instance_valid(_bubble):
-		_bubble = Label3D.new()
-		_bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		_bubble.no_depth_test = true
-		_bubble.font = preload("res://scripts/content/cozy_style.gd").hand()
-		_bubble.font_size = 44
-		_bubble.pixel_size = .0042
-		_bubble.modulate = Color("5b3f2c")
-		_bubble.outline_modulate = Color("fff6e4")
-		_bubble.outline_size = 14
-		_bubble.width = 520
-		_bubble.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		add_child(_bubble)
-	_bubble.text = text
-	_bubble.global_position = at
-	_bubble.modulate.a = 0.0
-	_bubble.outline_modulate.a = 0.0
-	var t := create_tween()
-	t.tween_property(_bubble, "modulate:a", 1.0, .5)
-	t.parallel().tween_property(_bubble, "outline_modulate:a", 1.0, .5)
-	t.tween_interval(clampf(2.5 + text.length() * .12, 4.0, 7.0))
-	t.tween_property(_bubble, "modulate:a", 0.0, .8)
-	t.parallel().tween_property(_bubble, "outline_modulate:a", 0.0, .8)
+## The resident behind a door ("" if nobody lives there).
+func resident_of_door(door: String) -> String:
+	for slot in SLOTS:
+		if String(slot.door) == door:return String(slot.id)
+	return ""
+
+func resident_name(id: String) -> String:
+	for slot in SLOTS:
+		if String(slot.id) == id:return String(slot.name)
+	return id
