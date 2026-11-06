@@ -83,8 +83,16 @@ const fs=require('node:fs');
   if(await page.evaluate(()=>window.v20ReloadMarker)!=='keep')throw Error('F5 refreshed the page');
   await page.keyboard.press('n');await page.waitForFunction(()=>window.starworldUi.panel==='map',{},{timeout:15000});
   await page.screenshot({path:'browser-evidence/map.png'});await page.keyboard.press('Escape');
+  // An in-game reload replaces the scene while keeping the same browser document.
+  const sceneId=await page.evaluate(()=>window.starworldUi.sceneId);
+  await page.keyboard.press('F9');
+  await page.waitForFunction(id=>window.starworldUi?.sceneId && window.starworldUi.sceneId!==id,sceneId,{timeout:60000});
+  await page.waitForFunction(()=>window.starworldUi?.booting===false&&!window.starworldUi.title&&!window.starworldUi.locked,{},{timeout:120000});
+  if(await page.evaluate(()=>window.v20ReloadMarker)!=='keep')throw Error('F9 reloaded the browser document');
+  await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
+  await verifySound();
   const result=await page.evaluate(()=>window.starworldDiagnostics());
-  Object.assign(result,{movementMetres:moved,startupReadyMs:readyMs,totalSmokeMs:Date.now()-begun,nativeMusic:await page.evaluate(()=>window.starworldAudioStatus),verified:['home entries','settings return','about Escape','new game','chapter start button','wish after new game','movement','map','font','real audio after opening'],testViewport:{width:400,height:250,renderer:'Chromium SwiftShader software rasterization'},errors});
+  Object.assign(result,{movementMetres:moved,startupReadyMs:readyMs,totalSmokeMs:Date.now()-begun,nativeMusic:await page.evaluate(()=>window.starworldAudioStatus),verified:['home entries','settings return','about Escape','new game','chapter start button','wish after new game','movement','map','font','real audio after opening','F5 saves without browser refresh','F9 loads and resumes with sound'],testViewport:{width:400,height:250,renderer:'Chromium SwiftShader software rasterization'},errors});
   fs.writeFileSync('browser-evidence/audio.json',JSON.stringify(result,null,2));
   await page.screenshot({path:'browser-evidence/game.png'});console.log('BROWSER_V17_VERIFIED',JSON.stringify(result));
   if(errors.length)throw Error(errors.join('\n'));

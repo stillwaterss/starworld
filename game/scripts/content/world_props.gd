@@ -101,7 +101,8 @@ func open_door(id: String, stay := false, animate := true) -> void:
 	var leaf_dir := Vector3.RIGHT if String(d.info.axis) == "x" else Vector3.FORWARD
 	door_front(id)
 	var angle := deg_to_rad(100.0 if id in ["keeper", "tower", "treehouse"] else 58.0)
-	if leaf_dir.rotated(Vector3.UP, angle).dot(d.front) < 0:angle = -angle
+	# inward, into the house: a leaf swinging out stood in front of whoever came to the door
+	if leaf_dir.rotated(Vector3.UP, angle).dot(d.front) > 0:angle = -angle
 	var goal: float = float(d.rest) + angle
 	if animate:create_tween().tween_property(node, "rotation:y", goal, .9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	else:node.rotation.y = goal
@@ -121,7 +122,10 @@ func open_door(id: String, stay := false, animate := true) -> void:
 		glow.material_override = warm
 		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(glow)
-		glow.global_position = centre - d.front * .06
+		# just in front of the dark recess, with the leaf swung in behind it
+		glow.global_position = centre + d.front * .05
+		# the keeper's cottage and the tower have real rooms behind the door: nothing in front
+		glow.visible = not id in ["keeper", "tower"]
 		glow.look_at(glow.global_position - d.front, Vector3.UP)
 		var lamp := OmniLight3D.new()
 		lamp.light_color = Color(1, .76, .45)

@@ -412,6 +412,7 @@ func show_talk(title: String, lines: Array, focus: Vector3, eye: Vector3) -> boo
 
 func next_dialogue() -> void:
 	if mode!="dialogue":return
+	if _finish_typing():return
 	dialogue_index+=1
 	if _talking and dialogue_index>=dialogue_lines.size():
 		close_modal()
@@ -467,6 +468,7 @@ func _show_line(index: int) -> void:
 		for key in ["normal_font_size","bold_font_size"]:dialogue_body.add_theme_font_size_override(key,22)
 		dialogue_body.add_theme_color_override("default_color",Color("e6efff"))
 		dialogue_body.text=Keywords.mark(line,"#fff0a0")
+		_type_line()
 		return
 	else:
 		dialogue_panel.add_theme_stylebox_override("panel",dialogue_card)
@@ -477,6 +479,27 @@ func _show_line(index: int) -> void:
 		for key in ["normal_font_size","bold_font_size"]:dialogue_body.add_theme_font_size_override(key,19)
 		dialogue_body.add_theme_color_override("default_color",Color("eee3cf"))
 	dialogue_body.text=Keywords.mark(line)
+	_type_line()
+
+## The words come out a few at a time, like the letters; a press finishes the line first.
+var _typing: Tween
+var type_in_tests := false
+
+func _type_line() -> void:
+	if _typing and _typing.is_valid():_typing.kill()
+	dialogue_body.visible_characters=-1
+	if "--test-session" in OS.get_cmdline_user_args() and not type_in_tests:return
+	var total:=dialogue_body.get_total_character_count()
+	dialogue_body.visible_characters=0
+	_typing=create_tween()
+	_typing.tween_property(dialogue_body,"visible_characters",total,total*.07)
+	_typing.tween_callback(func():dialogue_body.visible_characters=-1)
+
+func _finish_typing() -> bool:
+	if not (_typing and _typing.is_valid() and _typing.is_running()):return false
+	_typing.kill()
+	dialogue_body.visible_characters=-1
+	return true
 
 ## Jumps to the end of the conversation; counts as read.
 func skip_dialogue() -> void:

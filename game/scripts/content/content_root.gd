@@ -140,6 +140,21 @@ func use_save(path: String) -> void:
 	_apply_reactions()
 	ui.refresh()
 
+## Chapters two and four begin the next morning: the sky turns to day by itself and stays
+## there through their first stages (chapter index -> the last stage of the morning), so
+## the daytime music and island get a real stretch of play. Dusk comes when a stage asks.
+const MORNINGS := {1: 3, 3: 1}
+
+func morning(fade: bool) -> void:
+	var data: Dictionary = state.data
+	if data.mode != "story" or director.main_done():return
+	var chapter := int(data.main.chapter)
+	if not MORNINGS.has(chapter) or int(data.main.stage) > int(MORNINGS[chapter]):return
+	var cycle = world.get("day_cycle")
+	if cycle == null or cycle.current == 0:return
+	cycle.set_time(0, 5.0 if fade else 0.0)
+	if fade:ui.toast("天亮了。新的一天。", 4.0)
+
 # ------------------------------------------------------------------ dialogue bridge
 ## town_interactions asks this for lines instead of its old hard-coded ones.
 func dialogue_for(npc: String) -> Dictionary:

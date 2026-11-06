@@ -29,6 +29,7 @@ static func defaults() -> Dictionary:
 		"guide_target": "",      # manual map target, "" follows the tracked quest
 		"player_name": "星仔",   # the player's star person; renamed on the title card or in settings
 		"story_rev": STORY_REV,  # which story the chapter/stage numbers belong to
+		"day_rev": 1,            # 1: chapter two opens with the morning stage c2_sun
 		"autostart": false,      # set by 新游戏 just before the island reloads
 	}
 
@@ -55,6 +56,10 @@ func load_state() -> void:
 		return
 	data = migrate(parsed)
 	load_note = "loaded_v%d" % int(parsed.get("version", 0))
+	# a save from before the morning stage: chapter two has one stage more at its start
+	if int(parsed.get("day_rev", 0)) < 1:
+		data.day_rev = 1
+		if int(data.main.chapter) == 1 and not bool(data.main.done):data.main.stage = int(data.main.stage) + 1
 	if int(parsed.get("story_rev", 0)) < STORY_REV:
 		data.story_rev = STORY_REV
 		if not bool(data.main.done):data.main.stage = 0

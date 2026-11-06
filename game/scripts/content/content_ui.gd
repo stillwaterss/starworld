@@ -37,7 +37,8 @@ K 打水漂（喷泉，水会跳舞） · V 萤火虫（傍晚和夜里）
 C 走到观景椅坐下 / 起身（西北小岛）；坐着时 ←/→ 换角度
 F 手持小灯 · G 招手 · O 摄影：Tab 换取景、1/2/3 滤镜、G 三分线、Enter/空格/左键 拍照
 M 音乐开关 · Y 声音与指引设置
-F5 存档（首页“读取存档”可以读回来）"""
+F5 快速存档 · F9 快速载入 · 首页“读取存档”可以选存档
+"""
 
 var content
 var root: Control
@@ -275,6 +276,7 @@ func show_chapter_card(index: int, finished := -1) -> void:
 	chapter_card.queue_free()
 	player.controls_locked = was_locked
 	Input.mouse_mode = mouse
+	content.morning(true)
 	chapter_card_done.emit()
 
 ## A cream card with a title, a line of story and one button; returned unparented.
@@ -636,6 +638,8 @@ func _build_menu() -> void:
 	home_menu.add_child(_button("回到首页", go_home, 15))
 	home_menu.add_child(_button("载入存档", go_home.bind(true), 15))
 	home_menu.add_child(_button("快速存档 F5", quick_save, 15))
+	home_menu.add_child(_button("快速载入 F9", quick_load, 15))
+	home_menu.offset_right = 460
 
 var home_menu: HBoxContainer
 
@@ -784,6 +788,17 @@ func _load_slot(id: String) -> void:
 	content.state.data.autostart = true
 	content.state.save()
 	get_tree().reload_current_scene()
+
+## F9: back to the newest saved game.
+func quick_load() -> void:
+	if not content.state.persistent:
+		toast("独立体验不会读取正式存档。")
+		return
+	var slots := SaveSlots.list()
+	if slots.is_empty():
+		toast("还没有存档。先快速存档一次吧。")
+		return
+	_load_slot(String(slots[0].id))
 
 ## F5: the game as it is now goes into a save slot (the title card can load it back).
 func quick_save() -> void:
@@ -1119,11 +1134,11 @@ func show_note(title: String, lines: Array) -> void:
 	note_lines = lines
 	note_index = 0
 	note_title.text = title
-	_show_note_line()
 	if not _open("note"):
 		toast(" ".join(lines), 6.0)
 		return
 	_animate_note("信" in title or "封" in title)
+	_show_note_line()
 	_play("page")
 	await note_closed
 
@@ -1132,10 +1147,41 @@ func _show_note_line() -> void:
 	var shown: Array[String] = []
 	for i in note_index + 1:shown.append(content.named(String(note_lines[i])))
 	note_body.text = "\n".join(shown)
+	_type_note(shown)
 	note_hint.text = ("E 继续  %d / %d" % [note_index + 1, note_lines.size()]) if note_index < note_lines.size() - 1 else "E 合上"
 
+## The newest paragraph is written out a character at a time; a tap finishes it at once.
+var _note_typing: Tween
+
+func _type_note(shown: Array[String]) -> void:
+	if _note_typing and _note_typing.is_valid():_note_typing.kill()
+	note_body.visible_characters = -1
+	if content.test_session:return
+	var before := "\n".join(shown.slice(0, -1)).length() + (1 if shown.size() > 1 else 0)
+	var total := before + shown[-1].length()
+	note_body.visible_characters = before
+	# Keep the first paragraph hidden until the envelope or note animation finishes.
+	if note_index == 0 and _note_anim and _note_anim.is_valid() and _note_anim.is_running():
+		_note_anim.tween_callback(_start_note_typing.bind(before, total))
+		return
+	_start_note_typing(before, total)
+
+func _start_note_typing(before: int, total: int) -> void:
+	_note_typing = create_tween()
+	_note_typing.tween_property(note_body, "visible_characters", total, (total - before) * .05)
+	_note_typing.tween_callback(func():note_body.visible_characters = -1)
+
+func _finish_typing() -> bool:
+	if not (_note_typing and _note_typing.is_valid() and _note_typing.is_running()):return false
+	_note_typing.kill()
+	note_body.visible_characters = -1
+	return true
+
 func _turn_note() -> void:
-	if _finish_note_animation():return
+	if _finish_note_animation():
+		note_body.visible_characters = -1
+		return
+	if _finish_typing():return
 	note_index += 1
 	if note_index >= note_lines.size():
 		close_panel()
@@ -1250,6 +1296,7 @@ func start_story() -> void:
 	content.director.start_story()
 	if first and content.Opening.wanted():await content.opening.play()
 	if first:await show_chapter_card(0)
+	content.morning(false)
 	start_tutorial()
 	content.guide.refresh_route(true)
 	_hint_time = 10.0
@@ -1452,7 +1499,7 @@ func _process(delta: float) -> void:
 			controls.append({"text": button.text, "x": center.x, "y": center.y})
 		var pos: Vector3 = content.world.player.global_position
 		var size: Vector2 = root.size
-		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "controls": controls, "about": about_panel.visible, "opening": content.opening.playing, "openingSkip": {"visible": content.opening.skip_button.is_visible_in_tree(), "x": content.opening.skip_button.get_global_rect().get_center().x, "y": content.opening.skip_button.get_global_rect().get_center().y}, "chapter": showing_card(), "locked": content.world.player.controls_locked, "performance": content.world.performance.kind, "performing": content.world.performance.busy, "endingPlaying": content.ending.playing, "endingSky": content.ending.sky_layer.visible, "finale": is_instance_valid(content.ending.finale_panel) and content.ending.finale_panel.visible, "homeReturned": content.state.flag("xiaoguang_home"), "mainDone": content.director.main_done(), "shipAt": content.airship.at, "lanterns": content.ending.lanterns.size(), "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel, "saveSlots": SaveSlots.list().size()}))
+		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"sceneId": content.world.get_instance_id(), "title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "controls": controls, "about": about_panel.visible, "opening": content.opening.playing, "openingSkip": {"visible": content.opening.skip_button.is_visible_in_tree(), "x": content.opening.skip_button.get_global_rect().get_center().x, "y": content.opening.skip_button.get_global_rect().get_center().y}, "chapter": showing_card(), "locked": content.world.player.controls_locked, "performance": content.world.performance.kind, "performing": content.world.performance.busy, "endingPlaying": content.ending.playing, "endingSky": content.ending.sky_layer.visible, "finale": is_instance_valid(content.ending.finale_panel) and content.ending.finale_panel.visible, "homeReturned": content.state.flag("xiaoguang_home"), "mainDone": content.director.main_done(), "shipAt": content.airship.at, "lanterns": content.ending.lanterns.size(), "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel, "saveSlots": SaveSlots.list().size()}))
 	if title_card.visible:
 		title_card.pivot_offset = Vector2(title_card.size.x / 2.0, 0)
 		title_card.scale = Vector2.ONE * minf(1.0, root.size.y * .5 / maxf(1.0, title_card.size.y))
@@ -1565,8 +1612,9 @@ func _input(event: InputEvent) -> void:
 	var mode: String = world.interactions.mode
 	if not mode in ["idle", "content"]:return
 	var key: int = event.physical_keycode
-	if key == KEY_F5 and not title_card.visible and content.state.data.mode != "":
-		quick_save()
+	if key in [KEY_F5, KEY_F9] and not title_card.visible and content.state.data.mode != "":
+		if key == KEY_F5:quick_save()
+		else:quick_load()
 		get_viewport().set_input_as_handled()
 		return
 	if showing_card():

@@ -202,6 +202,9 @@ const CUT_OUT := [
 	[AABB(Vector3(4.05, -.05, -9.42), Vector3(2.9, 1.55, .9)), COUNTER_PARTS],
 	# the ball left hanging low by the bakery door
 	[AABB(Vector3(4.3, .8, -9.45), Vector3(2.4, .92, 1.0)), ["Decor_Details_roof"]],
+	# the awning's balls that hung low in the bakery and stall doorways
+	[AABB(Vector3(4.0, .8, -9.95), Vector3(2.8, .8, 1.5)), ["Decor_Details_awning"]],
+	[AABB(Vector3(-17.0, .8, 6.9), Vector3(2.8, .8, 1.5)), ["Decor_Details_awning"]],
 ]
 
 func _cut_out(root: Node) -> void:

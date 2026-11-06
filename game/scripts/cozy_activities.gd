@@ -556,7 +556,9 @@ func _spawn_fireflies() -> void:
 	world.add_child(fireflies);firefly_time=18
 
 func play_chime(windchime := false) -> void:
-	if windchime and world.get("audio") and world.audio.play_sfx("windchime"):return
+	# the chime sounds different in each sky: bright by day, the dusk one, deep and slow at night
+	var sky_sound: String = ["windchime_day", "windchime", "windchime_night"][int(world.day_cycle.current)]
+	if windchime and world.get("audio") and world.audio.play_sfx(sky_sound):return
 	if DisplayServer.get_name()=="headless":return
 	var data:=PackedByteArray();var count:=22050*3;data.resize(count*2)
 	for i in count:
