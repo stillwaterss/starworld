@@ -586,8 +586,8 @@ const TREE_STARS := Vector3(0, 12.5, -2.6)
 
 func tree_shot(perf) -> void:
 	# always from the front of the tree house, far enough to see the top star and the lamps
-	var eye := TREE_STARS + Vector3(-6.5, -1.5, 19.0)
-	perf.glide_to(Transform3D(Basis.looking_at(TREE_STARS - Vector3.UP * 5.0 - eye), eye), 54.0, 1.4)
+	var eye := TREE_STARS + Vector3(-6.5, -1.5, 23.0)
+	perf.glide_to(Transform3D(Basis.looking_at(TREE_STARS - Vector3.UP * 2.5 - eye), eye), 54.0, 1.4)
 	await perf.wait(1.0)
 	content.xiaoguang.light_up(TREE_STARS, 2.2)
 	await perf.wait(1.0)

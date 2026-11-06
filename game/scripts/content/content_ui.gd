@@ -798,7 +798,8 @@ func quick_load() -> void:
 	if slots.is_empty():
 		toast("还没有存档。先快速存档一次吧。")
 		return
-	_load_slot(String(slots[0].id))
+	# Wait for the current input dispatch to finish before replacing the scene.
+	_load_slot.call_deferred(String(slots[0].id))
 
 ## F5: the game as it is now goes into a save slot (the title card can load it back).
 func quick_save() -> void:

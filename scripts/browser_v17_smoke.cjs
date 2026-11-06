@@ -6,7 +6,7 @@ const fs=require('node:fs');
  const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const page=await browser.newPage({viewport:{width:400,height:250}});
  const logs=[],errors=[];
- page.on('console',m=>{logs.push(m.type()+': '+m.text());if(m.text().includes('SCRIPT ERROR'))errors.push(m.text());});
+ page.on('console',m=>{logs.push(m.type()+': '+m.text());if(/(?:^|\s)ERROR:/.test(m.text()))errors.push(m.text());});
  page.on('pageerror',e=>errors.push(e.message));
  async function clickControl(label,titleOnly=false){
   const ui=await page.evaluate(()=>window.starworldUi);
