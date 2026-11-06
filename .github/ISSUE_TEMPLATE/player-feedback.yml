@@ -1,0 +1,31 @@
+name: 星星人玩家留言
+description: 评价、建议或网页版报错
+title: "玩家留言："
+labels: [player-feedback]
+assignees: [stillwaterss]
+body:
+  - type: markdown
+    attributes:
+      value: "谢谢来星星岛玩。留言会公开，请勿填写手机号、微信号或其他个人信息。"
+  - type: dropdown
+    id: category
+    attributes:
+      label: 留言类型
+      options:
+        - 试玩评价
+        - 改进建议
+        - 网页版报错
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: 想说的话
+      description: "如果遇到问题，可以写下当时在做什么、看到了什么。"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: 设备与浏览器（选填）
+      placeholder: "例如：Windows 11、Chrome"

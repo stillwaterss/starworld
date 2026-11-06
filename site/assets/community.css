@@ -1,0 +1,19 @@
+#trailer,#feedback{scroll-margin-top:88px}
+.trailer-frame{max-width:960px;margin:0 auto;background:#1b2142;border-radius:18px;overflow:hidden}
+.trailer-cover,#trailer-video{display:block;width:100%;aspect-ratio:16/9}
+.trailer-cover{position:relative;color:#28233d}
+.trailer-cover img{display:block;width:100%;height:100%;object-fit:cover}
+.trailer-play{position:absolute;bottom:8%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:.6em;white-space:nowrap;border-radius:99px;background:#ffdf9a;padding:.58em 1.2em;font-weight:700;box-shadow:0 3px 18px #211a46a8}
+.trailer-cover:hover .trailer-play,.trailer-cover:focus-visible .trailer-play{background:#fff0c1}
+#trailer-video[hidden],#trailer-start[hidden],#wechat-copy[hidden],#trailer-status:empty{display:none}
+#trailer-video{background:#111}
+.feedback-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+.feedback-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.feedback-actions .btn{margin:0}
+#wechat-copy{font:inherit;cursor:pointer}
+.account-name{font-size:clamp(22px,4vw,30px);letter-spacing:.1em}
+#feedback-recent{margin-top:1rem}
+#feedback-recent summary{cursor:pointer}
+#feedback-list{overflow-wrap:anywhere;padding-left:1.3em}
+#feedback-list li{margin:.5rem 0}
+@media(max-width:720px){.feedback-cards{grid-template-columns:1fr}}
