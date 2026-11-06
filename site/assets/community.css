@@ -17,3 +17,7 @@
 #feedback-list{overflow-wrap:anywhere;padding-left:1.3em}
 #feedback-list li{margin:.5rem 0}
 @media(max-width:720px){.feedback-cards{grid-template-columns:1fr}}
+.wechat-qr{margin:0 0 1rem}
+.wechat-qr a{display:inline-block;background:#fff;border:1px solid #e2d6bc;border-radius:12px;line-height:0}
+.wechat-qr img{display:block;width:min(216px,100%);height:auto;border-radius:11px}
+.wechat-qr figcaption{max-width:34em;padding:.45rem 0 0}
