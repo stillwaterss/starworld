@@ -108,7 +108,12 @@ func perform(site: String) -> void:
 	var perf = world.get("performance")
 	var player: CharacterBody3D = world.player
 	var reach := Vector2(at.x - player.global_position.x, at.z - player.global_position.z).length()
-	if perf and perf.begin("light", at, {"distance": clampf(reach * 1.4 + 3.0, 5.5, 10.0), "height": 2.6, "look_height": 1.1, "mix": .5}):
+	# already in a staged moment (wiping the window, …): carry on in the same shot
+	var going: bool = perf != null and perf.busy
+	if going or (perf and perf.begin("light", at, {"distance": clampf(reach * 1.4 + 3.0, 5.5, 10.0), "height": 2.6, "look_height": 1.1, "mix": .5})):
+		if going:
+			perf.drop_prop()
+			perf.glide_to(Transform3D(Basis.looking_at(at - perf.camera.global_position), perf.camera.global_position), perf.camera.fov, .9)
 		await perf.turn_to(Vector3(at.x, player.global_position.y, at.z))
 		perf.set_pose("hold_up", 4.0)
 		await perf.wait(.5)
@@ -239,12 +244,17 @@ func _build_door_lamps() -> void:
 		var c: Vector3 = props._v(d.info.centre)
 		var front: Vector3 = d.front
 		var across := front.cross(Vector3.UP).normalized()
-		# the child's post stood in the way of the path: it goes on the other side of the door
-		if door == "child":across = -across
+		# the child stands out on the latch side: the post goes to the other side of the door,
+		# tight against the wall (v24: it hid the child and narrowed the way)
+		var out_side := Vector3.ZERO
+		if content.npcs and content.npcs.actors.has(door):out_side = Vector3(content.npcs.actors[door].rest) - c
+		if door == "child" and out_side.dot(across) > 0:across = -across
 		var floor := c - Vector3.UP * float(d.info.height) / 2.0
 		add_child(post)
 		# against the wall beside the door, out of the way of anyone walking past
-		post.global_position = props._ground(floor + across * (float(d.info.width) / 2.0 + .5) + front * .22)
+		var aside := .45 if door == "child" else .5
+		var off := .1 if door == "child" else .22
+		post.global_position = props._ground(floor + across * (float(d.info.width) / 2.0 + aside) + front * off)
 		# the arm (the model's +X) reaches toward the door
 		post.rotation.y = atan2(across.z, -across.x)
 		var spot := lantern_spot(post)
@@ -577,7 +587,7 @@ func _build_blinks() -> void:
 		dot.scale = Vector3.ONE * float(spec[1])
 		dot.extra_cull_margin = 64
 		add_child(dot)
-		dot.global_position = spec[0]
+		dot.global_position = spec[0] + (Vector3.UP * .3 if _blinks.size() == 1 else Vector3.ZERO)
 		_blinks.append(dot)
 
 ## After the street lamps (the lamplighter's lighting): 小光 flies on to the wishing tree
@@ -608,11 +618,39 @@ func light_tree_stars(animate: bool) -> void:
 ## The answer across the clouds, staged (after grandma's lamp is lit): the camera turns
 ## to the lighthouse island and its light blinks three times, slowly, clearly.
 var _signal := -1.0
+var _gran_signal := -1.0
+var signal_times := 3
+
+## v25: 老星's (or the new keeper's) answer from the lighthouse, `times` blinks, the glint
+## sized for where the player is (it is a sign for across the clouds: big from afar).
+func keeper_answer(times := 3) -> void:
+	var lamp: Vector3 = content.registry.position_of("keeper_lamp") if content.registry.has("keeper_lamp") else _blinks[0].global_position
+	_blinks[0].global_position = lamp + Vector3.UP * 1.0
+	var far: float = world.player.global_position.distance_to(_blinks[0].global_position)
+	var was: Vector3 = _blinks[0].scale
+	_blinks[0].scale = Vector3.ONE * clampf(far * .12, 1.6, 9.0)
+	signal_times = times
+	_signal = 0.0
+	await get_tree().create_timer(1.3 * times + .3).timeout
+	_signal = -1.0
+	signal_times = 3
+	_blinks[0].scale = was
 
 func signal_shot(perf) -> void:
 	var keeper_lamp: Vector3 = content.registry.position_of("keeper_lamp") if content.registry.has("keeper_lamp") else _blinks[0].global_position
 	_blinks[0].global_position = keeper_lamp + Vector3.UP * 1.0
 	var player: Vector3 = world.player.global_position
+	# v24: first her lamp, one, two, three: the old signal, after all these years
+	var lamp: Vector3 = _blinks[1].global_position
+	var back := player - lamp
+	back.y = 0
+	back = back.normalized() if back.length() > .1 else Vector3.BACK
+	var near_eye := lamp + back * 3.6 + back.cross(Vector3.UP) * 1.0 + Vector3.UP * 1.1
+	perf.glide_to(Transform3D(Basis.looking_at(lamp - near_eye), near_eye), 44.0, 1.2)
+	await perf.wait(1.3)
+	_gran_signal = 0.0
+	await perf.wait(4.2)
+	_gran_signal = -1.0
 	var toward := keeper_lamp - player
 	var flat := Vector3(toward.x, 0, toward.z).normalized()
 	var eye := player - flat * 3.0 + Vector3.UP * 2.2 + flat.cross(Vector3.UP) * 1.2
@@ -622,10 +660,20 @@ func signal_shot(perf) -> void:
 	await perf.wait(4.6)
 	_signal = -1.0
 
+func _flash_gran_lantern(level: float) -> void:
+	if not _door_lamps.has("grandma") or not content.state.flag("lit_grandma"):return
+	var ball: MeshInstance3D = _door_lamps["grandma"][2]
+	var m: StandardMaterial3D = ball.material_override
+	if not ball.has_meta("lit_color"):ball.set_meta("lit_color", m.albedo_color)
+	var lit: Color = ball.get_meta("lit_color")
+	m.albedo_color = lit.lerp(Color(1, .98, .9), level)
+	m.emission_energy_multiplier = 4.0 + 8.0 * level
+	ball.scale = Vector3.ONE * (1.5 + 1.3 * level)
+
 ## Three blinks, once: t is the time since the sky turned (the signal is a thing that
 ## happens at nightfall, not a light that keeps flashing).
-func _blink_level(t: float) -> float:
-	if t < 0 or t > 2.1:return 0.0
+func _blink_level(t: float, times := 3) -> float:
+	if t < 0 or t > .7 * times:return 0.0
 	return 1.0 if fmod(t, .7) < .4 else 0.0
 
 var _sky_seen := -1
@@ -669,9 +717,28 @@ func _process(delta: float) -> void:
 			if _sky_seen >= 0 and cycle.current in [1, 2]:_sky_clock = 0.0
 			_sky_seen = cycle.current
 		_sky_clock += delta
-		var keeper_on: bool = not content.state.flag("reaction_lighthouse_lit") and player.distance_to(_blinks[0].global_position) > 30.0
-		_blinks[0].material_override.albedo_color.a = (_blink_level(_sky_clock - 2.5) * maxf(dark, .6)) if keeper_on else 0.0
+		# v24: once her lamp is lit she signals first, three times, and the island across the
+		# clouds answers (after the lighthouse is lit and the story is over: four times, the
+		# extra one for 小光); never while you stand at her door (it got tiresome there)
+		var answered: bool = content.state.flag("lit_grandma")
+		var keeper_far: bool = player.distance_to(_blinks[0].global_position) > 30.0
+		var keeper_on: bool = keeper_far and (answered or not content.state.flag("reaction_lighthouse_lit"))
+		var keeper_from := 5.4 if answered else 2.5
+		var keeper_times := 4 if content.director.main_done() else 3
+		_blinks[0].material_override.albedo_color.a = (_blink_level(_sky_clock - keeper_from, keeper_times) * maxf(dark, .6)) if keeper_on else 0.0
+		var gran: MeshInstance3D = _blinks[1]
+		var gran_far: float = player.distance_to(gran.global_position)
+		var gran_on: bool = answered and gran_far > 8.0
+		gran.scale = Vector3.ONE * clampf(gran_far * .06, 1.2, 4.5)   # readable from the seat across the town
+		var gran_level: float = (_blink_level(_sky_clock - 2.5) * maxf(dark, .6)) if gran_on else 0.0
+		if _gran_signal >= 0:
+			_gran_signal += delta
+			gran.scale = Vector3.ONE * clampf(gran_far * .06, 1.8, 4.5)
+			gran_level = 1.0 if fmod(_gran_signal, 1.3) < .65 and _gran_signal < 3.9 else 0.0
+		# a strong warm halo (colours over 1: additive, it reads even over lit walls) and the
+		# lantern on her post itself flaring white with it
+		gran.material_override.albedo_color = Color(1.9, 1.55, 1.0, gran_level)
+		_flash_gran_lantern(gran_level)
 		if _signal >= 0:
 			_signal += delta
-			_blinks[0].material_override.albedo_color.a = 1.0 if fmod(_signal, 1.3) < .65 and _signal < 3.9 else 0.0
-		_blinks[1].material_override.albedo_color.a = 0.0
+			_blinks[0].material_override.albedo_color.a = 1.0 if fmod(_signal, 1.3) < .65 and _signal < 1.3 * signal_times else 0.0

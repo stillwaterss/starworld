@@ -36,6 +36,7 @@ func _ready() -> void:
 			var imported := packed.instantiate() as Node3D
 			if imported:
 				add_child(imported)
+				preload("res://scripts/model_seal.gd").seal(imported)
 				imported.rotation.y += deg_to_rad(float(profile.yaw_degrees))
 				var bounds := AABB()
 				var first := true
@@ -138,6 +139,11 @@ func _apply_scene_pose() -> void:
 	if not is_instance_valid(body_skeleton):return
 	if performing or not _perform_current.is_empty():
 		_apply_performance(get_process_delta_time())
+		# (v29: sitting on the floor and hugging the knees: the seated legs under the pose)
+		if seated:
+			for bone_name in ["foot.L","foot.R"]:
+				var i:=body_skeleton.find_bone(bone_name)
+				if i>=0:body_skeleton.set_bone_pose_rotation(i,idle_rotations[i]*Quaternion(Vector3.RIGHT,-1.05*seat_blend))
 		return
 	if seated:
 		for i in idle_rotations:

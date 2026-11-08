@@ -11,10 +11,10 @@ const SLOTS := [
 	{"id": "child", "door": "child", "name": "数星星的孩子", "height": 1.05, "tint": Color("4f86c9")},
 	{"id": "lamplighter", "door": "lamplighter", "name": "修灯的邻居", "height": 1.6, "tint": Color("c99a2e")},
 	{"id": "shopkeeper", "door": "shop", "name": "小摊店主", "height": 1.4, "tint": Color("c4566e")},
-	{"id": "islet_nw", "door": "islet_nw", "name": "做椅子的木匠", "height": 1.5, "tint": Color("8a6a44")},
-	{"id": "islet_e", "door": "islet_e", "name": "信箱看守人", "height": 1.4, "tint": Color("4a6fb0")},
-	{"id": "islet_sw", "door": "islet_sw", "name": "摇铃人", "height": 1.35, "tint": Color("3f9a72")},
-	{"id": "isle_south_r", "door": "isle_south_r", "name": "守小灯的人", "height": 1.45, "tint": Color("b8962e")},
+	{"id": "islet_nw", "door": "islet_nw", "name": "绵绵", "height": 1.5, "tint": Color("8a6a44")},
+	{"id": "islet_e", "door": "islet_e", "name": "阿信", "height": 1.4, "tint": Color("4a6fb0")},
+	{"id": "islet_sw", "door": "islet_sw", "name": "青铃", "height": 1.35, "tint": Color("3f9a72")},
+	{"id": "isle_south_r", "door": "isle_south_r", "name": "芯芯", "height": 1.45, "tint": Color("b8962e")},
 	# 老星, the lighthouse keeper (the old man with the lantern), stands beside his door,
 	# clear of the doorway the player walks through
 	{"id": "keeper", "door": "keeper", "name": "老星", "height": 1.45, "tint": Color("6a5aa8"), "out": .9, "aside": 1.25},
@@ -103,6 +103,7 @@ func _model(slot: Dictionary) -> Node3D:
 		var factor := float(slot.height) / bounds.size.y
 		holder.scale = Vector3.ONE * factor
 		holder.position = -Vector3(bounds.get_center().x, bounds.position.y, bounds.get_center().z) * factor
+	_seal(imported)
 	var players := imported.find_children("*", "AnimationPlayer", true, false)
 	if not players.is_empty():
 		var player: AnimationPlayer = players[0]
@@ -116,6 +117,9 @@ func _model(slot: Dictionary) -> Node3D:
 		holder.set_meta("anims", names)
 		if names.has("idle"):player.play(names.idle)
 	return holder
+
+func _seal(model: Node3D) -> void:
+	preload("res://scripts/model_seal.gd").seal(model)
 
 ## Opening the door: a wave, then talking while it stays open; shut: back to idle.
 func _greet(body: Node3D, open: bool) -> void:
@@ -250,7 +254,7 @@ func at_door(door: String) -> String:
 func cheer() -> void:
 	for id in actors:
 		var actor: Dictionary = actors[id]
-		if not String(actor.door) in ["baker", "grandma", "child", "lamplighter", "shop"]:continue
+		if not String(actor.door) in ["baker", "grandma", "child", "lamplighter", "shop", "islet_nw", "islet_e", "islet_sw", "isle_south_r"]:continue
 		content.props.open_door(String(actor.door), true, false)
 		var body: Node3D = actor.node.get_child(0) if actor.node.get_child_count() > 0 else null
 		if body and body.has_meta("anim"):
@@ -273,10 +277,10 @@ const BARKS := {
 	"child": ["我现在敢关灯睡觉了。……就关一小会儿。", "我数到第一百颗的时候，最小的那颗眨了一下。我知道是谁。"],
 	"lamplighter": ["灯都亮着，我反而不知道干什么了。……那就擦一擦吧，亮着的灯也要擦。", "以前修灯是怕它们坏。现在修灯，是想让晚归的人走得慢一点也不怕。"],
 	"shopkeeper": ["信纸卖得比以前快了。大家好像忽然都有话想说。", "要一张星星邮票吗？寄到天上的，邮费免了。"],
-	"islet_nw": ["椅子我又多做了一把。一个人看天，和两个人看天，是不一样的。", "木头记得每一个坐过它的人。"],
-	"islet_e": ["信箱空了，我还挺不习惯。……不过空着，才装得下新的。", "今天有人寄了一封信给小光，地址写的是：头顶。"],
-	"islet_sw": ["风大的时候，小铃还是会自己响。现在我觉得，那是有人在回答。", "离云最近的地方最安静，也最容易听见想念。"],
-	"isle_south_r": ["小灯和大灯塔其实是一样的，都是不想让谁一个人摸黑。", "老星来信说，他学会了做饭。灯塔岛上，第一次有了饭香。"],
+	"islet_nw": ["爷爷今天自己拄着拐杖走到观景椅那儿，坐了一会儿。他说，木头还记得他。", "一个人看天，和两个人看天，是不一样的。这是爷爷教我的第一句话。"],
+	"islet_e": ["信箱空了，我还挺不习惯。……不过空着，才装得下新的。", "今天有人寄了一封信给小光，地址写的是：头顶。我替它留着。"],
+	"islet_sw": ["风大的时候，雾铃还是会自己响。现在我知道，总有人在听。", "傍晚摇铃的时候，面包房那边会回三声。我现在每天都等着。"],
+	"isle_south_r": ["小灯和大灯塔其实是一样的，都是不想让谁一个人摸黑。", "我每天傍晚还是先点小灯。云海那边看见了，就知道我在。"],
 	"keeper": ["见到她的第一句话，我还没想好。……不急，灯亮着。", "她窗台闪三下，我现在回她四下。多出来的那一下，是给小光的。"],
 	"gardener": ["我抬头的次数比以前多了。花没意见。", "眠眠送了我一张星图，我把它贴在花圃旁的墙上了。"],
 	"astronomer": ["归家座最小的那颗，今晚眨了三下。你也看见了吧？", "我跟芽芽说好了，下次一起去喷泉打水漂。我已经很多年没输过了。"],

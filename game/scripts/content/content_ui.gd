@@ -722,6 +722,11 @@ func _build_title_card() -> void:
 	panels["title"] = title_card
 	_show_title_menu()
 
+func _start_postscript() -> void:
+	_continue_game()
+	if content.director.side_state("s_keeper") == "active":content.director.track("s_keeper")
+	else:content.director.start_side("s_keeper")
+
 func _show_title_menu() -> void:
 	for i in 2:title_card.get_child(0).get_child(i).show()
 	_new_confirm = false
@@ -731,7 +736,9 @@ func _show_title_menu() -> void:
 	var started: bool = content.state.data.started or content.state.data.mode == "free"
 	var saved := not SaveSlots.list().is_empty()
 	var first: Array = []
-	if started:first.append(["继续游戏", _continue_game, true])
+	if content.director.main_done() and content.director.side_state("s_keeper") != "done":
+		first.append(["继续后记" if content.director.side_state("s_keeper") in ["active", "paused"] else "开始后记", _start_postscript, true])
+	if started:first.append(["继续游戏", _continue_game, false if not first.is_empty() else true])
 	if saved:first.append(["读取存档", _show_slots, false])
 	var rows := [
 		first,
@@ -754,27 +761,58 @@ func _show_title_menu() -> void:
 		var where := Cozy.label("上次停在：" + String(content.director.chapter().get("title", "")), 15, Cozy.INK_SOFT, false)
 		title_menu.add_child(where)
 
+var _slots_scrolled_at := -100000
+
+func _load_slot_tapped(id: String) -> void:
+	if Time.get_ticks_msec() - _slots_scrolled_at < 300:return
+	_load_slot(id)
+
 ## The saved games (F5 in the game), newest first; one click loads it and goes on.
 func _show_slots() -> void:
 	for child in title_menu.get_children():child.queue_free()
 	for i in 2:title_card.get_child(0).get_child(i).hide()
-	title_menu.add_child(Cozy.label("选一个存档继续", 18, Cozy.INK, false))
+	var all := SaveSlots.list()
+	var head := Cozy.label("选一个存档继续（共 %d 个%s）" % [all.size(), " · 上下滑动看更多 ▼" if all.size() > 4 else ""], 18, Cozy.INK, false)
+	title_menu.add_child(head)
+	var slots := VBoxContainer.new()
+	slots.add_theme_constant_override("separation", 6)
+	slots.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(440,180)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.follow_focus = true
+	scroll.custom_minimum_size = Vector2(460, 150)
+	# v30: a finger drag on a save scrolls the list too (not only on the margin beside them),
+	# the bar is always there and wide enough to see, and a line says there are more
+	scroll.scroll_deadzone = 14
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS if all.size() > 4 else ScrollContainer.SCROLL_MODE_AUTO
+	var bar := scroll.get_v_scroll_bar()
+	bar.custom_minimum_size.x = 14
+	var grabber := StyleBoxFlat.new()
+	grabber.bg_color = Color("e2b866")
+	grabber.set_corner_radius_all(6)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(1, 1, 1, .12)
+	track.set_corner_radius_all(6)
+	for key in ["grabber", "grabber_highlight", "grabber_pressed"]:bar.add_theme_stylebox_override(key, grabber)
+	bar.add_theme_stylebox_override("scroll", track)
+	scroll.add_child(slots)
 	title_menu.add_child(scroll)
-	var slot_rows := VBoxContainer.new()
-	slot_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(slot_rows)
-	for meta in SaveSlots.list():
+	# (a drag that ends on a save is a scroll, not a click)
+	bar.value_changed.connect(func(_v: float):_slots_scrolled_at = Time.get_ticks_msec())
+	if all.size() > 4:
+		var pulse := head.create_tween().set_loops()
+		pulse.tween_property(head, "modulate:a", .6, .9)
+		pulse.tween_property(head, "modulate:a", 1.0, .9)
+		bar.value_changed.connect(func(v: float):
+			if is_instance_valid(head):head.text = "选一个存档继续（共 %d 个 · %s）" % [all.size(), "已经到最早的了 ▲" if v >= bar.max_value - bar.page - 2.0 else "上下滑动看更多 ▼"])
+	for meta in all:
 		var text := "%s  ·  %s  ·  %s" % [meta.get("when", ""), meta.get("chapter", ""), meta.get("name", "")]
-		var b := Cozy.button(text, _load_slot.bind(String(meta.id)), false, 17)
+		var b := Cozy.button(text, _load_slot_tapped.bind(String(meta.id)), false, 17)
+		b.mouse_filter = Control.MOUSE_FILTER_PASS
 		b.custom_minimum_size.x = 420
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_child(b)
-		slot_rows.add_child(row)
+		slots.add_child(row)
 	var back := HBoxContainer.new()
 	back.alignment = BoxContainer.ALIGNMENT_CENTER
 	back.add_child(Cozy.button("返回", _show_title_menu, false, 17))
@@ -1228,7 +1266,13 @@ func fade(dark: bool, seconds := .5) -> void:
 		_veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_veil.color = Color(.06, .04, .03, 0)
-		root.add_child(_veil)
+		# (v27: on its own layer, above everything: the HUD steps aside during a staged
+		# scene, the veil must not go with it)
+		var layer := CanvasLayer.new()
+		layer.name = "Veil"
+		layer.layer = 90
+		get_parent().add_child(layer)
+		layer.add_child(_veil)
 	var t := create_tween()
 	t.tween_property(_veil, "color:a", 1.0 if dark else 0.0, seconds)
 	await t.finished
@@ -1362,17 +1406,31 @@ func _fill_story() -> void:
 			story_box.add_child(hint)
 			if data.track != "main":story_box.add_child(_button("追踪主线", func():director.track("main"); _fill_story(), 15))
 	story_box.add_child(_label("小故事", 18, ACCENT))
-	for id in director.side_order:
+	var order: Array = director.side_order.duplicate()
+	if order.has("s_keeper"):
+		order.erase("s_keeper")
+		order.push_front("s_keeper")
+	for id in order:
+		if id == "s_keeper":story_box.add_child(_label("后记 · 通关后推荐", 20, ACCENT))
 		var side: Dictionary = director.sides[id]
 		var st: String = director.side_state(id)
 		var names := {"locked": "还没听说", "available": "可以开始", "active": "进行中", "paused": "暂停中", "done": "完成"}
 		story_box.add_child(_label(side.title + "  ·  " + names[st], 16))
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
-		if st == "locked":
+		if side.get("after_story", false) and st in ["locked", "available"]:
+			# the islanders' stories: what it is about, like the others (v25)
+			var about := _label(String(side.intro), 14, SOFT)
+			about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			about.custom_minimum_size.x = 400
+			story_box.add_child(about)
+		if st == "locked" and side.get("after_story", false):
+			var unlock: Dictionary = side.get("unlock", {})
+			row.add_child(_label("完成「长椅上的傍晚」后开启" if unlock.has("side_state") else "主线完成后开启（“随便走走”里也可以玩）", 14, SOFT))
+		elif st == "locked":
 			row.add_child(_label("和%s多聊聊。" % content.registry.npc_name(side.giver), 14, SOFT))
 		elif st == "available":
-			row.add_child(_button("开始", func():director.start_side(id); _fill_story(), 15))
+			row.add_child(_button("开始后记" if id == "s_keeper" else "开始", func():director.start_side(id); _fill_story(), 15))
 		elif st == "paused":
 			row.add_child(_button("继续", func():director.start_side(id); _fill_story(), 15))
 		elif st == "active":
@@ -1459,10 +1517,76 @@ func toast(text: String, seconds := 3.5) -> void:
 	toast_panel.modulate.a = 1
 	_toast_time = seconds
 
-func _on_stage_completed(_quest: String, title: String) -> void:
+func _on_stage_completed(quest: String, title: String) -> void:
 	_play("objective")
 	toast("完成：" + title)
 	_hint_time = 8.0
+	# a side story's step can leave a line (and a sound) after it: the bell answering back
+	var sides: Dictionary = content.director.sides
+	if not sides.has(quest):return
+	for stage in sides[quest].stages:
+		if String(stage.title) != title or not stage.has("after_text"):continue
+		await get_tree().create_timer(3.4).timeout   # after the 完成 line has gone
+		if stage.has("after_sfx") and content.world.get("audio"):content.world.audio.play_sfx(String(stage.after_sfx))
+		# (a pose still playing, like the chime's: the answer comes once it is over)
+		for i in 600:
+			if not _performing():break
+			await get_tree().process_frame
+		_toast_time = 0.0   # the story's answer never waits behind (or falls out of) the queue
+		toast(content.named(String(stage.after_text)), 6.0)
+
+## v24: picking one of a few lines (for writing a letter). Returns the index picked.
+signal _picked(index: int)
+
+func choose(title: String, options: Array) -> int:
+	if content.test_session:return 0
+	var top := CanvasLayer.new()
+	top.layer = 45
+	add_child(top)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, .35)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	top.add_child(dim)
+	var page := PanelContainer.new()
+	page.add_theme_stylebox_override("panel", Cozy.card(.96, 22, 26))
+	top.add_child(page)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	page.add_child(box)
+	box.add_child(Cozy.label(title, 24))
+	for i in options.size():
+		var b := Cozy.button(String(options[i]), func():_picked.emit(i), false, 19)
+		b.custom_minimum_size = Vector2(560, 44)
+		box.add_child(b)
+	page.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	page.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	page.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var player: CharacterBody3D = content.world.player
+	var was_locked: bool = player.controls_locked
+	player.controls_locked = true
+	var mouse := Input.mouse_mode
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	var picked: int = await _picked
+	top.queue_free()
+	player.controls_locked = was_locked
+	Input.mouse_mode = mouse
+	return picked
+
+const LETTER := [
+	["给明天来到这里的人", "给一个睡不着的人", "给正在等一封信的人"],
+	["岛上的灯都亮着。路远，慢慢走就好。", "今天辛苦了。云会走，天会亮。", "你等的人，也在等你。"],
+	["累了的话，西北小岛有一把椅子。", "傍晚抬头看看，云海那边有灯一闪三下。", "不用回信。路过就好。"],
+]
+
+## 「没有地址的信」: the player's own letter, one line at a time, into the blue mailbox.
+func compose_letter() -> void:
+	var to: int = await choose("写给谁？", LETTER[0])
+	var words: int = await choose("想对 TA 说什么？", LETTER[1])
+	var last: int = await choose("最后写一句：", LETTER[2])
+	await show_note("你留下的信", [String(LETTER[0][to]) + "：", String(LETTER[1][words]), String(LETTER[2][last]), "——一个路过的人"])
+	content.state.set_flag("s_letters_written")
+	content.state.save()
+	content.director.evaluate()
 
 func _on_chapter_completed(title: String, outro: String) -> void:
 	if title.begins_with("小故事"):
@@ -1557,7 +1681,7 @@ func _process(delta: float) -> void:
 	prompt.visible = idle and prompts_on and content.examine_target != ""
 	if prompt.visible:prompt.text = content.examines.prompt(content.examine_entry)
 	_whisper_time = maxf(0, _whisper_time - delta)
-	if _whisper_time <= 0 and not _whispers.is_empty() and not _performing() and content.state.flag("xiaoguang") and open_panel == "":
+	if _whisper_time <= 0 and not _whispers.is_empty() and not _performing() and content.state.flag("xiaoguang") and not content.state.flag("xiaoguang_home") and open_panel == "":
 		var line := String(_whispers.pop_front())
 		whisper_label.text = "★ 小光：" + line
 		_whisper_time = clampf(3.5 + line.length() * .12, 5.0, 9.0) + 1.2
@@ -1597,7 +1721,7 @@ func _update_glow() -> void:
 
 func _performing() -> bool:
 	var perf = content.world.get("performance")
-	return perf != null and perf.busy
+	return (perf != null and perf.busy) or bool(content.get("staging_ui"))
 
 func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:return

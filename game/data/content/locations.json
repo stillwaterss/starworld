@@ -497,6 +497,19 @@
       "radius": 1.6,
       "map": false,
       "blurb": ""
+    },
+    "keeper_bench": {
+      "name": "灯塔岛的长椅",
+      "short": "长椅",
+      "kind": "place",
+      "position": [
+        38.2,
+        14.05,
+        31.2
+      ],
+      "radius": 1.8,
+      "map": false,
+      "blurb": "老星每天傍晚坐在这里，看云海那边的窗台。"
     }
   },
   "npcs": {

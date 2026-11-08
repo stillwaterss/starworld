@@ -179,7 +179,7 @@ func _cylinder(where: Vector3,radius: float,height: float,mat: Material,top := -
 
 func _build_hand_lantern() -> void:
 	var skeletons: Array[Node]=player.model.find_children("*","Skeleton3D",true,false)
-	lantern=Node3D.new();lantern.name="HandheldLantern";world.add_child(lantern)
+	lantern=Node3D.new();lantern.name="HandheldLantern";world.add_child(lantern);lantern.scale=Vector3.ONE*.85
 	if skeletons.is_empty():lantern.visible=false;return
 	socket=BoneAttachment3D.new();socket.bone_name="hand.R";socket.name="LanternHandSocket";skeletons[0].add_child(socket)
 	var bronze:=_material(Color("71553b"));var gold:=_material(Color("b8975c"))
@@ -207,6 +207,8 @@ func toggle_lantern() -> bool:
 func _process(_delta: float) -> void:
 	if not is_instance_valid(socket):return
 	lantern.global_position=socket.global_position+player.model.global_basis*Vector3(0,-.01,-.025)
+	# (v29: a short arm and a long lantern: when the hand swings low its foot went into the ground)
+	lantern.global_position.y=maxf(lantern.global_position.y,player.global_position.y+.42)
 	lantern.global_rotation=Vector3(0,player.model.global_rotation.y,.035*sin(Time.get_ticks_msec()*.003))
 
 func toggle_seat() -> bool:

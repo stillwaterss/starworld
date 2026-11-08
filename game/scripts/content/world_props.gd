@@ -87,6 +87,7 @@ func _register_places(meta: Dictionary) -> void:
 		registry.register("keeper_house", _v(keeper.house_door), 1.6)
 		registry.register("keeper_desk", _v(keeper.desk), 1.3)
 		registry.register("keeper_lamp", _v(keeper.gallery), 1.6)
+		if keeper.has("bench"):registry.register("keeper_bench", _v(keeper.bench), 1.8)
 		registry.register("keeper_tower", _v(keeper.tower_door), 1.6)
 	var star := _ground(Vector3(1.75, 0, 1.9), 2.0)
 	registry.register("fallen_star", star + Vector3.UP * .05, 1.6)
@@ -148,8 +149,10 @@ func open_door(id: String, stay := false, animate := true) -> void:
 func close_door(id: String) -> void:
 	if not doors.has(id) or not doors[id].open:return
 	var d: Dictionary = doors[id]
-	# someone is still talking at this door: try again a little later
-	if d.get("hold", false):
+	# someone is still talking at this door, or the player is still standing there (closing
+	# then would send the resident in, and the next word bring them out again): later
+	var near: bool = world.player.global_position.distance_to(_v(d.info.centre)) < 5.5 and not (content.ending != null and content.ending.playing)
+	if d.get("hold", false) or near:
 		get_tree().create_timer(3.0).timeout.connect(close_door.bind(id))
 		return
 	d.open = false
@@ -550,7 +553,8 @@ func ring_bell() -> void:
 	for k in 5:
 		t.tween_property(bell, "rotation:z", swing * (1 - k / 5.0) * (1 if k % 2 == 0 else -1), .22)
 	t.tween_property(bell, "rotation:z", 0.0, .3)
-	if world.get("audio"):world.audio.play_sfx("windchime")
+	# its own bronze bell, not the tree house's chime: bright by day, longer at dusk, low at night
+	if world.get("audio"):world.audio.play_sfx("bell_" + ["day", "dusk", "night"][int(world.day_cycle.current)])
 
 func firefly_spring_glow() -> void:
 	if is_instance_valid(spring):

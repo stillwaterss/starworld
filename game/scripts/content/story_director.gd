@@ -82,7 +82,7 @@ func side_stage(id: String) -> Dictionary:
 func side_state(id: String) -> String:
 	if not sides.has(id):return "locked"
 	var entry: Dictionary = state.side(id)
-	if entry.state == "locked" and _check(sides[id].get("unlock", {}), "") and state.flag("offered_" + id):
+	if entry.state == "locked" and _check(sides[id].get("unlock", {}), "") and (state.flag("offered_" + id) or sides[id].get("after_story", false)):
 		entry.state = "available"
 	return entry.state
 
@@ -332,6 +332,7 @@ func _check(cond: Dictionary, quest: String) -> bool:
 			"side_state":ok = side_state(want) == String(cond.get("is", "active"))
 			"chapter_done":ok = _chapter_done(want)
 			"main_done":ok = main_done() == bool(want)
+			"mode":ok = String(state.data.mode) == String(want)   # "story" / "free" (随便走走)
 			"talk":ok = _happened(quest, {"id": "npc_talked", "npc": want})
 			"event":ok = _happened(quest, {"id": want, "sky": cond.get("sky", ""), "near": cond.get("near", ""), "r": cond.get("r", 0), "place": cond.get("place", "")})
 			"place":continue

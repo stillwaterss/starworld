@@ -107,6 +107,31 @@
       "radius": 2.4,
       "variants": [
         {
+          "id": "v25_chair_cloth",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_chair_cloth"
+              }
+            ]
+          },
+          "prompt": "问问做软垫的布",
+          "sets": [
+            "chair_cloth"
+          ],
+          "door": "shop",
+          "perform": "knock",
+          "talk": {
+            "title": "小摊店主",
+            "lines": [
+              "做垫子的布？给奶奶的？",
+              "那就这块紫色的吧。这块布我留了好多年，一直没舍得卖。",
+              "不知道为什么，总觉得该留给一个要坐很久的人。",
+              "不要钱。替我跟绵绵说，垫子缝密一点。"
+            ]
+          }
+        },
+        {
           "id": "paper",
           "when": {
             "stage": "c2_shop"
@@ -240,6 +265,67 @@
       },
       "variants": [
         {
+          "id": "v26_keeper_ride",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_keeper_ride"
+              }
+            ]
+          },
+          "prompt": "和老星一起登上飞艇",
+          "special": "keeper_ride"
+        },
+        {
+          "id": "v24_after_talk",
+          "when": {
+            "all": [
+              {
+                "main_done": true
+              },
+              {
+                "not": {
+                  "flag": "keeper_after_talk"
+                }
+              },
+              {
+                "not": {
+                  "flag": "met_s_keeper"
+                }
+              }
+            ]
+          },
+          "prompt": "登上飞艇回小镇",
+          "sets": [
+            "keeper_after_talk"
+          ],
+          "special": "airship_board",
+          "talk": {
+            "title": "灯塔岛的码头",
+            "lines": [
+              "老星：要回去了？路上看看云，傍晚的时候最好看。",
+              "老星：替我跟她说……算了，我自己说。等我想好第一句话。",
+              "{name}：你已经想了四十年了。",
+              "老星：所以，快想好了。"
+            ]
+          }
+        },
+        {
+          "id": "v24_after_board",
+          "when": {
+            "any": [
+              {
+                "main_done": true
+              },
+              {
+                "mode": "free"
+              }
+            ]
+          },
+          "prompt": "登上飞艇回小镇",
+          "special": "airship_board"
+        },
+        {
           "id": "why_1",
           "when": {
             "not": {
@@ -324,6 +410,50 @@
       "at": "loc:keeper_house",
       "radius": 1.6,
       "variants": [
+        {
+          "id": "v26_keeper_meet",
+          "when": {
+            "any": [
+              {
+                "side_state": "s_keeper",
+                "is": "available"
+              },
+              {
+                "side_stage": "s_keeper_meet"
+              }
+            ]
+          },
+          "prompt": "和老星说说话",
+          "door": "keeper",
+          "starts": "s_keeper",
+          "sets": [
+            "met_s_keeper"
+          ],
+          "talk": {
+            "title": "老星",
+            "lines": [
+              "……来了。",
+              "傍晚要是有空，长椅那边坐一会儿。"
+            ]
+          }
+        },
+        {
+          "id": "v26_keeper_away",
+          "when": {
+            "all": [
+              {
+                "flag": "keeper_in_town"
+              },
+              {
+                "not": {
+                  "flag": "watch_done"
+                }
+              }
+            ]
+          },
+          "prompt": "看看小屋",
+          "text": "屋里没人。灯芯剪得整整齐齐，桌上的提灯擦得很亮。"
+        },
         {
           "id": "open",
           "when": {
@@ -488,6 +618,44 @@
       ]
     },
     {
+      "id": "tower_watch",
+      "at": "loc:keeper_lamp",
+      "radius": 2.4,
+      "height": 2.5,
+      "when": {
+        "side_stage": "s_keeper_watch"
+      },
+      "variants": [
+        {
+          "id": "v26_tower_watch",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_keeper_watch"
+              },
+              {
+                "sky": "night"
+              }
+            ]
+          },
+          "prompt": "守灯，守一整夜",
+          "special": "night_watch"
+        },
+        {
+          "id": "v26_tower_wait",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_keeper_watch"
+              }
+            ]
+          },
+          "prompt": "看看灯",
+          "text": "要等天黑。守夜从天黑开始。"
+        }
+      ]
+    },
+    {
       "id": "tower_down",
       "at": "loc:keeper_lamp",
       "radius": 2.4,
@@ -513,9 +681,120 @@
       "radius": 1.4,
       "door": "lamplighter",
       "when": {
-        "flag": "xiaoguang"
+        "any": [
+          {
+            "flag": "xiaoguang"
+          },
+          {
+            "side_state": "s_letters"
+          },
+          {
+            "side_state": "s_bell"
+          },
+          {
+            "side_state": "s_chair"
+          },
+          {
+            "side_state": "s_lamp"
+          },
+          {
+            "side_state": "s_keeper"
+          },
+          {
+            "side_state": "s_heir"
+          }
+        ]
       },
       "variants": [
+        {
+          "id": "v25_s_letters_deliver_lamplighter",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_letters_deliver"
+              },
+              {
+                "not": {
+                  "flag": "letter_to_lamplighter"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "lamplighter",
+          "talk": {
+            "title": "修灯的邻居",
+            "lines": [
+              "“修好东西又不说的人”？……谁这么了解我。",
+              "（信里写着：东边小岛信箱的门，是你半夜偷偷修好的吧。合页不响了，爷爷的信也不会被风吹湿了。谢谢。——信箱）",
+              "署名是“信箱”。……这个小家伙，自己写的还不承认。",
+              "替我跟他说，合页每年要上一次油。别等它又响了才想起我。"
+            ]
+          },
+          "sets": [
+            "letter_to_lamplighter"
+          ]
+        },
+        {
+          "id": "v25_s_bell_ask_lamplighter",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_bell_ask"
+              },
+              {
+                "not": {
+                  "flag": "bell_ask_lamplighter"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "lamplighter",
+          "talk": {
+            "title": "修灯的邻居",
+            "lines": [
+              "我小时候在雾里迷过路，坐在地上哭。后来，铃响了。",
+              "……一直没去说谢谢。",
+              "今天傍晚，我把门口的灯拧亮，算是回她。"
+            ]
+          },
+          "sets": [
+            "bell_ask_lamplighter"
+          ]
+        },
+        {
+          "id": "v25_s_lamp_wick_lamplighter",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_lamp_wick"
+              },
+              {
+                "not": {
+                  "flag": "s_lamp_wick"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "lamplighter",
+          "talk": {
+            "title": "修灯的邻居",
+            "lines": [
+              "芯芯？他的灯芯，从小就是我编的。",
+              "那本手记我也看过。最后一页是空的——我一直以为是老星忘了写。",
+              "灯芯拿去吧，我编得最好的一根。我给你点着了，放在手灯里。路上风大的地方，用手挡一挡。"
+            ]
+          },
+          "sets": [
+            "s_lamp_wick"
+          ],
+          "special": "lamp_on"
+        },
         {
           "id": "meet",
           "when": {
@@ -625,9 +904,90 @@
       "radius": 1.4,
       "door": "baker",
       "when": {
-        "flag": "xiaoguang"
+        "any": [
+          {
+            "flag": "xiaoguang"
+          },
+          {
+            "side_state": "s_letters"
+          },
+          {
+            "side_state": "s_bell"
+          },
+          {
+            "side_state": "s_chair"
+          },
+          {
+            "side_state": "s_lamp"
+          },
+          {
+            "side_state": "s_keeper"
+          },
+          {
+            "side_state": "s_heir"
+          }
+        ]
       },
       "variants": [
+        {
+          "id": "v25_s_letters_deliver_baker",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_letters_deliver"
+              },
+              {
+                "not": {
+                  "flag": "letter_to_baker"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "baker",
+          "talk": {
+            "title": "面包师",
+            "lines": [
+              "给我的？……“给岛上起得最早的人”。哈，那确实是我，天没亮炉子就得生火。",
+              "（信里只有几行字：谢谢每天早上的面包香。闻到它，我就知道新的一天开始了，也该去睡了。——一个总睡不着的人）",
+              "总睡不着的人……我猜是眠眠。她熬夜看星星，闻着面包香才去睡。",
+              "我一直以为，烤面包是一件只有自己知道的事。"
+            ]
+          },
+          "sets": [
+            "letter_to_baker"
+          ]
+        },
+        {
+          "id": "v25_s_bell_ask_baker",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_bell_ask"
+              },
+              {
+                "not": {
+                  "flag": "bell_ask_baker"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "baker",
+          "talk": {
+            "title": "面包师",
+            "lines": [
+              "雾铃？……有一年雾大，我送面包回来，看不见路。",
+              "就站在原地等。等到那声铃。",
+              "今天傍晚，我敲敲炉门，回她一声。"
+            ]
+          },
+          "sets": [
+            "bell_ask_baker"
+          ]
+        },
         {
           "id": "meet",
           "when": {
@@ -736,9 +1096,111 @@
       "radius": 1.4,
       "door": "child",
       "when": {
-        "flag": "xiaoguang"
+        "any": [
+          {
+            "flag": "xiaoguang"
+          },
+          {
+            "side_state": "s_letters"
+          },
+          {
+            "side_state": "s_bell"
+          },
+          {
+            "side_state": "s_chair"
+          },
+          {
+            "side_state": "s_lamp"
+          },
+          {
+            "side_state": "s_keeper"
+          },
+          {
+            "side_state": "s_heir"
+          }
+        ]
       },
       "variants": [
+        {
+          "id": "v25_s_letters_deliver_child",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_letters_deliver"
+              },
+              {
+                "not": {
+                  "flag": "letter_to_child"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "child",
+          "talk": {
+            "title": "数星星的孩子",
+            "lines": [
+              "给我的？我、我才不怕黑……好吧，有一点点。",
+              "（信里画着一盏小灯，旁边写着：我小时候也怕黑。后来我发现，黑的时候星星才看得见。怕的时候，就数星星吧。——一个也怕过黑的大人）",
+              "一个也怕过黑的大人……原来大人也怕过。",
+              "那我今晚数到两百。数完就不怕了。"
+            ]
+          },
+          "sets": [
+            "letter_to_child"
+          ]
+        },
+        {
+          "id": "v25_s_lamp_child_wait",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_lamp_child"
+              },
+              {
+                "not": {
+                  "sky": "night"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "text": "孩子还在玩呢。芯芯的手记上说：灯是给黑夜的。等天黑了再来。"
+        },
+        {
+          "id": "v25_s_lamp_child_child",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_lamp_child"
+              },
+              {
+                "not": {
+                  "flag": "s_lamp_child_done"
+                }
+              },
+              {
+                "sky": "night"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "child",
+          "talk": {
+            "title": "数星星的孩子",
+            "lines": [
+              "谁呀？……这么晚了。",
+              "……你提着灯来的？",
+              "我、我才不是怕黑。只是晚上一个人数星星，数着数着，就不知道自己数到哪儿了。",
+              "你在门口站一会儿好不好？……就一会儿。我数到一百。"
+            ]
+          },
+          "sets": [
+            "s_lamp_child_done"
+          ]
+        },
         {
           "id": "meet",
           "when": {
@@ -850,9 +1312,123 @@
       "radius": 1.4,
       "door": "grandma",
       "when": {
-        "flag": "xiaoguang"
+        "any": [
+          {
+            "flag": "xiaoguang"
+          },
+          {
+            "side_state": "s_letters"
+          },
+          {
+            "side_state": "s_bell"
+          },
+          {
+            "side_state": "s_chair"
+          },
+          {
+            "side_state": "s_lamp"
+          },
+          {
+            "side_state": "s_keeper"
+          },
+          {
+            "side_state": "s_heir"
+          }
+        ]
       },
       "variants": [
+        {
+          "id": "v26_keeper_grandma",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_keeper_grandma"
+              },
+              {
+                "flag": "keeper_in_town"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "special": "door_reunion"
+        },
+        {
+          "id": "v26_grandma_away",
+          "when": {
+            "all": [
+              {
+                "flag": "grandma_joined"
+              },
+              {
+                "not": {
+                  "flag": "watch_done"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "text": "门关着。窗台的灯亮着。"
+        },
+        {
+          "id": "v25_s_bell_ask_grandma",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_bell_ask"
+              },
+              {
+                "not": {
+                  "flag": "bell_ask_grandma"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "grandma",
+          "talk": {
+            "title": "写信的奶奶",
+            "lines": [
+              "四十年前那个夜里，飞艇在雾里找不到岛。",
+              "是一阵铃声。他说，是铃声带他回来的。",
+              "傍晚我把窗台的灯点上，替他回一声。"
+            ]
+          },
+          "sets": [
+            "bell_ask_grandma"
+          ]
+        },
+        {
+          "id": "v25_s_chair_grandma_grandma",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_chair_grandma"
+              },
+              {
+                "not": {
+                  "flag": "s_chair_yes"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "grandma",
+          "talk": {
+            "title": "写信的奶奶",
+            "lines": [
+              "……木匠家的小孙子？他爷爷还记得那把椅子。",
+              "那时候我们坐在那儿，他数星星，我数他数错了几颗。",
+              "改回去吧，改宽一点。……等他回来，我们还去那儿坐。",
+              "垫子要软一点。我老了，坐不惯硬木头了。"
+            ]
+          },
+          "sets": [
+            "s_chair_yes"
+          ]
+        },
         {
           "id": "story",
           "when": {
@@ -1052,6 +1628,18 @@
       "radius": 1.6,
       "variants": [
         {
+          "id": "v25_write",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_letters_write"
+              }
+            ]
+          },
+          "prompt": "写一封没写地址的信",
+          "special": "write_letter"
+        },
+        {
           "id": "letters",
           "when": {
             "all": [
@@ -1078,7 +1666,7 @@
               "信箱里塞得满满的，全是同一个人的字。",
               "每一封的信封上，都只写着三个字：给老星。",
               "最早的那封，纸已经黄了。最新的那封，是昨天的。",
-              "信箱看守人说：没有地址的信，我都替它们留着。总有一天，会有船来的。"
+              "阿信说：爷爷讲过，没有地址的信要替它们留着。总有一天，会有船来的。"
             ]
           }
         },
@@ -1103,6 +1691,36 @@
       "at": "loc:islet_sw_thing",
       "radius": 1.6,
       "variants": [
+        {
+          "id": "v26_bell_ring",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_bell_ring"
+              },
+              {
+                "sky": "dusk"
+              }
+            ]
+          },
+          "prompt": "和青铃一起摇雾铃",
+          "perform": "reach_up",
+          "seconds": 1.4,
+          "after": "ring_bell",
+          "special": "bell_answer"
+        },
+        {
+          "id": "v26_bell_wait",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_bell_ring"
+              }
+            ]
+          },
+          "prompt": "看看雾铃",
+          "text": "青铃说：傍晚再摇。傍晚的时候，大家都在家。"
+        },
         {
           "id": "ring",
           "prompt": "摇一摇小铃",
@@ -1139,6 +1757,40 @@
       "radius": 1.6,
       "variants": [
         {
+          "id": "v25_lamp_dusk",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_lamp_dusk"
+              },
+              {
+                "sky": "dusk"
+              }
+            ]
+          },
+          "prompt": "傍晚点亮小灯",
+          "perform": "hold_up",
+          "seconds": 1.5,
+          "after": "light_small_lamp",
+          "sets": [
+            "s_lamp_lit_dusk",
+            "isle_south_r_read"
+          ],
+          "text": "灯芯“噗”地一下亮了。芯芯在屋里说：“不早不晚，正好。手记上就是这么写的。”"
+        },
+        {
+          "id": "v25_lamp_wait",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_lamp_dusk"
+              }
+            ]
+          },
+          "prompt": "看看小灯",
+          "text": "手记第一课：天还亮的时候点灯，是浪费；天黑透了才点，就晚了。要等傍晚。"
+        },
+        {
           "id": "light",
           "when": {
             "not": {
@@ -1167,11 +1819,197 @@
       "radius": 1.4,
       "variants": [
         {
+          "id": "v25_s_chair_tell",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_chair_tell"
+              },
+              {
+                "not": {
+                  "flag": "s_chair_heard"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_nw",
+          "talk": {
+            "title": "绵绵",
+            "lines": [
+              "……照片里，椅子旁边空着一块。你也看出来了。",
+              "我回去问了爷爷。他说，那把椅子本来就是两个人坐的——写信的奶奶，和老星。",
+              "后来老星去了灯塔，奶奶一个人来，坐了几次，就不来了。爷爷就把椅子改窄了，说一个人坐，不显得空。",
+              "爷爷说，第二把椅子不用做。要做的，是把第一把改回去。",
+              "可是这种事，得奶奶点头。你去问问她吧。"
+            ]
+          },
+          "sets": [
+            "s_chair_heard"
+          ]
+        },
+        {
+          "id": "v25_s_chair_make",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_chair_make"
+              },
+              {
+                "not": {
+                  "flag": "chair_widened"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_nw",
+          "talk": {
+            "title": "绵绵",
+            "lines": [
+              "紫色的……爷爷说，奶奶年轻的时候最喜欢这个颜色。",
+              "我连夜改好了，软垫也缝上了。木头接得很平，坐上去，不会觉得那是后来接的。",
+              "爷爷拄着拐杖去看了很久。最后只说了一句：做得好。",
+              "……傍晚再去坐坐吧。替我看看，它现在是什么样子。"
+            ]
+          },
+          "sets": [
+            "chair_widened"
+          ],
+          "special": "chair_widen"
+        },
+        {
+          "id": "v25_offer",
+          "when": {
+            "any": [
+              {
+                "side_state": "s_chair",
+                "is": "available"
+              },
+              {
+                "side_stage": "s_chair_meet"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_nw",
+          "talk": {
+            "title": "绵绵",
+            "lines": [
+              "观景椅坐过了吗？坐下来的人，才看得见全部。",
+              "我叫绵绵。那把椅子，是我爷爷四十年前做的。他的手现在抖了，做不了细活，换我来学。",
+              "爷爷让我做第二把，说一个人看天，和两个人看天，是不一样的。",
+              "可第二把放在哪儿、朝哪边，爷爷不肯告诉我，说要我自己去看。",
+              "你替我去观景椅上坐一会儿吧，傍晚的时候。看看那把椅子，缺的是什么。"
+            ]
+          },
+          "starts": "s_chair",
+          "sets": [
+            "met_s_chair"
+          ]
+        },
+        {
+          "id": "v25_story_2",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "chapter_done": "c4"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_nw",
+          "talk": {
+            "title": "绵绵",
+            "lines": [
+              "灯塔亮了。爷爷在门口坐到半夜，没舍得起来。",
+              "小家伙，你要走了吧。走之前，去那把椅子上再坐一次。",
+              "爷爷说，木头记得每一个坐过它的人。你也算一个。"
+            ]
+          }
+        },
+        {
+          "id": "v25_story_1",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "chapter_done": "c3"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_nw",
+          "talk": {
+            "title": "绵绵",
+            "lines": [
+              "最近岛上的灯一盏一盏亮了。爷爷坐在门口，数了一晚上。",
+              "亮一盏，他就说一个坐过那把椅子的人的名字。",
+              "小光：那他数到几了？",
+              "还差最远的那一盏。"
+            ]
+          }
+        },
+        {
+          "id": "v25_story_0",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "not": {
+                  "chapter_done": "c3"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_nw",
+          "talk": {
+            "title": "绵绵",
+            "lines": [
+              "观景椅？是我爷爷做的。坐下来的人，才看得见全部。",
+              "小光：坐下来……就能看见我的家吗？",
+              "看不看得见，我不知道。可爷爷说，站着的人总在找路；坐下来的人，才会抬头。"
+            ]
+          }
+        },
+        {
           "id": "knock",
           "prompt": "敲敲小屋的门",
           "perform": "knock",
           "door": "islet_nw",
-          "text": "门开了，屋里的木匠抬起头：“观景椅？是我做的。坐下来的人，才看得见全部。”"
+          "text": "门开了，小木匠绵绵抬起头：“观景椅？是我爷爷做的。坐下来的人，才看得见全部。”"
         }
       ]
     },
@@ -1194,11 +2032,166 @@
       "radius": 1.4,
       "variants": [
         {
+          "id": "v25_s_letters_back",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_letters_back"
+              },
+              {
+                "not": {
+                  "flag": "s_letters_told"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_e",
+          "talk": {
+            "title": "阿信",
+            "lines": [
+              "都送到了？面包师笑了没有？孩子呢？……好，好。",
+              "{name}：修灯的邻居说，合页每年要上一次油。",
+              "……他看出来了啊。那封确实是我写的。爷爷说，有些谢谢，当面说不出口，就只好不写地址。",
+              "以前我觉得爷爷傻，替别人的信守了四十年。现在我有点懂了——没地址的信，写给的从来都是一种人，不是一个人。",
+              "轮到你了。去门外的信箱里留一封吧，也别写地址。爷爷说，这是信箱的规矩。"
+            ]
+          },
+          "sets": [
+            "s_letters_told"
+          ]
+        },
+        {
+          "id": "v25_offer",
+          "when": {
+            "any": [
+              {
+                "side_state": "s_letters",
+                "is": "available"
+              },
+              {
+                "side_stage": "s_letters_meet"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_e",
+          "talk": {
+            "title": "阿信",
+            "lines": [
+              "哟，是你。进来坐？……算了，屋里全是信，没地方坐。",
+              "我叫阿信。这个蓝色信箱原来是我爷爷的。他守了四十年，去年冬天，把钥匙交给了我。",
+              "爷爷说，没写地址的信要替它们留着。奶奶的那些送走了，抽屉里还剩三封。",
+              "一封写给“岛上起得最早的人”，一封写给“怕黑的小朋友”，一封写给“修好东西又不说的人”。",
+              "我腿短，跑不动小镇那么远。你替我送送？收信的人，一看就知道是写给自己的。"
+            ]
+          },
+          "starts": "s_letters",
+          "sets": [
+            "met_s_letters"
+          ]
+        },
+        {
+          "id": "v25_story_2",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "chapter_done": "c4"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_e",
+          "talk": {
+            "title": "阿信",
+            "lines": [
+              "信送到了吧。……他读了吗？",
+              "小光：读了。他一封一封地拆。",
+              "好。爷爷听了一定会笑。这个信箱，总算可以空一回了。"
+            ]
+          }
+        },
+        {
+          "id": "v25_story_1",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "chapter_done": "c3"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_e",
+          "talk": {
+            "title": "阿信",
+            "lines": [
+              "奶奶的信，终于有人来取了。",
+              "四十年，一封也没丢。最早的那几封，爷爷每年都拿出来晒晒太阳，怕潮了。",
+              "小光：你们看过里面写什么吗？",
+              "没有。可爷爷说，他知道写的是什么——每一封，都是“我还在等”。"
+            ]
+          }
+        },
+        {
+          "id": "v25_story_0",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "not": {
+                  "chapter_done": "c3"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_e",
+          "talk": {
+            "title": "阿信",
+            "lines": [
+              "没写地址的信，我们家都替它们留着。",
+              "小光：没写地址，要寄给谁呢？",
+              "寄给会来取的人。爷爷说，这个信箱满了好多年，就等一条船。"
+            ]
+          }
+        },
+        {
           "id": "knock",
           "prompt": "敲敲小屋的门",
           "perform": "knock",
           "door": "islet_e",
-          "text": "门开了，信箱看守人笑眯眯的：“没写地址的信，我都替它们留着。奶奶的那些，一封也没丢。”"
+          "text": "门开了，小邮差阿信笑眯眯的：“没写地址的信，我们家都替它们留着。奶奶的那些，爷爷守了四十年，一封也没丢。”"
         }
       ]
     },
@@ -1208,11 +2201,162 @@
       "radius": 1.4,
       "variants": [
         {
+          "id": "v25_s_bell_tell",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_bell_tell"
+              },
+              {
+                "not": {
+                  "flag": "s_bell_told"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_sw",
+          "talk": {
+            "title": "青铃",
+            "lines": [
+              "面包师？修灯的邻居？……还有，老星？",
+              "……奶奶要是知道就好了。",
+              "傍晚，陪我摇一次吧。"
+            ]
+          },
+          "sets": [
+            "s_bell_told"
+          ]
+        },
+        {
+          "id": "v25_offer",
+          "when": {
+            "any": [
+              {
+                "side_state": "s_bell",
+                "is": "available"
+              },
+              {
+                "side_stage": "s_bell_meet"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_sw",
+          "talk": {
+            "title": "青铃",
+            "lines": [
+              "嘘——",
+              "我叫青铃。这是雾铃。起雾的时候摇，迷路的人听见了，就知道往哪边走。",
+              "奶奶摇了一辈子。她老了，手抬不起来了，换我。",
+              "……可是，真的有人听见过吗？"
+            ]
+          },
+          "starts": "s_bell",
+          "sets": [
+            "met_s_bell"
+          ]
+        },
+        {
+          "id": "v25_story_2",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "chapter_done": "c4"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_sw",
+          "talk": {
+            "title": "青铃",
+            "lines": [
+              "灯塔亮起来的那一刻，我的铃自己响了。一点风都没有。",
+              "小光：是它在回答你吗？",
+              "也许是。也许是有一颗星星，在跟我说再见。"
+            ]
+          }
+        },
+        {
+          "id": "v25_story_1",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "chapter_done": "c3"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_sw",
+          "talk": {
+            "title": "青铃",
+            "lines": [
+              "今天傍晚，我好像听见镇上的风铃了。……也许只是风。",
+              "小光：是我们拨的！",
+              "……是吗。那今晚，我多摇一次。"
+            ]
+          }
+        },
+        {
+          "id": "v25_story_0",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "not": {
+                  "chapter_done": "c3"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "islet_sw",
+          "talk": {
+            "title": "青铃",
+            "lines": [
+              "嘘——风大的时候，那只雾铃会自己响。离云最近的地方，最安静。",
+              "小光：它响给谁听呢？",
+              "给云那边的人。很多年没人回答了，可我还是每天傍晚摇。"
+            ]
+          }
+        },
+        {
           "id": "knock",
           "prompt": "敲敲小屋的门",
           "perform": "knock",
           "door": "islet_sw",
-          "text": "门开了，摇铃人竖起手指：“嘘——风大的时候，那只小铃会自己响。离云最近的地方，最安静。”"
+          "text": "门开了，青铃竖起手指：“嘘——风大的时候，那只小铃会自己响。离云最近的地方，最安静。”"
         }
       ]
     },
@@ -1222,11 +2366,276 @@
       "radius": 1.4,
       "variants": [
         {
+          "id": "v25_s_lamp_back",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_lamp_back"
+              },
+              {
+                "not": {
+                  "flag": "s_lamp_done"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "isle_south_r",
+          "talk": {
+            "title": "芯芯",
+            "lines": [
+              "……火还在。你一路护着它回来的。",
+              "灯不是一个人点的。有人编灯芯，有人护着火走路。",
+              "手记最后一页只写了一句：把灯交给下一个人。",
+              "……我还不知道下一个人是谁。不急。"
+            ]
+          },
+          "sets": [
+            "s_lamp_done"
+          ]
+        },
+        {
+          "id": "v25_offer",
+          "when": {
+            "any": [
+              {
+                "side_state": "s_lamp",
+                "is": "available"
+              },
+              {
+                "side_stage": "s_lamp_meet"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "isle_south_r",
+          "talk": {
+            "title": "芯芯",
+            "lines": [
+              "木桩上的小灯，是岛上最小的一盏灯。",
+              "我叫芯芯。我是照着灯柱下面木箱里的一本旧手记学会点灯的。签名是：老星。",
+              "跟我一起，把手记再走一遍吧。第一课——等傍晚。"
+            ]
+          },
+          "starts": "s_lamp",
+          "sets": [
+            "met_s_lamp"
+          ]
+        },
+        {
+          "id": "v25_story_2",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "chapter_done": "c4"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "isle_south_r",
+          "talk": {
+            "title": "芯芯",
+            "lines": [
+              "大灯塔亮了。我这盏小灯，今晚可以早点睡了。",
+              "小光：老星说，他看见过你的小灯。每天傍晚都亮。",
+              "……他看见了？我以为，从那么远，什么都看不见。"
+            ]
+          }
+        },
+        {
+          "id": "v25_story_1",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "chapter_done": "c3"
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "isle_south_r",
+          "talk": {
+            "title": "芯芯",
+            "lines": [
+              "你们要去灯塔岛？",
+              "见到老星，替我问一句：手记里那句“灯芯要剪平”，为什么画了三道线？",
+              "小光：为什么呢？",
+              "我猜是他自己总剪歪。"
+            ]
+          }
+        },
+        {
+          "id": "v25_story_0",
+          "when": {
+            "all": [
+              {
+                "main_done": false
+              },
+              {
+                "mode": "story"
+              },
+              {
+                "flag": "xiaoguang"
+              },
+              {
+                "not": {
+                  "chapter_done": "c3"
+                }
+              }
+            ]
+          },
+          "prompt": "敲敲门",
+          "perform": "knock",
+          "door": "isle_south_r",
+          "talk": {
+            "title": "芯芯",
+            "lines": [
+              "木桩上的小灯是我点的。我是照着一本旧手记学的。",
+              "小光：谁写的手记？",
+              "签名是老星。听说他在云海那边守灯塔……他的灯，暗了好久了。"
+            ]
+          }
+        },
+        {
           "id": "knock",
           "prompt": "敲敲小屋的门",
           "perform": "knock",
           "door": "isle_south_r",
-          "text": "门开了，守小灯的人说：“木桩上的小灯是我点的。老星年轻的时候，就是在这盏小灯旁学会点灯的。”"
+          "text": "门开了，芯芯说：“木桩上的小灯是我点的。我是照着一本旧手记学的——签名是老星。”"
+        }
+      ]
+    },
+    {
+      "id": "keeper_bench",
+      "at": [
+        38.2,
+        14.05,
+        31.2
+      ],
+      "radius": 1.8,
+      "variants": [
+        {
+          "id": "v26_bench_dusk",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_keeper_bench"
+              },
+              {
+                "sky": "dusk"
+              }
+            ]
+          },
+          "prompt": "和老星一起坐在长椅上",
+          "special": "bench_scene"
+        },
+        {
+          "id": "v26_bench_wait",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_keeper_bench"
+              }
+            ]
+          },
+          "prompt": "看看长椅",
+          "text": "老星说：傍晚再来。"
+        },
+        {
+          "id": "v26_bench_rest",
+          "prompt": "坐在长椅上歇一会儿",
+          "perform": "listen",
+          "seconds": 2.5,
+          "text": "长椅被坐得很光滑。从这里望过去，云海那边就是小镇。"
+        }
+      ]
+    },
+    {
+      "id": "chair_reunion",
+      "at": "loc:remote_chair",
+      "radius": 3.2,
+      "first": true,
+      "when": {
+        "all": [
+          {
+            "flag": "grandma_joined"
+          },
+          {
+            "not": {
+              "flag": "reunion_seen"
+            }
+          }
+        ]
+      },
+      "variants": [
+        {
+          "id": "v26_reunion",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_keeper_chair"
+              },
+              {
+                "sky": "dusk"
+              }
+            ]
+          },
+          "prompt": "和他们一起看天色",
+          "special": "reunion"
+        },
+        {
+          "id": "v26_reunion_wait",
+          "when": {
+            "all": [
+              {
+                "side_stage": "s_keeper_chair"
+              }
+            ]
+          },
+          "prompt": "和他们说说话",
+          "text": "奶奶说：天色要一起看。等傍晚吧。"
+        }
+      ]
+    },
+    {
+      "id": "garden_flowers",
+      "at": [
+        -3.6,
+        0.1,
+        10.7
+      ],
+      "radius": 1.3,
+      "height": 2.0,
+      "first": true,
+      "when": {
+        "flowers": 1
+      },
+      "variants": [
+        {
+          "id": "look",
+          "prompt": "蹲下来看看花",
+          "special": "admire_flowers"
         }
       ]
     }

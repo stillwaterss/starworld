@@ -899,6 +899,446 @@
           }
         }
       ]
+    },
+    {
+      "id": "s_letters",
+      "title": "没有地址的信",
+      "giver": "islet_e",
+      "after_story": true,
+      "unlock": {
+        "any": [
+          {
+            "main_done": true
+          },
+          {
+            "mode": "free"
+          }
+        ]
+      },
+      "intro": "东边小岛的小邮差阿信，接过了爷爷守了四十年的蓝色信箱。抽屉里还剩三封没写地址的信。",
+      "outro": "没写地址的信，不会寄丢。它总会找到那个正好需要它的人——就像爷爷的信箱，总会找到下一个守着它的人。",
+      "stages": [
+        {
+          "id": "s_letters_meet",
+          "title": "去找邮差阿信",
+          "hint": "敲敲邮差阿信的门。",
+          "target": "loc:door_islet_e",
+          "done": {
+            "flag": "met_s_letters"
+          }
+        },
+        {
+          "id": "s_letters_deliver",
+          "title": "替阿信送三封没写地址的信",
+          "hint": "回小镇，敲敲收信人的门。",
+          "target": "",
+          "unit": "封",
+          "checklist": [
+            {
+              "done": "letter_to_baker",
+              "todo": "写给“岛上起得最早的人”——送到面包房",
+              "todo_target": "loc:door_baker",
+              "back": "写给“岛上起得最早的人”——送到面包房",
+              "back_target": "loc:door_baker"
+            },
+            {
+              "done": "letter_to_child",
+              "todo": "写给“怕黑的小朋友”——送到数星星的孩子家",
+              "todo_target": "loc:door_child",
+              "back": "写给“怕黑的小朋友”——送到数星星的孩子家",
+              "back_target": "loc:door_child"
+            },
+            {
+              "done": "letter_to_lamplighter",
+              "todo": "写给“修好东西又不说的人”——送到修灯的邻居家",
+              "todo_target": "loc:door_lamplighter",
+              "back": "写给“修好东西又不说的人”——送到修灯的邻居家",
+              "back_target": "loc:door_lamplighter"
+            }
+          ],
+          "done": {
+            "all": [
+              {
+                "flag": "letter_to_baker"
+              },
+              {
+                "flag": "letter_to_child"
+              },
+              {
+                "flag": "letter_to_lamplighter"
+              }
+            ]
+          },
+          "progress": {
+            "flags": [
+              "letter_to_baker",
+              "letter_to_child",
+              "letter_to_lamplighter"
+            ]
+          }
+        },
+        {
+          "id": "s_letters_back",
+          "title": "回东边小岛，告诉阿信信都送到了",
+          "hint": "阿信住在东边小岛。",
+          "target": "loc:door_islet_e",
+          "done": {
+            "flag": "s_letters_told"
+          }
+        },
+        {
+          "id": "s_letters_write",
+          "title": "在蓝色信箱里留一封没写地址的信",
+          "hint": "蓝色信箱就在他家门外。",
+          "target": "loc:islet_e_thing",
+          "done": {
+            "flag": "s_letters_written"
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_bell",
+      "title": "有人听见了吗",
+      "giver": "islet_sw",
+      "after_story": true,
+      "unlock": {
+        "any": [
+          {
+            "main_done": true
+          },
+          {
+            "mode": "free"
+          }
+        ]
+      },
+      "intro": "西南小岛的青铃每天傍晚替奶奶摇雾铃。起雾时，迷路的人听见它，就知道往哪边走。可她从来不知道，有没有人真的听见过。",
+      "outro": "摇铃的人，不用等回音。可是有回音，真好。",
+      "stages": [
+        {
+          "id": "s_bell_meet",
+          "title": "去找青铃",
+          "hint": "敲敲青铃的门。",
+          "target": "loc:door_islet_sw",
+          "done": {
+            "flag": "met_s_bell"
+          }
+        },
+        {
+          "id": "s_bell_ask",
+          "title": "去小镇问问：有人听见过雾铃吗",
+          "hint": "敲敲他们的门。",
+          "target": "",
+          "unit": "位",
+          "checklist": [
+            {
+              "done": "bell_ask_baker",
+              "todo": "问问面包师",
+              "todo_target": "loc:door_baker",
+              "back": "问问面包师",
+              "back_target": "loc:door_baker"
+            },
+            {
+              "done": "bell_ask_lamplighter",
+              "todo": "问问修灯的邻居",
+              "todo_target": "loc:door_lamplighter",
+              "back": "问问修灯的邻居",
+              "back_target": "loc:door_lamplighter"
+            },
+            {
+              "done": "bell_ask_grandma",
+              "todo": "问问写信的奶奶",
+              "todo_target": "loc:door_grandma",
+              "back": "问问写信的奶奶",
+              "back_target": "loc:door_grandma"
+            }
+          ],
+          "done": {
+            "all": [
+              {
+                "flag": "bell_ask_baker"
+              },
+              {
+                "flag": "bell_ask_lamplighter"
+              },
+              {
+                "flag": "bell_ask_grandma"
+              }
+            ]
+          },
+          "progress": {
+            "flags": [
+              "bell_ask_baker",
+              "bell_ask_lamplighter",
+              "bell_ask_grandma"
+            ]
+          }
+        },
+        {
+          "id": "s_bell_tell",
+          "title": "回西南小岛，把大家的话告诉青铃",
+          "hint": "青铃住在西南小岛。",
+          "target": "loc:door_islet_sw",
+          "done": {
+            "flag": "s_bell_told"
+          }
+        },
+        {
+          "id": "s_bell_ring",
+          "title": "傍晚，陪青铃摇一次雾铃",
+          "hint": "到雾铃旁按 E。要等傍晚，按 T 换天色。",
+          "target": "loc:islet_sw_thing",
+          "done": {
+            "flag": "bell_answered"
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_chair",
+      "title": "第二把椅子",
+      "giver": "islet_nw",
+      "after_story": true,
+      "unlock": {
+        "any": [
+          {
+            "main_done": true
+          },
+          {
+            "mode": "free"
+          }
+        ]
+      },
+      "intro": "西北小岛的小木匠绵绵，想替爷爷做第二把观景椅。可第二把椅子，要先知道是给谁坐的。",
+      "outro": "第二把椅子没有做。绵绵把爷爷的那一把改宽了——宽到正好坐得下两个人。",
+      "stages": [
+        {
+          "id": "s_chair_meet",
+          "title": "去找木匠绵绵",
+          "hint": "敲敲木匠绵绵的门。",
+          "target": "loc:door_islet_nw",
+          "done": {
+            "flag": "met_s_chair"
+          }
+        },
+        {
+          "id": "s_chair_sit",
+          "title": "傍晚坐在观景椅上看一会儿",
+          "hint": "到观景椅按 C 坐下，按 T 换到傍晚。",
+          "target": "loc:remote_chair",
+          "done": {
+            "all": [
+              {
+                "seated": true
+              },
+              {
+                "sky": "dusk"
+              }
+            ]
+          }
+        },
+        {
+          "id": "s_chair_photo",
+          "title": "给观景椅拍一张照",
+          "hint": "起身站远一点，按 O 拍照，把椅子和天空一起拍进去。",
+          "target": "loc:remote_chair",
+          "done": {
+            "event": "photo_saved",
+            "near": "remote_chair",
+            "r": 16
+          },
+          "after_text": "照片里，椅子旁边空着一块。"
+        },
+        {
+          "id": "s_chair_tell",
+          "title": "把照片带给绵绵",
+          "hint": "绵绵住在西北小岛。",
+          "target": "loc:door_islet_nw",
+          "done": {
+            "flag": "s_chair_heard"
+          }
+        },
+        {
+          "id": "s_chair_grandma",
+          "title": "去问问写信的奶奶",
+          "hint": "奶奶住在小镇。",
+          "target": "loc:door_grandma",
+          "done": {
+            "flag": "s_chair_yes"
+          }
+        },
+        {
+          "id": "s_chair_cloth",
+          "title": "去小摊找一块做软垫的布",
+          "hint": "小摊在广场西边，星星屋顶下。",
+          "target": "loc:star_roof_shop",
+          "done": {
+            "flag": "chair_cloth"
+          }
+        },
+        {
+          "id": "s_chair_make",
+          "title": "把布带给绵绵",
+          "hint": "绵绵住在西北小岛。",
+          "target": "loc:door_islet_nw",
+          "done": {
+            "flag": "chair_widened"
+          }
+        },
+        {
+          "id": "s_chair_again",
+          "title": "傍晚，再去观景椅坐一次",
+          "hint": "按 C 坐下，换到傍晚。",
+          "target": "loc:remote_chair",
+          "done": {
+            "all": [
+              {
+                "seated": true
+              },
+              {
+                "sky": "dusk"
+              },
+              {
+                "flag": "chair_widened"
+              }
+            ]
+          },
+          "after_text": "椅子宽了。旁边那块紫色软垫空着——可这一次，空得像是在等人。"
+        }
+      ]
+    },
+    {
+      "id": "s_lamp",
+      "title": "小灯的徒弟",
+      "giver": "isle_south_r",
+      "after_story": true,
+      "unlock": {
+        "any": [
+          {
+            "main_done": true
+          },
+          {
+            "mode": "free"
+          }
+        ]
+      },
+      "intro": "南边小岛的芯芯，照着一本旧手记学会了点灯。手记上签着：老星。他从没见过写手记的人。",
+      "outro": "最小的那盏灯，照着一本旧手记亮了好几年。手记最后一页写着：把灯交给下一个人。",
+      "stages": [
+        {
+          "id": "s_lamp_meet",
+          "title": "去找芯芯",
+          "hint": "敲敲芯芯的门。",
+          "target": "loc:door_isle_south_r",
+          "done": {
+            "flag": "met_s_lamp"
+          }
+        },
+        {
+          "id": "s_lamp_dusk",
+          "title": "第一课：等傍晚，点亮木桩上的小灯",
+          "hint": "到南边小岛的木桩旁按 E。要等傍晚，按 T 换天色。",
+          "target": "loc:isle_south_r_thing",
+          "done": {
+            "flag": "s_lamp_lit_dusk"
+          }
+        },
+        {
+          "id": "s_lamp_child",
+          "title": "第二课：手里有灯的人，要走到没灯的地方去",
+          "hint": "夜里提着手灯（F），去敲数星星的孩子家的门。",
+          "target": "loc:door_child",
+          "done": {
+            "flag": "s_lamp_child_done"
+          },
+          "after_text": "孩子数到了一百。关门前，他小声问：明天还来吗？"
+        },
+        {
+          "id": "s_lamp_wick",
+          "title": "第三课：去修灯的邻居那里，要一根新灯芯",
+          "hint": "修灯的邻居住在小镇。",
+          "target": "loc:door_lamplighter",
+          "done": {
+            "flag": "s_lamp_wick"
+          }
+        },
+        {
+          "id": "s_lamp_back",
+          "title": "护着灯芯的火，走回南边小岛",
+          "hint": "手灯里点着新灯芯。提着它，走回南边小岛。",
+          "target": "loc:door_isle_south_r",
+          "done": {
+            "flag": "s_lamp_done"
+          }
+        }
+      ]
+    },
+    {
+      "id": "s_keeper",
+      "title": "今晚我来守灯",
+      "giver": "keeper",
+      "after_story": true,
+      "unlock": {
+        "main_done": true
+      },
+      "intro": "灯塔岛的长椅上，老星每天傍晚坐着，看云海那边奶奶的窗台。四十年，他一次也没回去过。",
+      "outro": "第二天早上，老星坐飞艇回来了。他什么也没说，只是把那盏小提灯挂在了灯塔门口——挂得低低的，正好是你够得着的高度。",
+      "stages": [
+        {
+          "id": "s_keeper_meet",
+          "title": "去找老星",
+          "hint": "敲敲老星的门。",
+          "target": "loc:keeper_house",
+          "done": {
+            "flag": "met_s_keeper"
+          }
+        },
+        {
+          "id": "s_keeper_bench",
+          "title": "傍晚，陪老星坐在长椅上",
+          "hint": "长椅在灯塔岛码头的南边。要等傍晚，按 T 换天色。",
+          "target": "loc:keeper_bench",
+          "done": {
+            "flag": "keeper_agreed"
+          }
+        },
+        {
+          "id": "s_keeper_ride",
+          "title": "和老星一起坐飞艇回小镇",
+          "hint": "到灯塔岛码头，登上飞艇。",
+          "target": "loc:keeper_dock",
+          "done": {
+            "flag": "keeper_in_town"
+          }
+        },
+        {
+          "id": "s_keeper_grandma",
+          "title": "带老星去敲奶奶的门",
+          "hint": "奶奶家在广场西边的坡上。老星跟在你后面。",
+          "target": "loc:door_grandma",
+          "done": {
+            "flag": "grandma_joined"
+          }
+        },
+        {
+          "id": "s_keeper_chair",
+          "title": "傍晚，带他们去观景椅",
+          "hint": "观景椅在西北小岛。要等傍晚，按 T 换天色。",
+          "target": "loc:remote_chair",
+          "done": {
+            "flag": "reunion_seen"
+          }
+        },
+        {
+          "id": "s_keeper_watch",
+          "title": "坐飞艇回灯塔岛，今晚你来守灯",
+          "hint": "从码头坐飞艇去灯塔岛，爬上灯塔。要等天黑。",
+          "target": "loc:keeper_lamp",
+          "done": {
+            "flag": "watch_done"
+          }
+        }
+      ]
     }
   ]
 }

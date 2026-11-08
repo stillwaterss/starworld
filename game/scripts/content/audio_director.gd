@@ -8,7 +8,8 @@ const SETTINGS_VERSION := 1
 const DIR := "res://assets/audio/v11/"
 const MUSIC := ["music_day", "music_dusk", "music_night"]
 const AMBIENCE := ["amb_day", "amb_dusk", "amb_night"]
-const SFX := ["sfx_windchime", "sfx_windchime_day", "sfx_windchime_night", "sfx_objective", "sfx_arrive", "sfx_page", "sfx_shutter", "sfx_plant", "sfx_bloom", "sfx_water_show", "sfx_fireflies", "sfx_door", "sfx_lighthouse"]
+const SFX := ["sfx_windchime", "sfx_windchime_day", "sfx_windchime_night", "sfx_bell_day", "sfx_bell_dusk", "sfx_bell_night", "sfx_bell_far", "sfx_oven_knock", "sfx_lamp_on", "sfx_twinkle", "sfx_objective", "sfx_arrive", "sfx_page", "sfx_shutter", "sfx_plant", "sfx_bloom", "sfx_water_show", "sfx_fireflies", "sfx_door", "sfx_lighthouse"]
+const POST_STORY_SFX := ["sfx_bell_day", "sfx_bell_dusk", "sfx_bell_night", "sfx_bell_far", "sfx_oven_knock", "sfx_lamp_on", "sfx_twinkle"]
 const BUSES := ["Music", "Ambience", "SFX"]
 const SMOOTH := 6.0          # 1/s, how fast gains chase the sky weights (no jumps on instant set_time)
 const DUCK_DB := -4.0
@@ -49,6 +50,7 @@ func _ready() -> void:
 		add_child(player)
 		pool.append(player)
 	for id in SFX:
+		if OS.has_feature("web") and id in POST_STORY_SFX:continue
 		var stream := _stream(id)
 		if stream:sfx_streams[id] = stream
 	var cycle = world.get("day_cycle") if world else null
@@ -129,6 +131,11 @@ func _apply_gains() -> void:
 ## Plays a feedback sound from the fixed pool; returns false when the file is missing.
 func play_sfx(id: String) -> bool:
 	var key := id if id.begins_with("sfx_") else "sfx_" + id
+	if not sfx_streams.has(key) and key in POST_STORY_SFX:
+		var stream := _stream(key)
+		if stream:
+			sfx_streams[key] = stream
+			if OS.has_feature("web"):AudioServer.register_stream_as_sample(stream)
 	if not sfx_streams.has(key):return false
 	# an idle player if there is one; a stream is never swapped under a playing one,
 	# whose playback the audio thread may still be mixing

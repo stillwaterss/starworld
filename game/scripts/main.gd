@@ -187,6 +187,11 @@ func _setup_lights() -> void:
 		omni.light_color = Color(l[4], l[5], l[6])
 		# the story dims these until 小光 has lit the island again (content/island_lights.gd)
 		omni.set_meta("base_energy", omni.light_energy)
+		var gone := false
+		for p in LIGHTS_OUT:gone = gone or omni.position.distance_to(p) < .3
+		if gone:
+			omni.free()
+			continue
 		omni.add_to_group("town_lamps")
 		add_child(omni)
 
@@ -205,7 +210,13 @@ const CUT_OUT := [
 	# the awning's balls that hung low in the bakery and stall doorways
 	[AABB(Vector3(4.0, .8, -9.95), Vector3(2.8, .8, 1.5)), ["Decor_Details_awning"]],
 	[AABB(Vector3(-17.0, .8, 6.9), Vector3(2.8, .8, 1.5)), ["Decor_Details_awning"]],
+	# the star street lamp and the little star lantern at the foot of the stone stairs up to
+	# the child's house (beside the lamplighter's): they closed the way, routes went round
+	# the back of the house
+	[AABB(Vector3(-8.95, 2.45, -4.85), Vector3(1.55, 3.6, .9)), ["Lamps_lamp", "Lamps_star", "Decor_Details_wood", "Decor_Details_wood_dark", "Decor_Details_window"]],
 ]
+## Lights that belonged to what CUT_OUT takes away.
+const LIGHTS_OUT := [Vector3(-7.857, 2.9, -4.676), Vector3(-8.6, 5.4, -4.4)]
 
 func _cut_out(root: Node) -> void:
 	for mi: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):

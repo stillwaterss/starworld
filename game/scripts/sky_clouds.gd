@@ -9,6 +9,8 @@ var world: Node3D
 var materials: Array[ShaderMaterial] = []
 var puffs: Array[Node3D] = []
 var drift: Array[Vector3] = []
+var home: Array[Vector3] = []
+var clock := 0.0
 
 func _ready() -> void:
 	name = "SkyClouds"
@@ -40,7 +42,10 @@ func _ready() -> void:
 			add_child(puff)
 			materials.append(m)
 			puffs.append(puff)
-			drift.append(Vector3(rng.randf_range(-.25, .25), 0, rng.randf_range(-.15, .15)))
+			# v27: they sway along their circle and come back (they used to drift on forever:
+			# after a long walk one could float right over the town and wash it out white)
+			var round_dir := Vector3(-base.z, 0, base.x).normalized()
+			drift.append(round_dir * rng.randf_range(6.0, 14.0) * (1.0 if rng.randf() < .5 else -1.0))
 	for h in HIGH:
 		var m := ShaderMaterial.new()
 		m.shader = shader
@@ -60,7 +65,7 @@ func _ready() -> void:
 		add_child(streak)
 		materials.append(m)
 		puffs.append(streak)
-		drift.append(Vector3(rng.randf_range(-.4, .4), 0, 0))
+		drift.append(Vector3(rng.randf_range(-18.0, 18.0), 0, 0))
 	var sea_shader := preload("res://shaders/cloud_sea.gdshader")
 	for layer in [[-17.0, 0.0, .78], [-11.0, 13.0, .45]]:
 		var sea := MeshInstance3D.new()
@@ -87,5 +92,10 @@ func _ready() -> void:
 		mesh.visible = false
 
 func _process(delta: float) -> void:
+	if home.size() != puffs.size():
+		home.clear()
+		for p in puffs:home.append(p.position)
+	clock += delta
 	for i in puffs.size():
-		puffs[i].position += drift[i] * delta
+		# a slow back-and-forth (about twelve minutes each way), never inward
+		puffs[i].position = home[i] + drift[i] * (sin(clock * .0045 + i * 1.7) - sin(i * 1.7))

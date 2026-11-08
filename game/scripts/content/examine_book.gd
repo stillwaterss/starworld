@@ -97,12 +97,81 @@ func _talk(entry: Dictionary, v: Dictionary, at: Vector3) -> void:
 		if space.intersect_ray(PhysicsRayQueryParameters3D.create(focus, candidate, 1)).is_empty():
 			eye = candidate
 			break
+	# v25: a resident at their door is framed whole, from where no fence and not the player
+	# stands between (the player steps back and to the side first)
+	var lens := 0.0
+	var who: String = content.npcs.resident_of_door(door) if content.npcs and door != "" else ""
+	if who != "" and content.npcs.actors.has(who):
+		_step_aside(who, front)
+		var framed := _frame_resident(who, front, false)
+		if not framed.is_empty():
+			eye = framed[0]
+			focus = framed[1]
+			lens = framed[2]
 	var talk = content.world.interactions
 	var lines: Array = []
 	for line in v.talk.get("lines", []):lines.append(String(line))
 	if talk.show_talk(String(v.talk.get("title", "")), lines, focus, eye):
+		var was: float = talk.dialogue_camera.fov
+		if lens > 0:talk.dialogue_camera.fov = lens
 		await talk.talk_closed
+		talk.dialogue_camera.fov = was
 	if props.doors.has(door):props.doors[door].hold = false
+
+func _frame_resident(who: String, front: Vector3, phone: bool) -> Array:
+	var a: Dictionary = content.npcs.actors[who]
+	var rest: Vector3 = a.rest
+	var player: CharacterBody3D = content.world.player
+	var space: PhysicsDirectSpaceState3D = content.world.get_world_3d().direct_space_state
+	var skip: Array[RID] = [player.get_rid()]
+	var bump = a.get("bump")
+	if bump is CollisionShape3D and bump.get_parent() is CollisionObject3D:skip.append((bump.get_parent() as CollisionObject3D).get_rid())
+	var chest := rest + Vector3.UP * .8
+	var me := player.global_position + Vector3.UP * .8
+	var best: Array = []
+	var best_score := -INF
+	# small islets: the fence is close, so nearer spots (a little higher, a wider lens) too
+	for reach: float in ([3.5, 2.9, 2.4, 2.0] if phone else [4.0, 3.3, 2.7, 2.2]):
+		for turn_and_lift: Vector2 in [Vector2(.35, 0), Vector2(-.35, 0), Vector2(0, 0), Vector2(.7, 0), Vector2(-.7, 0), Vector2(1.05, 0), Vector2(-1.05, 0), Vector2(1.4, 0), Vector2(-1.4, 0),
+				Vector2(.35, .9), Vector2(-.35, .9), Vector2(0, .9), Vector2(.7, .9), Vector2(-.7, .9)]:
+			var turn := turn_and_lift.x
+			var eye := rest + front.rotated(Vector3.UP, turn) * reach + Vector3.UP * ((1.3 if reach > 2.8 else 1.55) + turn_and_lift.y)
+			var clear := true
+			for from in [chest, rest + Vector3.UP * .12, rest + Vector3.UP * .45, rest + Vector3.UP * 1.25]:
+				if not space.intersect_ray(PhysicsRayQueryParameters3D.create(from, eye, 0xFFFFFFFF, skip)).is_empty():
+					clear = false
+					break
+			if not clear:continue
+			var gap := _gap(me, eye, chest)
+			var score := minf(gap, 1.5) * 2.0 - absf(turn) * .6 + reach * .5 - turn_and_lift.y * .5
+			if gap < .55:score -= 6.0
+			if score > best_score:
+				best_score = score
+				best = [eye, rest + Vector3.UP * (.3 if phone else .55), 62.0 if reach < 2.8 else 52.0]
+	return best
+
+## The player, who knocked right at the door, takes a step back and to the side, facing
+## whoever came out: the camera then sees the resident whole.
+func _step_aside(who: String, front: Vector3) -> void:
+	var rest: Vector3 = content.npcs.actors[who].rest
+	var player: CharacterBody3D = content.world.player
+	var grid = content.grid
+	for turn: float in [1.0, -1.0, .75, -.75, 1.3, -1.3]:
+		var slot: int = grid.nearest_slot(rest + front.rotated(Vector3.UP, turn) * 1.2, .45, true)
+		if slot < 0:continue
+		var at: Vector3 = grid.center(slot)
+		if absf(at.y - rest.y) > .45 or Vector2(at.x - rest.x, at.z - rest.z).length() < .8:continue
+		player.global_position = at + Vector3.UP * .05
+		player.velocity = Vector3.ZERO
+		var d := rest - player.global_position
+		player.model.rotation.y = atan2(-d.x, -d.z)
+		return
+
+## Distance from p to the segment a-b.
+static func _gap(p: Vector3, a: Vector3, b: Vector3) -> float:
+	var ab := b - a
+	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), .0001), 0.0, 1.0)
+	return p.distance_to(a + ab * t)
 
 ## Runs an entry; returns false if nothing applies right now.
 func use(entry: Dictionary) -> bool:
@@ -126,6 +195,7 @@ func use(entry: Dictionary) -> bool:
 	var first: bool = not state.flag(once_key)
 	state.set_flag(once_key)
 	for f in v.get("sets", []):state.set_flag(f)
+	for f in v.get("clears", []):state.data.flags.erase(f)
 	var at := position_of(entry)
 	var pose := String(v.get("perform", ""))
 	var performance = content.world.get("performance")
@@ -139,6 +209,10 @@ func use(entry: Dictionary) -> bool:
 		await content.ui.show_note(String(v.note.get("title", "")), v.note.get("lines", []))
 	elif v.has("text"):
 		content.ui.toast(content.named(String(v.text)), float(v.get("text_seconds", 5.0)))
+	# a resident's own story starts from what they said at the door (v23)
+	if v.has("starts"):
+		state.set_flag("offered_" + String(v.starts))
+		content.director.start_side(String(v.starts))
 	if v.has("whisper") and (first or bool(v.get("whisper_always", false))):content.ui.whisper(String(v.whisper))
 	if v.has("event"):content.events.emit(String(v.event), {"place": entry.id, "first": first})
 	if v.has("special"):
@@ -166,4 +240,6 @@ func _perform(performance, pose: String, at: Vector3, seconds: float, v: Diction
 	else:
 		await performance.animate_pose(pose, seconds)
 	if v.has("after"):content.special(String(v.after), {}, v)
+	# a lighting follows straight on in the same shot (no cut back to the player and out again)
+	if String(v.get("special", "")).begins_with("light:") and not v.has("talk"):return
 	await performance.finish(.7)

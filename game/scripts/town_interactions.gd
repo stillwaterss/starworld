@@ -437,7 +437,7 @@ var _body_font: Font
 var _body_bold: Font
 const Keywords := preload("res://scripts/content/keywords.gd")
 ## Who else may speak inside one conversation: a line "芽芽：……" switches the name shown.
-const SPEAKERS := ["小光", "芽芽", "眠眠", "老星", "奶奶", "面包师", "孩子", "修灯的邻居", "大家"]
+const SPEAKERS := ["小光", "芽芽", "眠眠", "老星", "奶奶", "面包师", "孩子", "修灯的邻居", "大家", "青铃", "绵绵", "阿信", "芯芯"]
 
 ## A line starting with "小光：" is the little star speaking: its own blue card and the
 ## handwriting font, so it never reads like the person you are talking to. "{name}" is

@@ -184,6 +184,11 @@ func send_off() -> void:
 	var spots: Array[Vector3] = []
 	for id in ["garden", "spawn", "fountain", "tree_house", "star_roof_shop", "dock"]:
 		if registry.has(id):spots.append(registry.position_of(id))
+	# far away, the islanders on the small islands send theirs up too
+	for id in ["islet_nw", "islet_e", "islet_sw", "isle_south_r"]:
+		if not registry.has(id):continue
+		var far: Vector3 = registry.position_of(id)
+		for k in 3:_lantern(far + Vector3(randf_range(-2, 2), 1.0 + k * 3.5, randf_range(-2, 2)), randf_range(1.4, 2.2), false)
 	for i in 24:
 		var base: Vector3 = spots[i % spots.size()]
 		_lantern(base + Vector3(randf_range(-2.5, 2.5), randf_range(.5, 4.0) + float(i / spots.size()) * 6.0, randf_range(-2.5, 2.5)), randf_range(1.6, 2.6), i % 7 == 0)
@@ -450,7 +455,8 @@ func finale() -> void:
 		return
 	var left: Array[String] = []
 	for id in director.side_order:
-		if director.side_state(id) != "done":left.append(String(director.sides[id].title))
+		# (the far islanders' stories only open after this night: not "left undone")
+		if director.side_state(id) != "done" and not director.sides[id].get("after_story", false):left.append(String(director.sides[id].title))
 	_build_finale(left)
 	finale_panel.modulate.a = 0
 	finale_panel.visible = true
@@ -557,7 +563,14 @@ func _build_finale(left: Array[String]) -> void:
 		top.queue_free()
 		finale_closed.emit()
 		if open_book:content.ui.toggle_panel.call_deferred("story")
-	var first_button := Cozy.button("去玩小故事", close.bind(true), true)
+	var has_postscript: bool = content.director.side_state("s_keeper") != "done"
+	if has_postscript:
+		box.add_child(Cozy.label("后记 · 今晚我来守灯", 21, Cozy.INK))
+		box.add_child(Cozy.label("小光的旅程之后，去灯塔岛陪老星坐一会儿。", 16, Cozy.INK_SOFT, false))
+	var begin_postscript := func() -> void:
+		content.director.start_side("s_keeper")
+		close.call(false)
+	var first_button := Cozy.button("开始后记 · 今晚我来守灯" if has_postscript else "去玩小故事", begin_postscript if has_postscript else close.bind(true), true)
 	row.add_child(first_button)
 	first_button.grab_focus.call_deferred()
 	row.add_child(Cozy.button("继续在岛上走走", close.bind(false)))

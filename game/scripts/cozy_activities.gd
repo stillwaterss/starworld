@@ -51,7 +51,7 @@ func _ready() -> void:
 	if not "--test-session" in OS.get_cmdline_user_args() and FileAccess.file_exists(SAVE):
 		var loaded=JSON.parse_string(FileAccess.get_file_as_string(SAVE))
 		if loaded is Dictionary:
-			progress.flowers=clampi(int(loaded.get("flowers",0)),0,3)
+			progress.flowers=clampi(int(loaded.get("flowers",0)),0,9)
 			progress.watered=bool(loaded.get("watered",false))
 			if loaded.get("moments") is Array:
 				for entry in loaded.moments:
@@ -177,7 +177,7 @@ func _process(delta: float) -> void:
 		var node: Node3D=entry.node
 		if entry.time<0:continue
 		node.visible=true
-		if entry.kind=="wish":node.position.y+=delta*.68;node.position.x+=sin(clock*.5)*delta*.10
+		if entry.kind=="wish":node.position.y+=delta*.68*float(entry.get("lift",1.0));node.position.x+=sin(clock*.5)*delta*.10
 		else:
 			node.scale=Vector3.ONE*(1+float(entry.time)*1.9)
 			node.position.y=.39
@@ -285,15 +285,44 @@ func perform(keycode: int) -> bool:
 func toggle_seat() -> bool:
 	return world.scene_actions.toggle_seat()
 
+## Three during the story; after it (or in 随便走走) the bed takes nine (v24).
+func max_flowers() -> int:
+	var content=world.get("content")
+	if content and (content.director.main_done() or String(content.state.data.mode)=="free"):return 9
+	return 3
+
 ## The player's flower; starts tiny (a performance grows it from the soil).
 func _flower(index: int) -> Node3D:
 	var flower:=_web_flower(index)
-	flower.position=GARDEN+Vector3(-1.3+index*.72,.06,1.7)
+	var row: float=[0.0,-.62,.62][int(index/3)%3]
+	flower.position=GARDEN+Vector3(-1.3+(index%3)*.72+row*.25,.06,1.7+row)
 	flower.rotation.y=index*1.9
 	flower.scale=Vector3.ONE*.01
 	world.add_child(flower)
 	flowers.append(flower)
 	return flower
+
+## v24: a close look at the flowers (E in the garden), low beside them.
+func admire_flowers() -> void:
+	if flowers.is_empty():return
+	var centre:=Vector3.ZERO
+	for f in flowers:centre+=f.global_position
+	centre/=flowers.size()
+	var perf=world.get("performance")
+	var night: bool=int(world.day_cycle.current)==2
+	var words:="三朵花挨在一起。凑近了才看得见：每一朵都朝着树屋的方向。"
+	if flowers.size()>3:words="一整片花了。有的是你种的，有的好像是风帮着种的。"
+	if night:words="夜里，花心亮着一点点微光，像几颗小星星落进了土里。"
+	if perf and perf.begin("flowers",centre+Vector3.UP*.2,{"distance":1.7,"height":.45,"look_height":.15,"mix":.25,"low":true}):
+		await perf.turn_to(Vector3(centre.x,player.global_position.y,centre.z))
+		perf.set_pose("admire",4.0)
+		await perf.wait(1.2)
+		say(words)
+		await perf.wait(2.6)
+		await perf.finish(.8)
+	else:
+		say(words)
+	mark("蹲下来看花")
 
 func _performing() -> bool:
 	var perf=world.get("performance")
@@ -404,14 +433,22 @@ func _perform_wish(node: Node3D,entry: Dictionary) -> void:
 	perf.drop_prop()
 	entry.time=0.0
 	perf.set_pose("release",5.0)
+	# chapter three's first lantern: 小光 tries to go up with it (and can't)
+	var content=world.get("content")
+	var star=content.xiaoguang if content else null
+	var ride: bool=star!=null and bool(entry.get("ride",false))
+	if ride:star.try_ride(node,entry)
 	# follow the lantern up from low beside the player, so the sky fills the frame
 	var side: Vector3=(-player.model.global_basis.x).normalized()
-	var low_eye: Vector3=player.global_position+side*2.6+(player.model.global_basis.z)*1.4+Vector3.UP*.5
+	var low_eye: Vector3=player.global_position+side*(3.2 if ride else 2.6)+(player.model.global_basis.z)*1.4+Vector3.UP*.5
 	var t0:=0.0
-	while t0<3.2:
+	while t0<(5.4 if ride else 3.2):
 		t0+=get_process_delta_time()
 		perf.camera.global_position=perf.camera.global_position.lerp(low_eye,.05)
-		if is_instance_valid(node):perf.camera.look_at(node.global_position.lerp(player.global_position+Vector3.UP*1.2,.25),Vector3.UP)
+		if is_instance_valid(node):
+			var aim: Vector3=node.global_position
+			if ride:aim=node.global_position.lerp(star.global_position,.55)
+			perf.camera.look_at(aim.lerp(player.global_position+Vector3.UP*1.2,.25),Vector3.UP)
 		await get_tree().process_frame
 	perf.set_pose("look_up",3.0)
 	await perf.wait(1.4)
@@ -485,7 +522,8 @@ func _perform_fireflies(cupped: Vector3) -> void:
 
 func plant() -> bool:
 	if not near(GARDEN,4):say("到芽芽的花园里种花。");return false
-	if progress.flowers>=3:say("三株花都在这里，按 U 给它们浇水。");return false
+	if progress.flowers>=max_flowers():
+		say("三株花都在这里，按 U 给它们浇水。" if max_flowers()==3 else "花圃种满了。按 U 浇水，蹲下来看看它们（E）。");return false
 	var flower:=_flower(int(progress.flowers));progress.flowers+=1
 	progress.watered=false
 	mark("种下小花");say("种下一株小花，U 浇水会让它开花。")
@@ -512,6 +550,9 @@ func release_wish() -> bool:
 	world.add_child(node)
 	node.position=player.position+Vector3(0,1.8,-1.5)
 	var entry:={"node":node,"kind":"wish","time":0.0,"life":15.0}
+	# chapter three's first lantern (decided now: releasing it moves the story on)
+	var content=world.get("content")
+	entry["ride"]=content!=null and content.state.flag("xiaoguang") and not content.state.flag("xiaoguang_home") and content.director.main_stage().get("id","")=="c3_wish"
 	timed.append(entry)
 	if _perf_ok():
 		entry.time=-100.0

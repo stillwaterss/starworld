@@ -271,6 +271,22 @@ func leave_for(sky_point: Vector3, seconds := 9.0) -> void:
 		content.state.set_flag("xiaoguang_home"))
 	await flight_tween.finished
 
+## v24, chapter three (c3_wish): 小光 flies up to the first wish lantern and holds on. The
+## lantern stops rising and sinks a little under it; it lets go and drifts back down to the
+## shoulder, swaying like a leaf, and the lantern, light again, goes on up without it.
+var _ride: Node3D
+var _ride_entry: Dictionary = {}
+var _ride_t := 0.0
+var _ride_from := Vector3.ZERO
+
+func try_ride(lantern: Node3D, entry: Dictionary) -> void:
+	_ride = lantern
+	_ride_entry = entry
+	_ride_t = 0.0
+	where = "ride"
+	trail.emitting = true
+	while where == "ride":await get_tree().process_frame
+
 func _process(delta: float) -> void:
 	clock += delta
 	var glow := brightness()
@@ -314,6 +330,34 @@ func _process(delta: float) -> void:
 			visible = true
 			halo.visible = true
 			star.scale = star.scale.lerp(Vector3.ONE * .3, clampf(delta * 3.0, 0, 1))
+		"ride":
+			visible = true
+			halo.visible = true
+			_ride_t += delta
+			star.scale = star.scale.lerp(Vector3.ONE * .26, clampf(delta * 3.0, 0, 1))
+			var shoulder: Vector3 = player.global_position + player.model.global_basis * Vector3(.5, 1.55, -.2)
+			var hold: Vector3 = (_ride.global_position + Vector3(0, .6, 0)) if is_instance_valid(_ride) else shoulder
+			if _ride_t < 1.0:
+				# up to the lantern
+				_ride_entry["lift"] = .5
+				global_position = global_position.lerp(hold, clampf(delta * 4.5, 0, 1))
+			elif _ride_t < 2.9:
+				# holding on: the lantern stops, then sinks under the weight; 小光 trembles
+				_ride_entry["lift"] = lerpf(.1, -.4, (_ride_t - 1.0) / 1.9)
+				global_position = hold + Vector3(sin(clock * 27.0) * .025, 0, 0)
+				_scared = .5
+				_ride_from = global_position
+			elif _ride_t < 4.8:
+				# lets go: free of it the lantern rises again, 小光 drifts down like a leaf
+				_ride_entry["lift"] = 1.35
+				trail.emitting = false
+				var k := (_ride_t - 2.9) / 1.9
+				var e := k * k * (3.0 - 2.0 * k)
+				global_position = _ride_from.lerp(shoulder, e) + Vector3(sin(k * PI * 2.5) * .5 * (1.0 - k), 0, 0)
+			else:
+				_ride_entry["lift"] = 1.0
+				where = "lantern"
+				_scared = 1.4
 		"sky":
 			visible = false
 
