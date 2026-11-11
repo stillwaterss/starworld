@@ -916,6 +916,7 @@ func _begin_new_game() -> void:
 	get_tree().reload_current_scene()
 
 var _settings_from_title := false
+var _leaving := false
 
 func _title_settings() -> void:
 	_settings_from_title = _open("settings")
@@ -924,6 +925,9 @@ func _open_trailer() -> void:
 	if OS.has_feature("web"):JavaScriptBridge.eval("window.open('../trailer.html', '_blank', 'noopener')")
 
 func _exit_game() -> void:
+	if _leaving:return
+	_leaving = true
+	if open_panel == "settings":settings_notice.text = "正在保存并结束游戏…"
 	if content.state.persistent:content.state.save()
 	preload("res://scripts/web_platform.gd").exit_game(get_tree())
 
