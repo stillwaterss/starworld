@@ -284,6 +284,7 @@ func _sparkle(at: Vector3) -> void:
 	m.radius = .02
 	m.height = .04
 	p.mesh = m
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = Color(1, .95, .7)
@@ -345,17 +346,21 @@ func prepare_lighthouse() -> Node3D:
 		cone.rotation.x = PI / 2 - .06   # narrow top at the lamp, opening outward along -Z
 		cone.position = Vector3(0, 0, -30.0)
 		arm.add_child(cone)
-		var spot := SpotLight3D.new()
-		spot.light_color = Color(1, .88, .6)
-		spot.light_energy = 3.0
-		spot.spot_range = 60.0
-		spot.spot_angle = 6.0
-		arm.add_child(spot)
-	var light := OmniLight3D.new()
-	light.light_color = Color(1, .86, .55)
-	light.omni_range = 6.0
-	light.light_energy = 2.0
-	beam.add_child(light)
+		if not OS.has_feature("web"):
+			var spot := SpotLight3D.new()
+			spot.light_color = Color(1, .88, .6)
+			spot.light_energy = 3.0
+			spot.spot_range = 60.0
+			spot.spot_angle = 6.0
+			arm.add_child(spot)
+	# In WebGL a moving light changes the shaders of scenery it reaches.
+	# The two additive shafts and the emissive beacon already draw the sweep.
+	if not OS.has_feature("web"):
+		var light := OmniLight3D.new()
+		light.light_color = Color(1, .86, .55)
+		light.omni_range = 6.0
+		light.light_energy = 2.0
+		beam.add_child(light)
 	return beam
 
 ## Soft light shaft: warm core, edges and far end fade out, additive so it glows on the night sky.

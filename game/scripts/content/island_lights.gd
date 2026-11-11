@@ -137,7 +137,7 @@ func light(site: String, animate: bool) -> void:
 	_show(site, animate)
 	if animate:
 		content.props._sparkle(point(site))
-		_burst(point(site))
+		_burst(point(site), site != "lighthouse" or not OS.has_feature("web"))
 		content.xiaoguang.react("happy")
 		if world.get("audio"):world.audio.play_sfx("objective")
 		if site == "lamps":
@@ -190,7 +190,7 @@ func _glow_at(at: Vector3, color: Color, energy: float, reach: float, animate: b
 	return light
 
 ## The moment a place lights: a ball of light swells and fades, with a bright flash.
-func _burst(at: Vector3) -> void:
+func _burst(at: Vector3, cast_light := true) -> void:
 	var ball := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
 	mesh.radius = 1.0
@@ -208,19 +208,19 @@ func _burst(at: Vector3) -> void:
 	add_child(ball)
 	ball.global_position = at
 	ball.scale = Vector3.ONE * .2
-	var flash := OmniLight3D.new()
-	flash.light_color = Color(1, .85, .55)
-	flash.light_energy = 7.0
-	flash.omni_range = 9.0
-	add_child(flash)
-	flash.global_position = at
 	var t := create_tween().set_parallel(true)
 	t.tween_property(ball, "scale", Vector3.ONE * 2.6, 1.1).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	t.tween_property(m, "albedo_color:a", 0.0, 1.1)
-	t.tween_property(flash, "light_energy", 0.0, 1.4)
-	t.chain().tween_callback(func():
-		ball.queue_free()
-		flash.queue_free())
+	if cast_light:
+		var flash := OmniLight3D.new()
+		flash.light_color = Color(1, .85, .55)
+		flash.light_energy = 7.0
+		flash.omni_range = 9.0
+		add_child(flash)
+		flash.global_position = at
+		t.tween_property(flash, "light_energy", 0.0, 1.4)
+		t.chain().tween_callback(flash.queue_free)
+	t.chain().tween_callback(ball.queue_free)
 
 ## A warm light on the doorstep of a house that has been lit: the house itself glows.
 func _porch_light(door: String, animate: bool) -> void:
