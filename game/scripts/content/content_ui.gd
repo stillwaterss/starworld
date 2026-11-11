@@ -23,7 +23,7 @@ const ABOUT := """[b]关于这个游戏[/b]
 剧本 · 程序 · 音乐：Claude
 场景 · 角色 · 镜头：GPT（Codex）"""
 const HELP := """[b]走一走[/b]
-WASD / 方向键 移动 · 空格 跳 · Shift 跑 · 鼠标转视角
+WASD / 方向键 移动 · 空格 跳 · Shift 跑 · 按住鼠标拖动视角
 E 交谈 / 看看 / 推门 / 用望远镜 · Esc 关闭窗口 · 演出中按 E 加快
 
 [b]找方向[/b]
@@ -37,7 +37,7 @@ K 打水漂（喷泉，水会跳舞） · V 萤火虫（傍晚和夜里）
 C 走到观景椅坐下 / 起身（西北小岛）；坐着时 ←/→ 换角度
 F 手持小灯 · G 招手 · O 摄影：Tab 换取景、1/2/3 滤镜、G 三分线、Enter/空格/左键 拍照
 M 音乐开关 · Y 声音与指引设置
-F5 快速存档 · F9 快速载入 · 首页“读取存档”可以选存档
+B 回到首页 · F5 快速存档 · F9 选择存档
 """
 
 var content
@@ -327,7 +327,7 @@ func _fade_page(node: Control, fade: Control = null) -> void:
 ## to know), ticks, fades, and the next comes. Shown once (flag "tutorial_done").
 const TUTORIAL := [
 	["W A S D 或 方向键  走一走", "move"],
-	["点一下画面，再移动鼠标  转动视角 · 滚轮  拉近拉远", "look"],
+	["按住鼠标拖动  转动视角 · 滚轮  拉近拉远", "look"],
 	["按住 Shift  跑起来", "run"],
 	["空格  跳一下（矮台阶要跳上去）", "jump"],
 	["E  和人说话、看看发光的东西", "wait"],
@@ -622,32 +622,17 @@ func _build_menu() -> void:
 	menu = HBoxContainer.new()
 	menu.add_theme_constant_override("separation", 6)
 	menu.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	menu.offset_left = -330
+	menu.offset_left = -545
 	menu.offset_right = -16
 	menu.offset_top = -50
 	menu.offset_bottom = -14
 	menu.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	menu.alignment = BoxContainer.ALIGNMENT_END
 	root.add_child(menu)
+	for action in [["首页 B", go_home], ["存档 F5", quick_save], ["读档 F9", go_home.bind(true)]]:
+		menu.add_child(_button(action[0], action[1], 15))
 	for item in [["故事 P", "story"], ["地图 N", "map"], ["设置 Y", "settings"], ["帮助 H", "help"]]:
-		var button := _button(item[0], toggle_panel.bind(item[1]), 15)
-		menu.add_child(button)
-	home_menu = HBoxContainer.new()
-	home_menu.add_theme_constant_override("separation", 6)
-	home_menu.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	home_menu.offset_left = -330
-	home_menu.offset_right = -16
-	home_menu.offset_top = -91
-	home_menu.offset_bottom = -54
-	home_menu.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	home_menu.alignment = BoxContainer.ALIGNMENT_END
-	root.add_child(home_menu)
-	for action in [["回到首页", go_home], ["快速存档 F5", quick_save], ["载入存档", go_home.bind(true)]]:
-		var button := Cozy.button(action[0], action[1], false, 15)
-		button.custom_minimum_size = Vector2(0, 36)
-		home_menu.add_child(button)
-
-var home_menu: HBoxContainer
+		menu.add_child(_button(item[0], toggle_panel.bind(item[1]), 15))
 
 ## Saves the game as it is (the live save) and shows the home page; `slots` opens the
 ## list of saved games right away.
@@ -850,18 +835,6 @@ func _load_slot(id: String) -> void:
 	content.state.data.autostart = true
 	content.state.save()
 	get_tree().reload_current_scene()
-
-## F9: back to the newest saved game.
-func quick_load() -> void:
-	if not content.state.persistent:
-		toast("独立体验不会读取正式存档。")
-		return
-	var slots := SaveSlots.list()
-	if slots.is_empty():
-		toast("还没有存档。先快速存档一次吧。")
-		return
-	# Wait for the current input dispatch to finish before replacing the scene.
-	_load_slot.call_deferred(String(slots[0].id))
 
 ## F5: the game as it is now goes into a save slot (the title card can load it back).
 func quick_save() -> void:
@@ -1737,16 +1710,17 @@ func _process(delta: float) -> void:
 	var audio = world.get("audio")
 	var guide_on: bool = audio == null or bool(audio.settings.get("guide", true))
 	var prompts_on: bool = audio == null or bool(audio.settings.get("prompts", true))
-	chip.visible = idle and not title_card.visible and (not content.director.tracked().is_empty() or content.state.data.guide_target != "")
+	var tracked: Dictionary = content.director.tracked() if idle and visible and not title_card.visible else {}
+	chip.visible = idle and visible and not title_card.visible and (not tracked.is_empty() or content.state.data.guide_target != "")
 	if chip.visible:
 		var target: String = content.guide.target
 		var has_route: bool = guide_on and target != "" and content.guide.route.size() > 0
 		chip_arrow.visible = has_route
-		chip_route.text = (("先去码头乘飞艇 · " if content.guide.via != "" else "") + "%d 米" % int(round(content.guide.remaining)) + ("（直线距离）" if content.guide.straight else "")) if has_route else ("路线已关闭 · Q 打开" if target != "" else "")
+		var route_text := (("先去码头乘飞艇 · " if content.guide.via != "" else "") + "%d 米" % int(round(content.guide.remaining)) + ("（直线距离）" if content.guide.straight else "")) if has_route else ("路线已关闭 · Q 打开" if target != "" else "")
 		var hop: String = content.guide.hop_ahead() if has_route else ""
-		if hop != "":chip_route.text += " · 前面的矮台阶按空格跳上去" if hop == "up" else " · 前面有矮台阶，可以直接走下去"
-		chip_arrow.queue_redraw()
-		var tracked: Dictionary = content.director.tracked()
+		if hop != "":route_text += " · 前面的矮台阶按空格跳上去" if hop == "up" else " · 前面有矮台阶，可以直接走下去"
+		if chip_route.text != route_text:chip_route.text = route_text
+		if has_route:chip_arrow.queue_redraw()
 		if not tracked.is_empty() and content.state.data.guide_target == "":
 			var title: String = "★ " + content.named(String(tracked.title)) + ("  " + tracked.progress if tracked.progress != "" else "")
 			if chip_title.text != title:
@@ -1775,8 +1749,7 @@ func _process(delta: float) -> void:
 	whisper_panel.modulate.a = clampf((_whisper_time - 1.2) / .8, 0, 1) * clampf((_whisper_total - _whisper_time) / .4, 0, 1)
 	# the flight and the ending are cinematic: only whispers stay on screen
 	var cinematic: bool = (content.airship != null and content.airship.flying()) or (content.ending != null and content.ending.playing)
-	menu.visible = idle and not cinematic and not showing_card() and not title_card.visible and open_panel == ""
-	home_menu.visible = menu.visible and content.state.data.mode != ""
+	menu.visible = idle and not finale_open and not cinematic and not world.player.controls_locked and not showing_card() and not title_card.visible and open_panel == ""
 	if cinematic:chip.visible = false
 	if _toast_time > 0:
 		_toast_time -= delta
@@ -1822,9 +1795,11 @@ func _input(event: InputEvent) -> void:
 	if not mode in ["idle", "content"]:return
 	var key: int = event.physical_keycode
 	if get_viewport().gui_get_focus_owner() is LineEdit and key != KEY_ESCAPE:return
-	if key in [KEY_F5, KEY_F9] and not title_card.visible and content.state.data.mode != "":
-		if key == KEY_F5:quick_save()
-		else:quick_load()
+	if key in [KEY_B, KEY_F5, KEY_F9] and menu.visible and content.state.data.mode != "":
+		match key:
+			KEY_B:go_home()
+			KEY_F5:quick_save()
+			KEY_F9:go_home(true)
 		get_viewport().set_input_as_handled()
 		return
 	if showing_card():

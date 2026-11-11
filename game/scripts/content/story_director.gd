@@ -126,7 +126,7 @@ func tracked() -> Dictionary:
 			out_main.target = next.target
 		return out_main
 	var stage := side_stage(quest)
-	var out := {"quest": quest, "heading": "小故事 · " + sides[quest].title, "title": stage.title, "hint": stage.hint, "target": _target_of(stage), "progress": _progress_text(stage)}
+	var out := {"quest": quest, "heading": ("后记 · " if quest == "s_keeper" else "小故事 · ") + sides[quest].title, "title": stage.title, "hint": stage.hint, "target": _target_of(stage), "progress": _progress_text(stage)}
 	var step := checklist_step(stage)
 	if not step.is_empty():
 		out.hint = step.text

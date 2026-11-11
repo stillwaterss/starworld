@@ -79,7 +79,8 @@ func _build_model() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if controls_locked:
 		return
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	# Browser pointer lock interrupts the scene with Chrome's own banner.
+	if event is InputEventMouseMotion and (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or (OS.has_feature("web") and (event.button_mask & (MOUSE_BUTTON_MASK_LEFT | MOUSE_BUTTON_MASK_RIGHT)) != 0)):
 		cam_yaw -= event.relative.x * MOUSE_SENS
 		cam_pitch = clampf(cam_pitch - event.relative.y * MOUSE_SENS, -1.25, 0.4)
 	elif event is InputEventMouseButton and event.pressed:
@@ -89,7 +90,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			MOUSE_BUTTON_WHEEL_DOWN:
 				arm.spring_length = minf(arm.spring_length + 0.5, 12.0)
 			_:
-				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+				if not OS.has_feature("web"):Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event.is_action_pressed("ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 

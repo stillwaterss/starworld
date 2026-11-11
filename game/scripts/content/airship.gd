@@ -398,20 +398,22 @@ func _curve(points: PackedVector3Array) -> Curve3D:
 	return curve
 
 ## Called from the dock examine: decides where this flight goes from the story.
-func board() -> void:
+func board(on_deck := Callable(), off_deck := Callable()) -> void:
 	if flying() or not rig:return
 	var stage: String = content.director.main_stage().get("id", "")
 	var destination := "dock" if at == "keeper_isle" else "keeper_isle"
 	if stage == "c5_fly":
 		destination = "summit"
 		content.ending.send_off()
-	await fly(destination)
+	await fly(destination, on_deck, off_deck)
 
-func fly(destination: String) -> void:
+func fly(destination: String, on_deck := Callable(), off_deck := Callable()) -> void:
 	var performance = world.get("performance")
 	var player: CharacterBody3D = world.player
 	var from := at
 	if performance and performance.busy:return
+	var board_from := player.global_position
+	var plank := _gangway(deck_point(), board_from)
 	at = "flying"
 	hurry = false
 	player.controls_locked = true
@@ -422,15 +424,14 @@ func fly(destination: String) -> void:
 			_hidden_layers.append(node)
 			node.visible = false
 	# step onto the deck
-	var board_from := player.global_position
 	player.set_physics_process(false)
 	var initial_camera := world.get_viewport().get_camera_3d()
 	camera.global_transform = initial_camera.global_transform
 	camera.fov = initial_camera.fov
 	camera.current = true
 	create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(camera, "fov", 52.0, .8)
-	var plank := _gangway(deck_point(), board_from)
 	await _walk([board_from, plank[1], plank[0], deck_point()])
+	if on_deck.is_valid():await on_deck.call(plank)
 	if world.get("audio"):world.audio.play_sfx("door")
 	create_tween().tween_property(gate, "rotation:y", 0.0, .8)
 	content.ui.whisper("扶好栏杆。" if destination != "summit" else "我们往上飞吧。一直往上。")
@@ -487,7 +488,7 @@ func fly(destination: String) -> void:
 		await content.ending.release_at_summit()
 		await fly_after_summit()
 		return
-	_land(destination, from)
+	await _land(destination, from, off_deck)
 
 func fly_after_summit() -> void:
 	at = "dock"
@@ -550,7 +551,7 @@ func _orbit(dt: float) -> Vector3:
 	var reach := 10.5
 	return Vector3(sin(a) * cos(elevation), sin(elevation), cos(a) * cos(elevation)) * reach
 
-func _land(destination: String, _from: String) -> void:
+func _land(destination: String, _from: String, off_deck := Callable()) -> void:
 	var player: CharacterBody3D = world.player
 	look_hint.visible = false
 	at = destination
@@ -568,6 +569,7 @@ func _land(destination: String, _from: String) -> void:
 	await get_tree().create_timer(.5).timeout
 	var plank := _gangway(from, step_to)
 	await _walk([from, plank[0], plank[1], step_to])
+	if off_deck.is_valid():await off_deck.call(plank, step_to)
 	player.set_physics_process(true)
 	player.velocity = Vector3.ZERO
 	if _from != "summit":

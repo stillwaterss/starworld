@@ -329,13 +329,32 @@ func _ensure_company() -> void:
 		back.y = 0
 		back = back.normalized() if back.length() > .01 else Vector3.BACK
 		var ids := ["keeper", "grandma"] if state.flag("grandma_joined") else ["keeper"]
+		var occupied: Array[Vector3] = [player.global_position]
 		for k in ids.size():
-			var at := player.global_position + back * (1.3 + k * 1.0)
-			var below := _floor_at(at, .7)
-			if absf(below.y - player.global_position.y) > .6:at = player.global_position
-			else:at = below
+			var at := _company_spot(player.global_position, back, occupied, FOLLOW_GAP[k])
+			if at == Vector3.INF:break
 			var f := _figure(ids[k], at, player.global_position)
-			if f:_join(f)
+			if f:
+				f.global_position = at
+				_join(f)
+				occupied.append(at)
+
+## Find walkable ground around a mark without placing two costumes in the same spot.
+func _company_spot(origin: Vector3, facing: Vector3, occupied: Array[Vector3], reach := 1.35) -> Vector3:
+	for radius: float in [reach, reach + .45, reach + .9]:
+		for turn: float in [0.0, .65, -.65, 1.3, -1.3, 2.0, -2.0, PI]:
+			var wanted := origin + facing.rotated(Vector3.UP, turn) * radius
+			var slot: int = grid.nearest_slot(wanted, .45, true)
+			if slot < 0:continue
+			var at: Vector3 = grid.center(slot)
+			if absf(at.y - origin.y) > .4 or not _company_clear(at, occupied):continue
+			return at + Vector3.UP * .04
+	return Vector3.INF
+
+func _company_clear(at: Vector3, occupied: Array[Vector3]) -> bool:
+	for other in occupied:
+		if absf(at.y - other.y) < 1.15 and Vector2(at.x - other.x, at.z - other.z).length_squared() < 1.1 * 1.1:return false
+	return true
 
 func _drop_followers() -> void:
 	for f in _followers:
@@ -361,7 +380,7 @@ func _floor_at(p: Vector3, up := 1.2) -> Vector3:
 # each of them walks along it a little way behind you.
 var _trail: Array[Vector3] = []
 var _trail_len: Array[float] = []      # distance along the trail to each point
-const FOLLOW_GAP := [1.35, 2.45]
+const FOLLOW_GAP := [1.45, 2.8]
 
 func _record_trail() -> void:
 	var p: Vector3 = world.player.global_position
@@ -408,42 +427,53 @@ func _join(f: Node3D) -> void:
 	_followers.append(f)
 
 func _move_company(delta: float) -> void:
-	if airship.flying() or _staging:return
+	if airship.flying() or _staging or _followers.is_empty():return
 	_record_trail()
-	if _followers.is_empty():return
 	var player: CharacterBody3D = world.player
 	var head := _trail_len[-1] + player.global_position.distance_to(_trail[-1])
 	for k in _followers.size():
 		var f := _followers[k]
 		if not is_instance_valid(f):continue
 		var gap: float = FOLLOW_GAP[mini(k, FOLLOW_GAP.size() - 1)]
-		var goal_s := maxf(0.0, head - gap)
-		var near_you := Vector2(f.global_position.x - player.global_position.x, f.global_position.z - player.global_position.z).length() < gap * .75
+		var goal_s := head - gap
 		var from := f.global_position
 		var to := from
-		if bool(f.get_meta("approach", false)):
-			# over to the trail, straight (they are never far from it)
+		var occupied: Array[Vector3] = [player.global_position]
+		for other in _followers:
+			if is_instance_valid(other) and other != f:occupied.append(other.global_position)
+		# Until there is enough trail, keep the actors at their individual marks.
+		if goal_s >= 0.0:
 			var aim := _trail_at(goal_s)
-			var d := aim - from
-			if d.length() < .25 or near_you:
-				f.set_meta("approach", false)
-				f.set_meta("s", goal_s if d.length() < .25 else _nearest_s(from))
-			elif d.length() > 16.0:
-				to = aim
-				f.set_meta("approach", false)
-				f.set_meta("s", goal_s)
+			if bool(f.get_meta("approach", false)):
+				var d := aim - from
+				if d.length() < .24:
+					f.set_meta("approach", false)
+					f.set_meta("s", goal_s)
+				elif d.length() > 16.0 and _company_clear(aim, occupied):
+					to = aim
+					f.set_meta("approach", false)
+					f.set_meta("s", goal_s)
+				else:
+					to = from.move_toward(aim, 3.2 * delta)
 			else:
-				to = from + d.normalized() * minf(d.length(), 3.2 * delta)
-		else:
-			var s: float = f.get_meta("s", 0.0)
-			var behind := goal_s - s
-			if behind > 9.0:
-				s = goal_s - 4.0
-				behind = 4.0
-			if behind > .05 and not near_you:
-				s += minf(behind, clampf(behind * 2.2, 1.0, 6.0) * delta)
-				f.set_meta("s", s)
-			to = _trail_at(s)
+				var progress: float = f.get_meta("s", 0.0)
+				var next := minf(goal_s, progress + clampf((goal_s - progress) * 2.2, 1.0, 6.0) * delta)
+				if next > progress:
+					var point := _trail_at(next)
+					if _company_clear(point, occupied):
+						to = point
+						f.set_meta("s", next)
+		if not _company_clear(to, occupied):
+			to = from
+			# If the player doubles back into a follower, step clear to a nearby
+			# walkable mark instead of converging on the same trail point.
+			var away := from - player.global_position
+			away.y = 0
+			if away.length_squared() < .01:away = player.model.global_basis.x
+			var spare := _company_spot(from, away.normalized(), occupied, 1.15)
+			if spare != Vector3.INF:
+				to = from.move_toward(spare, 3.2 * delta)
+				f.set_meta("approach", true)
 		var moved := to - from
 		var flat := Vector2(moved.x, moved.z).length()
 		f.global_position = to
@@ -455,12 +485,6 @@ func _move_company(delta: float) -> void:
 			var face := player.global_position - f.global_position
 			if Vector2(face.x, face.z).length() > .2:f.rotation.y = lerp_angle(f.rotation.y, atan2(-face.x, -face.z), clampf(delta * 3.0, 0, 1))
 			_anim(f, "idle")
-
-func _nearest_s(p: Vector3) -> float:
-	var best := 0
-	for i in _trail.size():
-		if _trail[i].distance_squared_to(p) < _trail[best].distance_squared_to(p):best = i
-	return _trail_len[best]
 
 ## Side by side on the chair, looking out (after the evening, until the night is over).
 func _seat_visitors(animate: bool, people: Array = []) -> void:
@@ -524,61 +548,55 @@ func _keeper_ride() -> void:
 	var player: CharacterBody3D = world.player
 	var board_from := player.global_position
 	var deck: Vector3 = airship.deck_point()
-	var plank: Array = airship._gangway(deck, board_from)
-	var toward: Vector3 = plank[1] - board_from
+	var toward := deck - board_from
 	toward.y = 0
-	toward = toward.normalized() if toward.length() > .05 else (deck - board_from).normalized()
-	var side := toward.cross(Vector3.UP).normalized()
-	# behind you on the pier (on its boards: a step back the way you came)
-	var start := _floor_at(board_from - toward * 1.3, .6)
-	if absf(start.y - board_from.y) > .4:start = board_from - toward * .6
+	toward = toward.normalized()
+	var start := _floor_at(board_from - toward * 1.45, .6)
+	if absf(start.y - board_from.y) > .4:start = board_from - toward * 1.45
 	var fig := _figure("keeper", start, deck)
 	if fig:
-		# the walk is kept in the ship's frame: if it casts off a moment early, he is still on it
-		fig.reparent(airship.rig, true)
 		var rig: Node3D = airship.rig
-		var path: Array = []
-		for p: Vector3 in [start, board_from + side * .3, plank[1] + side * .25, plank[0] + side * .25, deck + side * .6 - toward * .1]:
-			path.append(rig.to_local(p))
-		var walk_total: float = board_from.distance_to(plank[1]) + plank[1].distance_to(plank[0]) + plank[0].distance_to(deck)
-		var seconds := clampf(walk_total / 1.6, .8, 3.5) + .15
-		_walk_figure(fig, path, seconds)
-		get_tree().create_timer(seconds + .1).timeout.connect(func(): _rider = fig)
-	await airship.board()
-	_rider = null
-	# landed (the ship is moored, you are about to walk off): he comes along behind you
-	if is_instance_valid(fig):
+		fig.global_position = start
+		fig.reparent(rig, true)
+	var embark := func(plank: Array) -> void:
+		if not is_instance_valid(fig):return
+		var rig: Node3D = airship.rig
+		var across := toward.cross(Vector3.UP).normalized()
+		# A fixed mark in the ship's frame. Rotating the camera cannot move the passenger.
+		var berth := deck + across * 1.1 - toward * .15
+		await _walk_figure(fig, [fig.position, rig.to_local(plank[1]), rig.to_local(plank[0]), rig.to_local(berth)], 2.35)
+		_rider = fig
+	var disembark := func(plank: Array, landing: Vector3) -> void:
+		if not is_instance_valid(fig):return
+		_rider = null
 		fig.reparent(world, true)
-		_anim(fig, "idle")
+		var inward: Vector3 = plank[0] - plank[1]
+		inward.y = 0
+		var mark := _company_spot(landing, inward.normalized(), [player.global_position], 1.6)
+		if mark == Vector3.INF:mark = plank[0]
+		var path: Array = [fig.global_position, plank[0]]
+		if mark != plank[0]:
+			if Vector2(landing.x - plank[1].x, landing.z - plank[1].z).length() > 1.15:path.append(plank[1])
+			path.append(mark)
+		await _walk_figure(fig, path, 1.8)
 		_trail.clear()
 		_trail_len.clear()
 		_join(fig)
+	await airship.board(embark, disembark)
 	state.set_flag("keeper_in_town")
 	_staging = false
 	state.save()
 	director.evaluate()
 
-## In the air he stands at your side as the camera sees it (the camera circles the
-## ship: behind you, you would hide him), turning a three-quarter face to it like you.
 var _rider: Node3D
 
 func _update_rider(delta: float) -> void:
 	if not is_instance_valid(_rider) or not airship.flying() or not airship.camera.current:return
-	var cam: Vector3 = airship.camera.global_position
-	var deck: Vector3 = airship.deck_point()
-	var to_cam := cam - deck
-	to_cam.y = 0
-	if to_cam.length() < .1:return
-	to_cam = to_cam.normalized()
-	var right := to_cam.cross(Vector3.UP).normalized()
-	var spot := deck - right * .62 - to_cam * .12
-	var here := _rider.global_position
-	var next := here.lerp(Vector3(spot.x, deck.y, spot.z), clampf(delta * 1.6, 0, 1))
-	var moved := Vector2(next.x - here.x, next.z - here.z).length() / maxf(delta, .001)
-	_rider.global_position = next
+	var to_cam: Vector3 = airship.camera.global_position - _rider.global_position
+	if Vector2(to_cam.x, to_cam.z).length_squared() < .01:return
 	var face := atan2(-to_cam.x, -to_cam.z) - .5
-	_rider.global_rotation.y = lerp_angle(_rider.global_rotation.y, face, clampf(delta * 3.0, 0, 1))
-	_anim(_rider, "walk" if moved > .35 else "idle", 1.0)
+	var yaw := lerp_angle(_rider.global_rotation.y, face, clampf(delta * 3.0, 0, 1))
+	_rider.global_rotation = Vector3(0, yaw, 0)
 
 ## Grandma comes out and comes along (her figure at the door stays hidden meanwhile).
 func _grandma_join() -> void:
@@ -586,8 +604,19 @@ func _grandma_join() -> void:
 	if npcs.actors.has("grandma"):
 		at = npcs.actors["grandma"].node.global_position
 		npcs.actors["grandma"].node.visible = false
-	var g := _figure("grandma", at, world.player.global_position)
-	if g:_join(g)
+	var player_at: Vector3 = world.player.global_position
+	var occupied: Array[Vector3] = [player_at]
+	for f in _followers:
+		if is_instance_valid(f):occupied.append(f.global_position)
+	if not _company_clear(at, occupied):
+		var dir := at - player_at
+		dir.y = 0
+		var mark := _company_spot(at, dir.normalized() if dir.length() > .1 else Vector3.BACK, occupied)
+		if mark != Vector3.INF:at = mark
+	var g := _figure("grandma", at, player_at)
+	if g:
+		g.global_position = at
+		_join(g)
 	state.set_flag("grandma_joined")
 	state.save()
 	director.evaluate()
@@ -617,17 +646,21 @@ func _door_reunion() -> void:
 		aside = at + Vector3.UP * .05
 		mine_side = 1.0 if (at - rest).dot(side) >= 0.0 else -1.0
 		break
+	if aside == player.global_position:
+		var spare := _company_spot(rest, side * mine_side, [rest], 1.65)
+		if spare != Vector3.INF:aside = spare
 	player.set_physics_process(false)
 	var step := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	step.tween_property(player, "global_position", aside, .7)
 	var to_her := rest - aside
 	player.model.rotation.y = atan2(-to_her.x, -to_her.z)
 	# 老星 walks up in front of her and faces her
-	var his := _floor_at(rest + front * 1.05, .8)
-	if absf(his.y - rest.y) > .5:his = rest + front * 1.05
+	var his := _company_spot(rest, front, [rest, aside], 1.35)
+	if his == Vector3.INF:his = _floor_at(rest + front * 1.35, .8)
 	if keeper:
+		await step.finished
 		var from := keeper.global_position
-		await _walk_figure(keeper, [from, from.lerp(his, .5) + side * .3 * mine_side, his], clampf(from.distance_to(his) / 1.1, .9, 3.0))
+		await _walk_figure(keeper, [from, from.lerp(his, .5) - side * .55 * mine_side, his], clampf(from.distance_to(his) / 1.1, .9, 3.0))
 		keeper.rotation.y = atan2(front.x, front.z)
 	else:
 		await get_tree().create_timer(.8).timeout

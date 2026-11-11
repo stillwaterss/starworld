@@ -296,18 +296,35 @@ func _sparkle(at: Vector3) -> void:
 # ------------------------------------------------------------------ lighthouse
 func light_lighthouse(animate := true) -> void:
 	content.state.set_flag("reaction_lighthouse_lit")
+	if is_instance_valid(beam) and beam.visible:return
+	var prepared := prepare_lighthouse()
+	if not prepared:return
+	for node in _beacons:node.material_override = beacon_material
+	beam.scale = Vector3.ONE
+	beam.visible = true
+	if animate:
+		if world.get("audio"):world.audio.play_sfx("lighthouse")
+		beam.scale = Vector3(.01, .01, .01)
+		create_tween().tween_property(beam, "scale", Vector3.ONE, 2.5).set_trans(Tween.TRANS_SINE)
+
+var _beacons: Array[Node] = []
+
+func prepare_lighthouse() -> Node3D:
+	if is_instance_valid(beam):return beam
 	var keeper: Dictionary = _meta().get("keeper_isle", {})
-	if keeper.is_empty() or is_instance_valid(beam):return
+	if keeper.is_empty():return null
 	var lamp_at := _v(keeper.lamp)
-	for node: MeshInstance3D in world.find_children("Decor_Keeper_beacon*", "MeshInstance3D", true, false):
-		beacon_material = StandardMaterial3D.new()
-		beacon_material.albedo_color = Color(1, .9, .6)
-		beacon_material.emission_enabled = true
-		beacon_material.emission = Color(1, .86, .5)
-		beacon_material.emission_energy_multiplier = 3.0
-		node.material_override = beacon_material
+	_beacons = world.find_children("Decor_Keeper_beacon*", "MeshInstance3D", true, false)
+	beacon_material = StandardMaterial3D.new()
+	beacon_material.albedo_color = Color(1, .9, .6)
+	beacon_material.emission_enabled = true
+	beacon_material.emission = Color(1, .86, .5)
+	beacon_material.emission_energy_multiplier = 3.0
+	var shaft := ShaderMaterial.new()
+	shaft.shader = _beam_shader()
 	beam = Node3D.new()
 	beam.name = "LighthouseBeam"
+	beam.visible = false
 	add_child(beam)
 	beam.global_position = lamp_at
 	for side in [0.0, PI]:
@@ -323,9 +340,7 @@ func light_lighthouse(animate := true) -> void:
 		mesh.cap_top = false
 		mesh.cap_bottom = false
 		cone.mesh = mesh
-		var m := ShaderMaterial.new()
-		m.shader = _beam_shader()
-		cone.material_override = m
+		cone.material_override = shaft
 		cone.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		cone.rotation.x = PI / 2 - .06   # narrow top at the lamp, opening outward along -Z
 		cone.position = Vector3(0, 0, -30.0)
@@ -341,10 +356,7 @@ func light_lighthouse(animate := true) -> void:
 	light.omni_range = 6.0
 	light.light_energy = 2.0
 	beam.add_child(light)
-	if animate:
-		if world.get("audio"):world.audio.play_sfx("lighthouse")
-		beam.scale = Vector3(.01, .01, .01)
-		create_tween().tween_property(beam, "scale", Vector3.ONE, 2.5).set_trans(Tween.TRANS_SINE)
+	return beam
 
 ## Soft light shaft: warm core, edges and far end fade out, additive so it glows on the night sky.
 func _beam_shader() -> Shader:
@@ -365,14 +377,12 @@ void fragment() {
 
 func _process(delta: float) -> void:
 	_clock += delta
-	if is_instance_valid(beam):
+	if is_instance_valid(beam) and beam.visible:
 		beam.rotation.y += delta * .35
 		var w: Vector3 = world.day_cycle.weights
 		var dark := clampf(w.y * .6 + w.z, .15, 1.0)
-		for arm in beam.get_children():
-			if arm.get_child_count() == 0:continue
-			var cone: MeshInstance3D = arm.get_child(0)
-			cone.material_override.set_shader_parameter("strength", .12 + .5 * dark)   # faint by day, full at night
+		var cone: MeshInstance3D = beam.get_child(0).get_child(0)
+		cone.material_override.set_shader_parameter("strength", .12 + .5 * dark)
 	if is_instance_valid(spring):
 		spring.get_child(0).rotation.y += delta * .3
 

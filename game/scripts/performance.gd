@@ -377,6 +377,8 @@ func prepare_web_props() -> void:
 	var cozy=world.activities
 	var flowers: Array[Node3D]=cozy._web_prepare_flowers()
 	# Programs survive a scene reload; never switch the visible opening camera.
+	var props = world.content.props
+	var tower_beam: Node3D = props.prepare_lighthouse()
 	if bool(JavaScriptBridge.eval("window.starworldAnimationsWarm === true")):return
 	var previous:=get_viewport().get_camera_3d()
 	var warm_camera:=Camera3D.new()
@@ -408,14 +410,8 @@ func prepare_web_props() -> void:
 				swatches.add_child(sample)
 	var stream: Node3D=cozy._pour_stream()
 	stream.global_position=cozy.GARDEN+Vector3(0,.9,1.7)
-	var ripple:=MeshInstance3D.new()
-	var torus:=TorusMesh.new()
-	torus.inner_radius=.24;torus.outer_radius=.27;torus.rings=24;torus.ring_segments=4
-	ripple.mesh=torus
-	var ripple_material:=StandardMaterial3D.new()
-	ripple_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
-	ripple_material.albedo_color=Color("c6e6e7")
-	ripple.material_override=ripple_material
+	var ripple: MeshInstance3D = cozy.make_ripple()
+	var ripple_material: Material = ripple.material_override
 	world.add_child(ripple)
 	ripple.global_position=cozy.WATER+Vector3.UP*.8
 	var jets: MultiMeshInstance3D=cozy.water_show.drops
@@ -496,7 +492,7 @@ func prepare_web_props() -> void:
 			warm_camera.look_at_from_position(eye,at)
 			warm_camera.current=true
 			for lamp in nodes[1].find_children("*","Light3D",true,false):lamp.visible=angle>=180
-			cozy.water_show.material.emission_enabled=angle in [90,270]
+			cozy.water_show.material.emission_energy_multiplier=1.6 if angle in [90,270] else 0.0
 			cozy.water_show.light.light_energy=1.6 if angle>=180 else 0.0
 			for flower in flowers:cozy.Flora.set_open(flower,1.0);cozy.Flora.set_glow(flower,1.0 if angle in [90,270] else 0.0)
 			for i in 2:await RenderingServer.frame_post_draw
@@ -532,6 +528,19 @@ func prepare_web_props() -> void:
 	for lamp in lights:lamp.visible=true
 	spotlight.queue_free()
 	final_samples.queue_free()
+	if is_instance_valid(tower_beam):
+		JavaScriptBridge.eval("window.starworldWarmup = "+JSON.stringify({"stage":2,"total":2,"label":"准备灯塔演出"}))
+		var was_lit := tower_beam.visible
+		var originals: Array[Material] = []
+		for beacon: MeshInstance3D in props._beacons:
+			originals.append(beacon.material_override)
+			beacon.material_override = props.beacon_material
+		tower_beam.visible = true
+		var lamp := tower_beam.global_position
+		warm_camera.look_at_from_position(lamp + Vector3(-7, 4, 5), lamp)
+		for i in 2:await RenderingServer.frame_post_draw
+		tower_beam.visible = was_lit
+		for i in props._beacons.size():props._beacons[i].material_override = originals[i]
 	for flower in flowers:
 		cozy.Flora.set_open(flower,0.0)
 		cozy.Flora.set_glow(flower,world.day_cycle.weights.z)
@@ -549,7 +558,7 @@ func prepare_web_props() -> void:
 	flies.multimesh.buffer=flies_buffer
 	jets.multimesh.visible_instance_count=jets_count
 	flies.multimesh.visible_instance_count=flies_count
-	cozy.water_show.material.emission_enabled=false
+	cozy.water_show.material.emission_energy_multiplier=0.0
 	cozy.water_show.light.light_energy=0.0
 	ending.sky_layer.visible=old_sky_visible
 	ending.dream.modulate.a=old_dream_alpha

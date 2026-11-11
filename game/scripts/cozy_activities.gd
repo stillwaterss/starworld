@@ -392,6 +392,7 @@ func _pour_stream() -> Node3D:
 	drops.direction=Vector3(0,-1,.2);drops.spread=8;drops.initial_velocity_min=.4;drops.initial_velocity_max=.8;drops.gravity=Vector3(0,-6,0)
 	var m:=_web_pour_mesh()
 	drops.mesh=m
+	drops.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var mat:=_web_pour_material()
 	drops.material_override=mat
 	root.add_child(drops)
@@ -568,13 +569,10 @@ func skip_stone() -> bool:
 	var delay:=.85 if _perf_ok() else 0.0
 	var rings:=[]
 	for i in 3:
-		var mesh:=MeshInstance3D.new();var ring:=TorusMesh.new()
-		ring.inner_radius=.24;ring.outer_radius=.27;ring.rings=24;ring.ring_segments=4
-		mesh.mesh=ring;mesh.position=WATER+Vector3(float(i-1)*.65,.39,0)
-		var material:=StandardMaterial3D.new();material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
-		material.albedo_color=Color("c6e6e7");mesh.material_override=material
+		var mesh := make_ripple()
+		mesh.position = WATER + Vector3(float(i - 1) * .65, .39, 0)
 		world.add_child(mesh);timed.append({"node":mesh,"kind":"ripple","time":-float(i)*.3-delay,"life":2.0})
-		if delay>0:mesh.visible=false
+		mesh.visible = delay <= 0.0 and i == 0
 		rings.append(mesh)
 	mark("水面上的三个圈");say("一、二、三，涟漪散开了。")
 	content_event.emit("stones_skipped",{})
@@ -583,6 +581,25 @@ func skip_stone() -> bool:
 		play_chime()
 		if not water_show.playing():water_show.play()
 	return true
+
+var _ripple_mesh: TorusMesh
+var _ripple_material: StandardMaterial3D
+
+func make_ripple() -> MeshInstance3D:
+	if not _ripple_mesh:
+		_ripple_mesh = TorusMesh.new()
+		_ripple_mesh.inner_radius = .24
+		_ripple_mesh.outer_radius = .27
+		_ripple_mesh.rings = 24
+		_ripple_mesh.ring_segments = 4
+		_ripple_material = StandardMaterial3D.new()
+		_ripple_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_ripple_material.albedo_color = Color("c6e6e7")
+	var ripple := MeshInstance3D.new()
+	ripple.mesh = _ripple_mesh
+	ripple.material_override = _ripple_material
+	ripple.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return ripple
 
 func _spawn_fireflies() -> void:
 	fireflies=MultiMeshInstance3D.new();var mm:=MultiMesh.new()

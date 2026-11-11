@@ -105,6 +105,19 @@ func _stream(id: String) -> AudioStream:
 	if stream is AudioStreamOggVorbis:stream.loop = id.begins_with("music") or id.begins_with("amb")
 	return stream
 
+## Start the prologue at the downbeat of the night track. Keep the day/dusk
+## tracks aligned with it so later weather changes still crossfade cleanly.
+func restart_for_opening() -> void:
+	gains = Vector3(0, 0, 1)
+	duck = 0.0
+	_apply_gains()
+	if OS.has_feature("web") and not _web_loops_started:return
+	for player in music + ambience:
+		if player.stream:
+			player.stop()
+			player.play(0.0)
+	if OS.has_feature("web"):_web_report_audio_samples()
+
 func _target(weights: Vector3) -> Vector3:
 	var total := maxf(weights.x + weights.y + weights.z, .0001)
 	var w := weights / total

@@ -19,6 +19,7 @@ var marker: MeshInstance3D
 var _timer := 0.0
 var _arrived_for := ""
 var _clock := 0.0
+var _repath_pending := false
 
 func _ready() -> void:
 	name = "Guide"
@@ -70,6 +71,12 @@ func set_manual(target_id: String) -> void:
 	refresh_route(true)
 
 func refresh_route(force := false) -> void:
+	# Stage changes can arrive on the same frame a performance starts.
+	# A route will not be drawn during the shot, so resolve it on return.
+	if _cinematic():
+		_repath_pending = _repath_pending or force
+		return
+	_repath_pending = false
 	var next := current_target()
 	if next != target:
 		target = next
@@ -128,15 +135,14 @@ func _trim(from: Vector3) -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
+	var cinematic := _cinematic()
 	_timer -= delta
-	if _timer <= 0:
+	if not cinematic and (_timer <= 0 or _repath_pending):
 		_timer = REPATH
-		refresh_route()
-	var show: bool = enabled() and target != "" and content.world.interactions.mode == "idle" and not _photo()
-	# seated, flying, or in a staged moment the marker would hang in front of the camera
+		refresh_route(_repath_pending)
+	var show: bool = not cinematic and enabled() and target != "" and content.world.interactions.mode == "idle" and not _photo()
 	var scene = content.world.get("scene_actions")
-	var perf = content.world.get("performance")
-	if (scene and scene.seat_state != "free") or (content.airship and content.airship.flying()) or (content.ending and content.ending.playing) or (perf and perf.busy):show = false
+	if scene and scene.seat_state != "free":show = false
 	var trail: bool = show and bool(content.world.audio.settings.get("breadcrumbs", true)) if content.world.get("audio") else show
 	_draw_dots(trail and not straight)
 	marker.visible = show
@@ -151,6 +157,10 @@ func _process(delta: float) -> void:
 			if content.state.data.guide_target == target:
 				content.state.data.guide_target = ""
 				content.state.save()
+
+func _cinematic() -> bool:
+	var perf = content.world.get("performance")
+	return (perf != null and perf.busy) or (content.airship != null and content.airship.flying()) or (content.ending != null and content.ending.playing) or (content.opening != null and content.opening.playing)
 
 func _photo() -> bool:
 	var cozy = content.world.get("activities")

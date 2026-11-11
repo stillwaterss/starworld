@@ -1332,7 +1332,7 @@
         {
           "id": "s_keeper_watch",
           "title": "坐飞艇回灯塔岛，今晚你来守灯",
-          "hint": "从码头坐飞艇去灯塔岛，爬上灯塔。要等天黑。",
+          "hint": "从码头坐飞艇去灯塔岛，爬上灯塔。按 T 换到夜晚，再按 E 开始守灯。",
           "target": "loc:keeper_lamp",
           "done": {
             "flag": "watch_done"

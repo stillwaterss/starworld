@@ -142,6 +142,7 @@ func play() -> void:
 			hidden.append(tag)
 			tag.visible = false
 	world.day_cycle.set_time(2, 0.0)
+	if world.get("audio"):world.audio.restart_for_opening()
 	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	layer.visible = true
 	veil.color.a = 1

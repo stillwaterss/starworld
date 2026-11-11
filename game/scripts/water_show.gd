@@ -20,6 +20,10 @@ var light: OmniLight3D
 var time := -1.0
 var material: StandardMaterial3D
 var night := 0.0
+var _tint := Color.WHITE
+# One buffer upload per frame in place of hundreds of per-instance calls.
+var drop_data := PackedFloat32Array()
+const DROP_STRIDE := 16
 
 func _ready() -> void:
 	name = "WaterShow"
@@ -35,6 +39,7 @@ func _ready() -> void:
 	mesh.rings = 3
 	mm.mesh = mesh
 	mm.instance_count = JETS * PER_JET + CENTER_DROPS
+	drop_data.resize(mm.instance_count * DROP_STRIDE)
 	drops.multimesh = mm
 	material = StandardMaterial3D.new()
 	material.albedo_color = Color(.82, .93, 1.0)
@@ -42,6 +47,8 @@ func _ready() -> void:
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.roughness = .1
 	material.metallic_specular = .9
+	material.emission_enabled = true
+	material.emission_energy_multiplier = 0.0
 	drops.material_override = material
 	drops.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	drops.custom_aabb = AABB(Vector3(-5, -1, -5), Vector3(10, 9, 10))
@@ -60,27 +67,32 @@ func play() -> void:
 	drops.visible = true
 	var cycle = world.get("day_cycle") if world else null
 	night = cycle.weights.z if cycle else 0.0
+	_tint = Color(.82, .93, 1.0).lerp(Color(1.0, .86, .55), night * .7)
+	material.emission = _tint
+	material.emission_energy_multiplier = night * 1.6
+	light.light_color = _tint
+
+const FIGURES := [
+	[0.0, {"center": 0.0, "speed": 0.0, "tilt": .0, "swirl": .0, "star": 0.0}],
+	[2.2, {"center": 6.2, "speed": 0.0, "tilt": .0, "swirl": .0, "star": 0.0}],
+	[4.2, {"center": 5.0, "speed": 5.2, "tilt": -.42, "swirl": .0, "star": 0.0}],
+	[7.2, {"center": 4.0, "speed": 5.6, "tilt": -.30, "swirl": .55, "star": 0.0}],
+	[10.0, {"center": 2.6, "speed": 4.6, "tilt": .45, "swirl": .0, "star": 1.0}],
+	[13.0, {"center": 3.4, "speed": 3.0, "tilt": .2, "swirl": .0, "star": .6}],
+	[LENGTH, {"center": 0.0, "speed": 0.0, "tilt": .0, "swirl": .0, "star": 0.0}],
+]
 
 ## Per figure: jet launch speed, outward tilt (+ out / - in), swirl and spread.
 func _figure(t: float) -> Dictionary:
-	var keys := [
-		[0.0, {"center": 0.0, "speed": 0.0, "tilt": .0, "swirl": .0, "star": 0.0}],
-		[2.2, {"center": 6.2, "speed": 0.0, "tilt": .0, "swirl": .0, "star": 0.0}],
-		[4.2, {"center": 5.0, "speed": 5.2, "tilt": -.42, "swirl": .0, "star": 0.0}],
-		[7.2, {"center": 4.0, "speed": 5.6, "tilt": -.30, "swirl": .55, "star": 0.0}],
-		[10.0, {"center": 2.6, "speed": 4.6, "tilt": .45, "swirl": .0, "star": 1.0}],
-		[13.0, {"center": 3.4, "speed": 3.0, "tilt": .2, "swirl": .0, "star": .6}],
-		[LENGTH, {"center": 0.0, "speed": 0.0, "tilt": .0, "swirl": .0, "star": 0.0}],
-	]
-	for i in range(keys.size() - 1):
-		var a: Array = keys[i]
-		var b: Array = keys[i + 1]
+	for i in range(FIGURES.size() - 1):
+		var a: Array = FIGURES[i]
+		var b: Array = FIGURES[i + 1]
 		if t <= b[0]:
 			var k := smoothstep(0.0, 1.0, (t - a[0]) / (b[0] - a[0]))
 			var out := {}
 			for key in a[1]:out[key] = lerpf(a[1][key], b[1][key], k)
 			return out
-	return keys[-1][1]
+	return FIGURES[-1][1]
 
 func _process(delta: float) -> void:
 	if time < 0:return
@@ -88,11 +100,6 @@ func _process(delta: float) -> void:
 	var f := _figure(time)
 	var mm := drops.multimesh
 	var index := 0
-	var tint := Color(.82, .93, 1.0).lerp(Color(1.0, .86, .55), night * .7)
-	material.emission_enabled = night > .1
-	material.emission = tint
-	material.emission_energy_multiplier = night * 1.6
-	light.light_color = tint
 	light.light_energy = (0.4 + night * 1.6) * clampf(f.speed / 5.0 + f.center / 8.0, 0, 1)
 	for j in JETS:
 		var around := TAU * j / JETS
@@ -111,8 +118,7 @@ func _process(delta: float) -> void:
 			var p: Vector3 = origin + v * t + Vector3.DOWN * .5 * GRAVITY * t * t
 			var alive: bool = speed > .3 and p.y > WATER_Y - .02
 			var scale := .7 + .5 * sin(float(n) * 1.7)
-			mm.set_instance_transform(index, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * (scale if alive else .001)), p))
-			mm.set_instance_color(index, Color(tint, (.75 if alive else 0.0) * (1.0 - phase * .35)))
+			_drop(index, p, scale if alive else .001, (.75 if alive else 0.0) * (1.0 - phase * .35))
 			index += 1
 	for n in CENTER_DROPS:
 		var phase := fmod(time * .8 + float(n) / CENTER_DROPS, 1.0)
@@ -121,11 +127,24 @@ func _process(delta: float) -> void:
 		var t := phase * flight
 		var p: Vector3 = Vector3(0, PILLAR_TOP, 0) + v * t + Vector3.DOWN * .5 * GRAVITY * t * t
 		var alive: bool = f.center > .3 and p.y > WATER_Y
-		mm.set_instance_transform(index, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * (1.0 if alive else .001)), p))
-		mm.set_instance_color(index, Color(tint, .8 if alive else 0.0))
+		_drop(index, p, 1.0 if alive else .001, .8 if alive else 0.0)
 		index += 1
+	mm.buffer = drop_data
 	if time >= LENGTH:
 		time = -1.0
 		drops.visible = false
 		light.light_energy = 0
 		show_finished.emit()
+
+func _drop(index: int, at: Vector3, size: float, alpha: float) -> void:
+	var i := index * DROP_STRIDE
+	drop_data[i] = size
+	drop_data[i + 3] = at.x
+	drop_data[i + 5] = size
+	drop_data[i + 7] = at.y
+	drop_data[i + 10] = size
+	drop_data[i + 11] = at.z
+	drop_data[i + 12] = _tint.r
+	drop_data[i + 13] = _tint.g
+	drop_data[i + 14] = _tint.b
+	drop_data[i + 15] = alpha

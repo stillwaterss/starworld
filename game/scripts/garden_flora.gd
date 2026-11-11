@@ -128,6 +128,6 @@ static func set_open(flower: Node3D, amount: float) -> void:
 
 static func set_glow(flower: Node3D, night: float) -> void:
 	var m: StandardMaterial3D = flower.get_meta("petal_material")
-	m.emission_enabled = night > .05
+	m.emission_enabled = true
 	m.emission = m.albedo_color
 	m.emission_energy_multiplier = night * .55 * float(flower.get_meta("open", 0.0))

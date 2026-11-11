@@ -49,6 +49,7 @@ const fs=require('node:fs');
   // Reset diagnostics only, so later checks cannot reuse pre-reload sound evidence.
   await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
   await clickControl('出发吧',true);
+  await page.waitForFunction(()=>window.starworldUi?.opening && window.starworldAudioStatus?.musicPositions[2]<2.5,{},{timeout:30000});
   await page.waitForFunction(()=>window.starworldUi.title===false,{},{timeout:30000});
   // Wait for the actual skip affordance. A Space loop could also dismiss the
   // following chapter page before its real Start button is inspected.
@@ -85,14 +86,21 @@ const fs=require('node:fs');
   await page.screenshot({path:'browser-evidence/map.png'});await page.keyboard.press('Escape');
   // An in-game reload replaces the scene while keeping the same browser document.
   const sceneId=await page.evaluate(()=>window.starworldUi.sceneId);
+  await page.keyboard.press('b');
+  await page.waitForFunction(()=>window.starworldUi.title,{},{timeout:20000});
+  await clickControl('继续游戏',true);
+  await page.waitForFunction(()=>!window.starworldUi.title&&!window.starworldUi.locked,{},{timeout:20000});
   await page.keyboard.press('F9');
+  await page.waitForFunction(()=>window.starworldUi.title&&window.starworldUi.buttons.some(b=>b.text.endsWith('· 星仔')),{},{timeout:20000});
+  const saved=await page.evaluate(()=>window.starworldUi.buttons.find(b=>b.text.endsWith('· 星仔')).text);
+  await clickControl(saved,true);
   await page.waitForFunction(id=>window.starworldUi?.sceneId && window.starworldUi.sceneId!==id,sceneId,{timeout:60000});
   await page.waitForFunction(()=>window.starworldUi?.booting===false&&!window.starworldUi.title&&!window.starworldUi.locked,{},{timeout:120000});
   if(await page.evaluate(()=>window.v20ReloadMarker)!=='keep')throw Error('F9 reloaded the browser document');
   await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
   await verifySound();
   const result=await page.evaluate(()=>window.starworldDiagnostics());
-  Object.assign(result,{movementMetres:moved,startupReadyMs:readyMs,totalSmokeMs:Date.now()-begun,nativeMusic:await page.evaluate(()=>window.starworldAudioStatus),verified:['home entries','settings return','about Escape','new game','chapter start button','wish after new game','movement','map','font','real audio after opening','F5 saves without browser refresh','F9 loads and resumes with sound'],testViewport:{width:400,height:250,renderer:'Chromium SwiftShader software rasterization'},errors});
+  Object.assign(result,{movementMetres:moved,startupReadyMs:readyMs,totalSmokeMs:Date.now()-begun,nativeMusic:await page.evaluate(()=>window.starworldAudioStatus),verified:['night music restarted at the opening','B goes home','home entries','settings return','about Escape','new game','chapter start button','wish after new game','movement','map','font','real audio after opening','F5 saves without browser refresh','F9 loads and resumes with sound'],testViewport:{width:400,height:250,renderer:'Chromium SwiftShader software rasterization'},errors});
   fs.writeFileSync('browser-evidence/audio.json',JSON.stringify(result,null,2));
   await page.screenshot({path:'browser-evidence/game.png'});console.log('BROWSER_V17_VERIFIED',JSON.stringify(result));
   if(errors.length)throw Error(errors.join('\n'));

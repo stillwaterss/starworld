@@ -442,7 +442,6 @@ func finale() -> void:
 	await _wait(2.5)
 	await _words(NARRATION_LAST)
 	player.model.set_performing(false)
-	var director = content.director
 	content.events.emit("ending_seen", {"place": "square"})
 	sky_layer.visible = false
 	dream.modulate.a = 0
@@ -453,11 +452,7 @@ func finale() -> void:
 		player.arm.get_child(0).current = true
 		player.controls_locked = false
 		return
-	var left: Array[String] = []
-	for id in director.side_order:
-		# (the far islanders' stories only open after this night: not "left undone")
-		if director.side_state(id) != "done" and not director.sides[id].get("after_story", false):left.append(String(director.sides[id].title))
-	_build_finale(left)
+	_build_finale()
 	finale_panel.modulate.a = 0
 	finale_panel.visible = true
 	create_tween().tween_property(finale_panel, "modulate:a", 1.0, 1.2)
@@ -498,7 +493,11 @@ func _walk_to(goal: Vector3) -> void:
 
 ## The end page: a cream card in the painted style, the side stories still waiting as
 ## small tags, and three choices: play them, keep wandering, or quit.
-func _build_finale(left: Array[String]) -> void:
+func _build_finale() -> void:
+	var director = content.director
+	var left: Array[String] = []
+	for id in director.side_order:
+		if id != "s_keeper" and director.side_state(id) != "done":left.append(String(director.sides[id].title))
 	if is_instance_valid(finale_panel):finale_panel.get_parent().queue_free()
 	var top := CanvasLayer.new()
 	top.layer = 10
@@ -517,7 +516,7 @@ func _build_finale(left: Array[String]) -> void:
 	finale_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	top.add_child(finale_panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 10)
 	box.custom_minimum_size.x = 600
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	finale_panel.add_child(box)
@@ -527,7 +526,7 @@ func _build_finale(left: Array[String]) -> void:
 		title_pic.texture = title_art
 		title_pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		title_pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		title_pic.custom_minimum_size = Vector2(0, 92)
+		title_pic.custom_minimum_size = Vector2(0, 82)
 		title_pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		box.add_child(title_pic)
 	box.add_child(Cozy.label("故事完结", 30))
@@ -535,7 +534,7 @@ func _build_finale(left: Array[String]) -> void:
 	box.add_child(Cozy.label(content.named("小光回家了。谢谢你，{name}。"), 24, Cozy.INK))
 	box.add_child(Cozy.label("你已经走完了《星星人的小世界》的故事。", 17, Cozy.INK_SOFT, false))
 	if not left.is_empty():
-		box.add_child(Cozy.label("岛上还有 %d 个小故事在等你：" % left.size(), 18, Cozy.INK_SOFT))
+		box.add_child(Cozy.label("还有 %d 个小故事等你去岛上发现：" % left.size(), 17, Cozy.INK_SOFT))
 		var tags := HFlowContainer.new()
 		tags.alignment = FlowContainer.ALIGNMENT_CENTER
 		tags.add_theme_constant_override("h_separation", 8)
@@ -563,15 +562,19 @@ func _build_finale(left: Array[String]) -> void:
 		top.queue_free()
 		finale_closed.emit()
 		if open_book:content.ui.toggle_panel.call_deferred("story")
-	var has_postscript: bool = content.director.side_state("s_keeper") != "done"
+	var postscript: String = director.side_state("s_keeper")
+	var has_postscript := postscript in ["available", "active", "paused"]
 	if has_postscript:
 		box.add_child(Cozy.label("后记 · 今晚我来守灯", 21, Cozy.INK))
 		box.add_child(Cozy.label("小光的旅程之后，去灯塔岛陪老星坐一会儿。", 16, Cozy.INK_SOFT, false))
 	var begin_postscript := func() -> void:
-		content.director.start_side("s_keeper")
+		if postscript == "active":director.track("s_keeper")
+		else:director.start_side("s_keeper")
 		close.call(false)
-	var first_button := Cozy.button("开始后记 · 今晚我来守灯" if has_postscript else "去玩小故事", begin_postscript if has_postscript else close.bind(true), true)
+	var first_label := "开始后记" if postscript == "available" else "继续后记"
+	var first_button := Cozy.button(first_label if has_postscript else "查看小故事", begin_postscript if has_postscript else close.bind(true), true)
 	row.add_child(first_button)
+	if has_postscript:row.add_child(Cozy.button("查看小故事", close.bind(true)))
 	first_button.grab_focus.call_deferred()
 	row.add_child(Cozy.button("继续在岛上走走", close.bind(false)))
 	row.add_child(Cozy.button("退出游戏", func():preload("res://scripts/web_platform.gd").exit_game(get_tree())))
