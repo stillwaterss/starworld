@@ -63,6 +63,12 @@ var menu: HBoxContainer
 var title_card: PanelContainer
 var about_panel: PanelContainer
 var name_edit: LineEdit
+var draft_name_button: Button
+var settings_name: Label
+var settings_notice: Label
+var settings_save: Button
+var web_name_callback: JavaScriptObject
+var slot_notice: Label
 var panels := {}
 var open_panel := ""
 var map_view
@@ -626,20 +632,20 @@ func _build_menu() -> void:
 	for item in [["故事 P", "story"], ["地图 N", "map"], ["设置 Y", "settings"], ["帮助 H", "help"]]:
 		var button := _button(item[0], toggle_panel.bind(item[1]), 15)
 		menu.add_child(button)
-	# bottom left: back to the home page, load a saved game, save now
 	home_menu = HBoxContainer.new()
 	home_menu.add_theme_constant_override("separation", 6)
-	home_menu.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	home_menu.offset_left = 16
-	home_menu.offset_right = 340
-	home_menu.offset_top = -50
-	home_menu.offset_bottom = -14
+	home_menu.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	home_menu.offset_left = -330
+	home_menu.offset_right = -16
+	home_menu.offset_top = -91
+	home_menu.offset_bottom = -54
+	home_menu.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	home_menu.alignment = BoxContainer.ALIGNMENT_END
 	root.add_child(home_menu)
-	home_menu.add_child(_button("回到首页", go_home, 15))
-	home_menu.add_child(_button("载入存档", go_home.bind(true), 15))
-	home_menu.add_child(_button("快速存档 F5", quick_save, 15))
-	home_menu.add_child(_button("快速载入 F9", quick_load, 15))
-	home_menu.offset_right = 460
+	for action in [["回到首页", go_home], ["快速存档 F5", quick_save], ["载入存档", go_home.bind(true)]]:
+		var button := Cozy.button(action[0], action[1], false, 15)
+		button.custom_minimum_size = Vector2(0, 36)
+		home_menu.add_child(button)
 
 var home_menu: HBoxContainer
 
@@ -647,10 +653,10 @@ var home_menu: HBoxContainer
 ## list of saved games right away.
 func go_home(slots := false) -> void:
 	if content.state.persistent:content.state.save()
-	if open_panel != "":close_panel()
-	_open("title")
+	if not _open("title"):return
+	_settings_from_title = false
 	_show_title_menu()
-	if slots and not SaveSlots.list().is_empty():_show_slots()
+	if slots:_show_slots()
 
 ## The home screen: the logo in the middle of the painting, and right under it a cream
 ## card with the usual entries: continue, new game (asks for the name; over a story in
@@ -713,6 +719,10 @@ func _build_title_card() -> void:
 	name_edit.add_theme_stylebox_override("focus", field)
 	name_edit.text_submitted.connect(func(_t):_begin_new_game())
 	naming.add_child(name_edit)
+	if OS.has_feature("web"):
+		name_edit.hide()
+		draft_name_button = Cozy.button(content.player_name(), _edit_new_name, false, 19)
+		naming.add_child(draft_name_button)
 	var go := HBoxContainer.new()
 	go.alignment = BoxContainer.ALIGNMENT_CENTER
 	go.add_theme_constant_override("separation", 14)
@@ -734,16 +744,18 @@ func _show_title_menu() -> void:
 	title_menu.visible = true
 	for child in title_menu.get_children():child.queue_free()
 	var started: bool = content.state.data.started or content.state.data.mode == "free"
-	var saved := not SaveSlots.list().is_empty()
 	var first: Array = []
 	if content.director.main_done() and content.director.side_state("s_keeper") != "done":
 		first.append(["继续后记" if content.director.side_state("s_keeper") in ["active", "paused"] else "开始后记", _start_postscript, true])
 	if started:first.append(["继续游戏", _continue_game, false if not first.is_empty() else true])
-	if saved:first.append(["读取存档", _show_slots, false])
+	var tools: Array = [["设置", _title_settings, false]]
+	if OS.has_feature("web"):tools.append(["宣传片", _open_trailer, false])
+	tools.append_array([["关于与声明", show_about, false], ["退出游戏", _exit_game, false]])
 	var rows := [
 		first,
 		[["新游戏", _ask_new_game, not started], ["先随便走走", free_roam, false]],
-		[["设置", _title_settings, false], ["关于与声明", show_about, false], ["退出游戏", func():preload("res://scripts/web_platform.gd").exit_game(get_tree()), false]],
+		[["改名", _rename_from_title, false], ["读取存档", _show_slots, false]],
+		tools,
 	]
 	for row_spec in rows:
 		if row_spec.is_empty():continue
@@ -756,22 +768,32 @@ func _show_title_menu() -> void:
 			if spec[0] == "新游戏":title_new_button = b
 			if row_spec.size() == 1:b.custom_minimum_size.x = 320
 			elif row_spec == first:b.custom_minimum_size.x = 190
+			elif row_spec == tools:b.custom_minimum_size.x = 0
 			row.add_child(b)
 	if started:
-		var where := Cozy.label("上次停在：" + String(content.director.chapter().get("title", "")), 15, Cozy.INK_SOFT, false)
+		var where := Cozy.label(content.player_name() + " · " + ("随便走走" if content.state.data.mode == "free" else String(content.director.chapter().get("title", ""))), 15, Cozy.INK_SOFT, false)
 		title_menu.add_child(where)
+	else:
+		title_menu.add_child(Cozy.label("你的星星人叫" + content.player_name(), 15, Cozy.INK_SOFT, false))
 
 var _slots_scrolled_at := -100000
 
 func _load_slot_tapped(id: String) -> void:
 	if Time.get_ticks_msec() - _slots_scrolled_at < 300:return
-	_load_slot(id)
+	_load_slot.call_deferred(id)
 
 ## The saved games (F5 in the game), newest first; one click loads it and goes on.
 func _show_slots() -> void:
 	for child in title_menu.get_children():child.queue_free()
 	for i in 2:title_card.get_child(0).get_child(i).hide()
-	var all := SaveSlots.list()
+	var all := SaveSlots.list() if content.state.persistent else []
+	slot_notice = Cozy.label("暂无存档。开始游戏后可点「快速存档」。" if content.state.persistent else "独立体验不读取正式存档。", 17)
+	if all.is_empty():
+		title_menu.add_child(slot_notice)
+		title_menu.add_child(Cozy.button("返回", _show_title_menu, false, 17))
+		return
+	slot_notice.text = ""
+	title_menu.add_child(slot_notice)
 	var head := Cozy.label("选一个存档继续（共 %d 个%s）" % [all.size(), " · 上下滑动看更多 ▼" if all.size() > 4 else ""], 18, Cozy.INK, false)
 	title_menu.add_child(head)
 	var slots := VBoxContainer.new()
@@ -819,8 +841,10 @@ func _show_slots() -> void:
 	title_menu.add_child(back)
 
 func _load_slot(id: String) -> void:
+	if not content.state.persistent:return
 	if not SaveSlots.load_slot(id):
-		toast("这个存档找不到了。")
+		if is_instance_valid(slot_notice):slot_notice.text = "这个存档找不到了。"
+		_feedback("这个存档找不到了。")
 		return
 	content.state.load_state()
 	content.state.data.autostart = true
@@ -844,8 +868,14 @@ func quick_save() -> void:
 	if not content.state.persistent:
 		toast("（测试中不写存档）")
 		return
+	if content.state.data.mode == "":
+		_feedback("开始游戏后就可以存档。")
+		return
 	var meta: Dictionary = SaveSlots.save_now(content)
-	toast("已存档 · %s · %s" % [meta.when, meta.chapter], 3.0)
+	if meta.is_empty():
+		_feedback("存档未完成，请再试一次。")
+		return
+	_feedback("已存档 · %s · %s" % [meta.when, meta.chapter])
 
 func _continue_game() -> void:
 	if content.state.data.started:start_story()
@@ -859,17 +889,21 @@ func _ask_new_game() -> void:
 		return
 	title_menu.visible = false
 	title_naming.visible = true
-	name_edit.grab_focus()
+	name_edit.text = content.player_name()
+	if is_instance_valid(draft_name_button):draft_name_button.text = name_edit.text
+	else:name_edit.grab_focus()
 
 ## A fresh story: the save starts over (name kept), flowers and star charts too, and the
 ## island is reloaded so everything lit goes dark again; then the story begins at once.
 func _begin_new_game() -> void:
-	var typed := name_edit.text.strip_edges()
+	var typed := _clean_name(name_edit.text)
 	if not content.state.data.started:
+		content.state.data.player_name = typed
+		content.state.save()
 		start_story()
 		return
 	content.state.reset()
-	content.state.data.player_name = typed if not typed.is_empty() else "星仔"
+	content.state.data.player_name = typed
 	content.state.data.autostart = true
 	content.state.save()
 	var cozy = content.world.get("activities")
@@ -884,8 +918,35 @@ func _begin_new_game() -> void:
 var _settings_from_title := false
 
 func _title_settings() -> void:
-	_settings_from_title = true
-	_open("settings")
+	_settings_from_title = _open("settings")
+
+func _open_trailer() -> void:
+	if OS.has_feature("web"):JavaScriptBridge.eval("window.open('../trailer.html', '_blank', 'noopener')")
+
+func _exit_game() -> void:
+	if content.state.persistent:content.state.save()
+	preload("res://scripts/web_platform.gd").exit_game(get_tree())
+
+func _web_edit_name(current: String, accept: Callable) -> void:
+	var window := JavaScriptBridge.get_interface("window")
+	web_name_callback = JavaScriptBridge.create_callback(func(args):
+		if not args.is_empty():accept.call(String(args[0])))
+	window.starworldEditName(current, web_name_callback)
+
+func _edit_new_name() -> void:
+	_web_edit_name(name_edit.text, func(typed: String):
+		name_edit.text = _clean_name(typed)
+		draft_name_button.text = name_edit.text)
+
+func _rename_from_title() -> void:
+	if OS.has_feature("web"):_web_edit_name(content.player_name(), rename)
+	else:
+		_title_settings()
+		settings_rows["name"].grab_focus()
+
+func _feedback(message: String) -> void:
+	if open_panel == "settings":settings_notice.text = message
+	else:toast(message)
 
 func _build_story() -> void:
 	var box := _panel("story", "故事本", 820, 520)
@@ -938,7 +999,7 @@ func _build_map() -> void:
 	box.add_child(_label("地图按场景碰撞自动生成：绿色是能走到的地方，灰色是走不到的远景或屋顶。路线沿桥和台阶走。", 13, SOFT))
 
 func _build_settings() -> void:
-	var box := _panel("settings", "声音与指引", 520, 480)
+	var box := _panel("settings", "声音与指引", 590, 510)
 	var audio = content.world.get("audio")
 	for item in [["music", "音乐"], ["ambience", "环境声"], ["sfx", "提示音"]]:
 		var row := HBoxContainer.new()
@@ -967,15 +1028,30 @@ func _build_settings() -> void:
 	naming.add_theme_constant_override("separation", 10)
 	naming.add_child(_label("名字", 17))
 	naming.get_child(0).custom_minimum_size.x = 90
-	var field := LineEdit.new()
-	field.text = content.player_name()
-	field.max_length = 8
-	field.custom_minimum_size.x = 160
-	field.text_submitted.connect(func(t):rename(t))
-	naming.add_child(field)
-	naming.add_child(_button("改名", func():rename(field.text), 15))
+	if OS.has_feature("web"):
+		settings_name = _label(content.player_name(), 17)
+		naming.add_child(settings_name)
+		naming.add_child(_button("改名", func():_web_edit_name(content.player_name(), rename), 15))
+	else:
+		var field := LineEdit.new()
+		field.text = content.player_name()
+		field.max_length = 8
+		field.custom_minimum_size.x = 160
+		field.text_submitted.connect(rename)
+		naming.add_child(field)
+		naming.add_child(_button("改名", func():rename(field.text), 15))
+		settings_rows["name"] = field
 	box.add_child(naming)
-	box.add_child(_label("设置单独保存，不影响故事进度。", 13, SOFT))
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 8)
+	box.add_child(actions)
+	actions.add_child(_button("回到首页", go_home, 16))
+	settings_save = _button("快速存档", quick_save, 16)
+	actions.add_child(settings_save)
+	actions.add_child(_button("载入存档", go_home.bind(true), 16))
+	actions.add_child(_button("结束游戏", _exit_game, 16))
+	settings_notice = _label("声音与指引设置会自动保存。", 15, SOFT)
+	box.add_child(settings_notice)
 
 func _set_option(key: String, on: bool) -> void:
 	var audio = content.world.get("audio")
@@ -1307,6 +1383,7 @@ func _open(id: String) -> bool:
 		player.velocity.z = 0
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	open_panel = id
+	if id != "settings":_settings_from_title = false
 	panels[id].visible = true
 	if id == "map":
 		map_view.rebuild()
@@ -1336,7 +1413,6 @@ func close_panel() -> void:
 func start_story() -> void:
 	close_panel()
 	title_card.visible = false
-	_take_name()
 	var first: bool = not content.state.data.started
 	content.director.start_story()
 	if first and content.Opening.wanted():await content.opening.play()
@@ -1346,22 +1422,22 @@ func start_story() -> void:
 	content.guide.refresh_route(true)
 	_hint_time = 10.0
 
-## Keeps the name typed on the title card (empty means the default, 星仔).
-func _take_name() -> void:
-	if not is_instance_valid(name_edit):return
-	var typed := name_edit.text.strip_edges()
-	content.state.data.player_name = typed if not typed.is_empty() else "星仔"
-	content.state.save()
+func _clean_name(typed: String) -> String:
+	var cleaned := typed.strip_edges().left(8)
+	return cleaned if not cleaned.is_empty() else "星仔"
 
 func rename(typed: String) -> void:
-	content.state.data.player_name = typed.strip_edges() if not typed.strip_edges().is_empty() else "星仔"
+	content.state.data.player_name = _clean_name(typed)
+	name_edit.text = content.player_name()
+	if is_instance_valid(settings_name):settings_name.text = content.player_name()
+	if settings_rows.has("name"):settings_rows["name"].text = content.player_name()
 	content.state.save()
-	toast("以后大家都叫你%s。" % content.player_name())
+	_feedback("以后大家都叫你%s。" % content.player_name())
+	if title_card.visible:_show_title_menu()
 
 func free_roam() -> void:
 	close_panel()
 	title_card.visible = false
-	_take_name()
 	content.director.choose_free_roam()
 	start_tutorial()
 	toast("随便走走吧。按 N 打开地图，按 P 随时开始故事。", 6.0)
@@ -1487,6 +1563,10 @@ func _fill_map_list() -> void:
 		map_list.add_child(info)
 
 func _sync_settings() -> void:
+	if is_instance_valid(settings_name):settings_name.text = content.player_name()
+	if settings_rows.has("name"):settings_rows["name"].text = content.player_name()
+	settings_save.disabled = content.state.data.mode == "" or not content.state.persistent
+	settings_notice.text = "声音与指引设置会自动保存。" if not settings_save.disabled else "开始游戏后可以快速存档。"
 	var audio = content.world.get("audio")
 	if not audio:return
 	for key in ["music", "ambience", "sfx"]:settings_rows[key].set_value_no_signal(float(audio.settings[key]))
@@ -1624,7 +1704,7 @@ func _process(delta: float) -> void:
 			controls.append({"text": button.text, "x": center.x, "y": center.y})
 		var pos: Vector3 = content.world.player.global_position
 		var size: Vector2 = root.size
-		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"sceneId": content.world.get_instance_id(), "title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "controls": controls, "about": about_panel.visible, "opening": content.opening.playing, "openingSkip": {"visible": content.opening.skip_button.is_visible_in_tree(), "x": content.opening.skip_button.get_global_rect().get_center().x, "y": content.opening.skip_button.get_global_rect().get_center().y}, "chapter": showing_card(), "locked": content.world.player.controls_locked, "performance": content.world.performance.kind, "performing": content.world.performance.busy, "endingPlaying": content.ending.playing, "endingSky": content.ending.sky_layer.visible, "finale": is_instance_valid(content.ending.finale_panel) and content.ending.finale_panel.visible, "homeReturned": content.state.flag("xiaoguang_home"), "mainDone": content.director.main_done(), "shipAt": content.airship.at, "lanterns": content.ending.lanterns.size(), "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel, "saveSlots": SaveSlots.list().size()}))
+		JavaScriptBridge.eval("window.starworldUi = " + JSON.stringify({"sceneId": content.world.get_instance_id(), "title": title_card.visible, "booting": is_instance_valid(root.get_node_or_null("BootVeil")), "buttons": buttons, "controls": controls, "about": about_panel.visible, "opening": content.opening.playing, "openingCaption": content.opening.card.text if content.opening.playing else "", "openingSkip": {"visible": content.opening.skip_button.is_visible_in_tree(), "x": content.opening.skip_button.get_global_rect().get_center().x, "y": content.opening.skip_button.get_global_rect().get_center().y}, "chapter": showing_card(), "locked": content.world.player.controls_locked, "performance": content.world.performance.kind, "performing": content.world.performance.busy, "endingPlaying": content.ending.playing, "endingSky": content.ending.sky_layer.visible, "finale": is_instance_valid(content.ending.finale_panel) and content.ending.finale_panel.visible, "homeReturned": content.state.flag("xiaoguang_home"), "mainDone": content.director.main_done(), "shipAt": content.airship.at, "lanterns": content.ending.lanterns.size(), "width": size.x, "height": size.y, "position": [pos.x, pos.y, pos.z], "panel": open_panel, "saveSlots": SaveSlots.list().size(), "playerName": content.player_name(), "settingsNotice": settings_notice.text if open_panel == "settings" else ""}))
 	if title_card.visible:
 		title_card.pivot_offset = Vector2(title_card.size.x / 2.0, 0)
 		title_card.scale = Vector2.ONE * minf(1.0, root.size.y * .5 / maxf(1.0, title_card.size.y))
@@ -1691,8 +1771,8 @@ func _process(delta: float) -> void:
 	whisper_panel.modulate.a = clampf((_whisper_time - 1.2) / .8, 0, 1) * clampf((_whisper_total - _whisper_time) / .4, 0, 1)
 	# the flight and the ending are cinematic: only whispers stay on screen
 	var cinematic: bool = (content.airship != null and content.airship.flying()) or (content.ending != null and content.ending.playing)
-	menu.visible = (idle or open_panel != "") and not cinematic
-	home_menu.visible = idle and not cinematic and not title_card.visible and content.state.data.mode != ""
+	menu.visible = idle and not cinematic and not showing_card() and not title_card.visible and open_panel == ""
+	home_menu.visible = menu.visible and content.state.data.mode != ""
 	if cinematic:chip.visible = false
 	if _toast_time > 0:
 		_toast_time -= delta
@@ -1737,6 +1817,7 @@ func _input(event: InputEvent) -> void:
 	var mode: String = world.interactions.mode
 	if not mode in ["idle", "content"]:return
 	var key: int = event.physical_keycode
+	if get_viewport().gui_get_focus_owner() is LineEdit and key != KEY_ESCAPE:return
 	if key in [KEY_F5, KEY_F9] and not title_card.visible and content.state.data.mode != "":
 		if key == KEY_F5:quick_save()
 		else:quick_load()

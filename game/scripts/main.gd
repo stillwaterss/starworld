@@ -442,10 +442,10 @@ func _web_stage_geometry() -> void:
 
 func _web_reveal_geometry(geometry: Array[GeometryInstance3D]) -> void:
 	# Yield between small groups so first-use shader work cannot monopolise a frame.
-	for index in range(0,geometry.size(),1):
+	var batch_size := 4
+	for index in range(0, geometry.size(), batch_size):
 		JavaScriptBridge.eval("window.starworldWarmup = "+JSON.stringify({"stage":index,"total":geometry.size(),"label":"小镇画面"}))
-		for node in geometry.slice(index,mini(index+1,geometry.size())):
+		for node in geometry.slice(index, mini(index + batch_size, geometry.size())):
 			if is_instance_valid(node):node.visible=true
 		await RenderingServer.frame_post_draw
-		await get_tree().create_timer(.015).timeout
 	_web_geometry_ready=true

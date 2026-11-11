@@ -286,6 +286,7 @@ func _process(_delta: float) -> void:
 			if npc.profile_id==active_target:prompt.text="E  交谈 · "+npc.display_name
 
 func _input(event: InputEvent) -> void:
+	if mode == "content":return
 	if is_instance_valid(world.activities) and (world.activities.photo or world.activities.sitting):return
 	if is_instance_valid(world.scene_actions) and world.scene_actions.seat_state!="free":return
 	if event.is_action_pressed("ui_cancel") and mode!="idle":

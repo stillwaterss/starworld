@@ -1,6 +1,5 @@
 extends RefCounted
 ## An exported browser game returns to its introduction when the player chooses Exit.
 static func exit_game(tree: SceneTree) -> void:
-	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.location.assign('../')")
-	else:tree.quit()
+	# The web engine flushes IndexedDB before the shell's onExit redirects.
+	tree.quit()
