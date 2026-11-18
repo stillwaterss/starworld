@@ -45,3 +45,14 @@ trailer.addEventListener('error', () => {
   } else trailerStatus.textContent = '视频暂时无法加载，请试试下方的「直接打开视频」。';
 });
 
+
+// Returning to the game must not leave a second soundtrack in this tab.
+// Keep the position; the player can resume here with the normal play control.
+function pauseTrailerAway() {
+  if (!trailer.paused) trailer.pause();
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseTrailerAway();
+});
+window.addEventListener('blur', pauseTrailerAway);
+window.addEventListener('pagehide', pauseTrailerAway);
