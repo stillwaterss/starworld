@@ -23,7 +23,7 @@ const ABOUT := """[b]关于这个游戏[/b]
 剧本 · 程序 · 音乐：Claude
 场景 · 角色 · 镜头：GPT（Codex）"""
 const HELP := """[b]走一走[/b]
-WASD / 方向键 移动 · 空格 跳 · Shift 跑 · 按住鼠标拖动视角
+WASD / 方向键 移动 · 空格 跳 · Shift 跑 · 鼠标转镜头 · Esc 释放鼠标后可拖动
 E 交谈 / 看看 / 推门 / 用望远镜 · Esc 关闭窗口 · 演出中按 E 加快
 
 [b]找方向[/b]
@@ -327,7 +327,7 @@ func _fade_page(node: Control, fade: Control = null) -> void:
 ## to know), ticks, fades, and the next comes. Shown once (flag "tutorial_done").
 const TUTORIAL := [
 	["W A S D 或 方向键  走一走", "move"],
-	["按住鼠标拖动  转动视角 · 滚轮  拉近拉远", "look"],
+	["移动鼠标转镜头 · Esc 释放后可拖动 · 滚轮缩放", "look"],
 	["按住 Shift  跑起来", "run"],
 	["空格  跳一下（矮台阶要跳上去）", "jump"],
 	["E  和人说话、看看发光的东西", "wait"],
@@ -1384,7 +1384,8 @@ func close_panel() -> void:
 	open_panel = ""
 	if content.world.interactions.mode == "content":content.world.interactions.mode = "idle"
 	content.world.player.controls_locked = bool(_restore.get("locked", false))
-	Input.mouse_mode = _restore.get("mouse", Input.MOUSE_MODE_VISIBLE)
+	if not OS.has_feature("web"):
+		Input.mouse_mode = _restore.get("mouse", Input.MOUSE_MODE_VISIBLE)
 	refresh()
 
 func start_story() -> void:
@@ -1665,6 +1666,7 @@ func _on_arrived(target: String) -> void:
 	_hint_time = 8.0
 
 var _web_diag_clock := 0.0
+var _web_camera_active := false
 func _process(delta: float) -> void:
 	_web_diag_clock += delta
 	if OS.has_feature("web") and _web_diag_clock >= .5:
@@ -1750,6 +1752,9 @@ func _process(delta: float) -> void:
 	# the flight and the ending are cinematic: only whispers stay on screen
 	var cinematic: bool = (content.airship != null and content.airship.flying()) or (content.ending != null and content.ending.playing)
 	menu.visible = idle and not finale_open and not cinematic and not world.player.controls_locked and not showing_card() and not title_card.visible and open_panel == ""
+	if OS.has_feature("web") and _web_camera_active != menu.visible:
+		_web_camera_active = menu.visible
+		JavaScriptBridge.eval("window.starworldCameraPlayable?.(" + ("true" if menu.visible else "false") + ")")
 	if cinematic:chip.visible = false
 	if _toast_time > 0:
 		_toast_time -= delta

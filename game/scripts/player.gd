@@ -79,7 +79,7 @@ func _build_model() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if controls_locked:
 		return
-	# Browser pointer lock interrupts the scene with Chrome's own banner.
+	# The web shell owns pointer lock; its state is reflected in Input.mouse_mode.
 	if event is InputEventMouseMotion and (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or (OS.has_feature("web") and (event.button_mask & (MOUSE_BUTTON_MASK_LEFT | MOUSE_BUTTON_MASK_RIGHT)) != 0)):
 		cam_yaw -= event.relative.x * MOUSE_SENS
 		cam_pitch = clampf(cam_pitch - event.relative.y * MOUSE_SENS, -1.25, 0.4)

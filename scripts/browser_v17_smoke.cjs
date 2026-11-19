@@ -74,6 +74,14 @@ const fs=require('node:fs');
   await clickControl('开始第一章');
   await page.waitForFunction(()=>!window.starworldUi.chapter && !window.starworldUi.locked,{},{timeout:30000});
   if(await page.evaluate(()=>window.starworldUi.playerName)!=='小满')throw Error('New-game name did not reach the story');
+  await page.locator('#camera-help').waitFor({state:'visible',timeout:30000});
+  if(!await page.evaluate(()=>document.pointerLockElement===document.getElementById('canvas'))){
+   await page.locator('#camera-lock').click();
+  }
+  await page.waitForFunction(()=>document.pointerLockElement===document.getElementById('canvas'),null,{timeout:30000});
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>!document.pointerLockElement&&!document.getElementById('camera-lock').hidden,null,{timeout:30000});
+
   await page.keyboard.press('y');
   await page.waitForFunction(()=>window.starworldUi.panel==='settings',{},{timeout:20000});
   await clickControl('改名');
