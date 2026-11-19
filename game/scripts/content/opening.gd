@@ -99,6 +99,7 @@ func playing_scenes_done() -> void:
 
 func _input(event: InputEvent) -> void:
 	if not playing:return
+	if event is InputEventKey and preload("res://scripts/project_paths.gd").typing(get_viewport()):return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode in [KEY_E, KEY_SPACE, KEY_ESCAPE, KEY_ENTER] and skip_button.visible:skip = true
 		get_viewport().set_input_as_handled()

@@ -217,6 +217,7 @@ func ready_action(id: String,seconds: float) -> bool:
 	return true
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and preload("res://scripts/project_paths.gd").typing(get_viewport()):return
 	if photo and event is InputEventMouseButton and event.pressed:
 		if event.button_index==MOUSE_BUTTON_WHEEL_UP:photo_camera.fov=maxf(25,photo_camera.fov-3)
 		elif event.button_index==MOUSE_BUTTON_WHEEL_DOWN:photo_camera.fov=minf(85,photo_camera.fov+3)

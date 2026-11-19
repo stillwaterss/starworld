@@ -213,6 +213,7 @@ func _process(delta: float) -> void:
 			lanterns.remove_at(i)
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and preload("res://scripts/project_paths.gd").typing(get_viewport()):return
 	if playing and event is InputEventKey and event.pressed and not event.echo and event.physical_keycode in [KEY_E, KEY_SPACE, KEY_ENTER]:
 		hurry = true
 

@@ -214,6 +214,7 @@ func turn_to(face: Vector3, seconds := .35) -> void:
 
 func _input(event: InputEvent) -> void:
 	if not busy or not event is InputEventKey or not event.pressed or event.echo:return
+	if preload("res://scripts/project_paths.gd").typing(get_viewport()):return
 	if event.physical_keycode in [KEY_E, KEY_ESCAPE, KEY_SPACE]:
 		hurry = true
 		get_viewport().set_input_as_handled()

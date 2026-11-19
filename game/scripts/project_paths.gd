@@ -13,3 +13,7 @@ static func renders(sub: String) -> String:
 ## Player progress lives in game/save (the same file as D:/claude/starworld/game/save/<name>).
 static func save(file_name: String) -> String:
 	return "user://" + file_name
+
+static func typing(viewport: Viewport) -> bool:
+	var focused := viewport.gui_get_focus_owner()
+	return focused is LineEdit or focused is TextEdit

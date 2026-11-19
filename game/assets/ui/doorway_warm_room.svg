@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="192" viewBox="0 0 128 192">
+  <defs>
+    <radialGradient id="wall" cx="70%" cy="32%" r="85%">
+      <stop stop-color="#bc8354"/><stop offset=".65" stop-color="#79523f"/><stop offset="1" stop-color="#553731"/>
+    </radialGradient>
+    <linearGradient id="floor" x2="0%" y2="100%">
+      <stop stop-color="#5d3d2d"/><stop offset="1" stop-color="#976446"/>
+    </linearGradient>
+    <radialGradient id="lamp">
+      <stop stop-color="#ffd999" stop-opacity=".56"/><stop offset="1" stop-color="#eab16b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="edge" cx="50%" cy="48%" r="65%">
+      <stop offset=".45" stop-color="#342421" stop-opacity="0"/><stop offset="1" stop-color="#26191e" stop-opacity=".52"/>
+    </radialGradient>
+  </defs>
+  <path fill="url(#wall)" d="M0 0h128v192H0z"/>
+  <path fill="#492f2b" d="M0 0l26 28v123L0 192zM128 0l-24 28v123l24 41z"/>
+  <path fill="#604032" d="M0 0h128l-24 28H26z"/>
+  <path fill="url(#floor)" d="M26 151h78l24 41H0z"/>
+  <path fill="none" stroke="#47302a" stroke-opacity=".48" d="M39 151l-9 41m24-41-3 41m19-41 3 41m15-41 10 41M18 163h93M10 177h109"/>
+  <ellipse fill="url(#lamp)" cx="81" cy="82" rx="44" ry="54"/>
+  <path fill="#62432f" d="M35 60h23v29H35z"/>
+  <path fill="#d2a674" d="M38 63h17v23H38z"/>
+  <path fill="#8c675c" d="M39 83l7-11 8 11z"/>
+  <path fill="#593a2d" d="M63 115h33v4H63z"/>
+  <path fill="#ffd698" d="M77 87h9l5 12H72z"/>
+  <path fill="#744838" d="M80 99h3v14h5v2H75v-2h5z"/>
+  <path fill="url(#edge)" d="M0 0h128v192H0z"/>
+</svg>

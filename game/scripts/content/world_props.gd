@@ -116,10 +116,7 @@ func open_door(id: String, stay := false, animate := true) -> void:
 		glow.mesh = quad
 		var warm := StandardMaterial3D.new()
 		warm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		warm.albedo_color = Color(1, .78, .45)
-		warm.emission_enabled = true
-		warm.emission = Color(1, .74, .4)
-		warm.emission_energy_multiplier = 1.6
+		warm.albedo_texture = preload("res://assets/ui/doorway_warm_room.svg")
 		glow.material_override = warm
 		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(glow)

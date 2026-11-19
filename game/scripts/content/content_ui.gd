@@ -1794,7 +1794,7 @@ func _input(event: InputEvent) -> void:
 	var mode: String = world.interactions.mode
 	if not mode in ["idle", "content"]:return
 	var key: int = event.physical_keycode
-	if get_viewport().gui_get_focus_owner() is LineEdit and key != KEY_ESCAPE:return
+	if key != KEY_ESCAPE and preload("res://scripts/project_paths.gd").typing(get_viewport()):return
 	if key in [KEY_B, KEY_F5, KEY_F9] and menu.visible and content.state.data.mode != "":
 		match key:
 			KEY_B:go_home()

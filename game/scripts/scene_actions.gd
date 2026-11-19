@@ -149,6 +149,7 @@ func in_vista() -> bool:return seat_state=="seated"
 
 func _input(event: InputEvent) -> void:
 	if seat_state!="seated" or activities.photo:return
+	if event is InputEventKey and preload("res://scripts/project_paths.gd").typing(get_viewport()):return
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode in [KEY_LEFT,KEY_RIGHT,KEY_A,KEY_D]:
 		vista=(vista+(1 if event.physical_keycode in [KEY_RIGHT,KEY_D] else VISTAS.size()-1))%VISTAS.size()
 		hint.text="%s · ←/→ 换角度 · T 换天色 · C 起身"%VISTAS[vista]

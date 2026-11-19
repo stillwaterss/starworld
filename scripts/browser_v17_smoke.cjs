@@ -3,7 +3,7 @@ const {chromium}=require('playwright');
 const fs=require('node:fs');
 (async()=>{
  fs.mkdirSync('browser-evidence',{recursive:true});
- const browser=await chromium.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+ const browser=await chromium.launch({executablePath:process.env.STARWORLD_CHROME || '/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const page=await browser.newPage({viewport:{width:400,height:250}});
  const logs=[],errors=[];
  page.on('console',m=>{logs.push(m.type()+': '+m.text());if(/(?:^|\s)ERROR:/.test(m.text()))errors.push(m.text());});
@@ -22,6 +22,15 @@ const fs=require('node:fs');
     await page.waitForFunction(()=>window.starworldDiagnostics().peakRms>0.00002 && window.starworldAudioStatus?.backend==='browser_samples' && window.starworldAudioStatus?.registered.every(Boolean) && window.starworldAudioStatus?.musicPlaying.every(Boolean),{},{timeout:15000});return;
    }catch(error){if(attempt===2)throw error;}
   }
+ }
+ async function typeName(name){
+  const field=page.locator('#star-name');
+  await field.waitFor({state:'visible'});
+  await page.keyboard.type('ET');
+  if(await field.inputValue()!=='ET')throw Error('Game shortcuts took letters from the name field');
+  await field.fill(name);
+  await field.press('Enter');
+  await field.waitFor({state:'hidden'});
  }
  try{
   await page.goto('http://127.0.0.1:8765/');
@@ -46,6 +55,9 @@ const fs=require('node:fs');
   await page.keyboard.press('Escape');await page.waitForFunction(()=>window.starworldUi.about===false,{},{timeout:20000});
   await clickControl('新游戏',true);
   await page.waitForFunction(()=>window.starworldUi.buttons.some(x=>x.text==='出发吧'),{},{timeout:20000});
+  await clickControl('星仔',true);
+  await typeName('小满');
+  await page.waitForFunction(()=>window.starworldUi.buttons.some(x=>x.text==='小满'),{},{timeout:20000});
   // Reset diagnostics only, so later checks cannot reuse pre-reload sound evidence.
   await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
   await clickControl('出发吧',true);
@@ -61,6 +73,14 @@ const fs=require('node:fs');
   await page.screenshot({path:'browser-evidence/chapter.png'});
   await clickControl('开始第一章');
   await page.waitForFunction(()=>!window.starworldUi.chapter && !window.starworldUi.locked,{},{timeout:30000});
+  if(await page.evaluate(()=>window.starworldUi.playerName)!=='小满')throw Error('New-game name did not reach the story');
+  await page.keyboard.press('y');
+  await page.waitForFunction(()=>window.starworldUi.panel==='settings',{},{timeout:20000});
+  await clickControl('改名');
+  await typeName('星河');
+  await page.waitForFunction(()=>window.starworldUi.playerName==='星河',{},{timeout:20000});
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>window.starworldUi.panel==='',{},{timeout:20000});
   await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
   await verifySound();
   await page.keyboard.down('ArrowUp');
@@ -91,11 +111,12 @@ const fs=require('node:fs');
   await clickControl('继续游戏',true);
   await page.waitForFunction(()=>!window.starworldUi.title&&!window.starworldUi.locked,{},{timeout:20000});
   await page.keyboard.press('F9');
-  await page.waitForFunction(()=>window.starworldUi.title&&window.starworldUi.buttons.some(b=>b.text.endsWith('星仔') && b.text.includes('·')),{},{timeout:20000});
-  const saved=await page.evaluate(()=>window.starworldUi.buttons.find(b=>b.text.endsWith('星仔') && b.text.includes('·')).text);
+  await page.waitForFunction(()=>window.starworldUi.title&&window.starworldUi.buttons.some(b=>b.text.endsWith('星河') && b.text.includes('·')),{},{timeout:20000});
+  const saved=await page.evaluate(()=>window.starworldUi.buttons.find(b=>b.text.endsWith('星河') && b.text.includes('·')).text);
   await clickControl(saved,true);
   await page.waitForFunction(id=>window.starworldUi?.sceneId && window.starworldUi.sceneId!==id,sceneId,{timeout:60000});
   await page.waitForFunction(()=>window.starworldUi?.booting===false&&!window.starworldUi.title&&!window.starworldUi.locked,{},{timeout:120000});
+  if(await page.evaluate(()=>window.starworldUi.playerName)!=='星河')throw Error('Reload lost the new name');
   if(await page.evaluate(()=>window.v20ReloadMarker)!=='keep')throw Error('F9 reloaded the browser document');
   await page.evaluate(()=>{window.starworldAudioPeak=0;window.starworldMusicPeakDb=-200;});
   await verifySound();

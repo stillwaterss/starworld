@@ -46,8 +46,9 @@ func _ready() -> void:
 	content.world.add_child.call_deferred(dots)
 	marker = MeshInstance3D.new()
 	var star := PrismMesh.new()
-	star.size = Vector3(.32, .42, .08)
+	star.size = Vector3(.48, .63, .12)
 	marker.mesh = star
+	marker.hide()
 	var glow := StandardMaterial3D.new()
 	glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	glow.albedo_color = Color("ffe3a3")
