@@ -32,10 +32,38 @@ func nearest(p: Vector3) -> Dictionary:
 		var d := Vector2(p.x - at.x, p.z - at.z).length()
 		if d > float(entry.get("radius", 2.0)) or absf(p.y - at.y) > float(entry.get("height", 3.0)):continue
 		if not available(entry):continue
+		# v36: a story step's own examine wins over the everyday ones in reach (standing
+		# among the new flowers E lit the buds, not "蹲下来看看花")
+		if not story_entry(entry):d += 1000.0
 		if d < best_d:
 			best_d = d
 			best = entry
 	return best
+
+## Looks that only look: they never take E from a story step.
+const IDLE_SPECIALS := ["admire_flowers"]
+
+## v36: True for an examine that does something for a story right now: its "when" or the
+## variant it would play names a stage ("stage" / "side_stage", outside a "not"), or that
+## variant does a real action (a "special": lighting, climbing, boarding...).
+func story_entry(entry: Dictionary) -> bool:
+	if not entry.has("_story"):entry["_story"] = _names_stage(entry.get("when", {}))
+	if bool(entry["_story"]):return true
+	var v := variant(entry)
+	if v.is_empty():return false
+	if _names_stage(v.get("when", {})):return true
+	return v.has("special") and not String(v.special) in IDLE_SPECIALS
+
+func _names_stage(cond) -> bool:
+	if cond is Array:
+		for c in cond:
+			if _names_stage(c):return true
+		return false
+	if not cond is Dictionary:return false
+	for key in cond:
+		if key in ["stage", "side_stage"]:return true
+		if key in ["all", "any"] and _names_stage(cond[key]):return true
+	return false
 
 func variant(entry: Dictionary) -> Dictionary:
 	var found: Dictionary = {}

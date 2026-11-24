@@ -59,7 +59,7 @@ var banner: PanelContainer
 var banner_title: Label
 var banner_body: Label
 var prompt: Button
-var menu: HBoxContainer
+var menu: BoxContainer
 var title_card: PanelContainer
 var about_panel: PanelContainer
 var name_edit: LineEdit
@@ -331,7 +331,7 @@ const TUTORIAL := [
 	["按住 Shift  跑起来", "run"],
 	["空格  跳一下（矮台阶要跳上去）", "jump"],
 	["E  和人说话、看看发光的东西", "wait"],
-	["N  地图 · P  故事本 · H  全部按键 · T  换天色", "wait"],
+	["Tab  菜单：故事本、地图、存档和全部按键都在里面", "wait"],
 ]
 var tutorial_card: PanelContainer
 var tutorial_label: RichTextLabel
@@ -618,21 +618,46 @@ func _build_prompt() -> void:
 	prompt.visible = false
 	root.add_child(prompt)
 
+## v36: one "☰ 菜单 Tab" in the top right corner instead of seven buttons along the bottom;
+## the list opens under it. `menu` itself still means "the island is playable" (the page's
+## mouse-look helper follows it); the list being open lets the mouse go.
+var menu_list: VBoxContainer
+var _menu_open := false
+
 func _build_menu() -> void:
-	menu = HBoxContainer.new()
+	menu = VBoxContainer.new()
 	menu.add_theme_constant_override("separation", 6)
-	menu.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	menu.offset_left = -545
-	menu.offset_right = -16
-	menu.offset_top = -50
-	menu.offset_bottom = -14
+	menu.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	menu.offset_left = -196
+	menu.offset_right = -14
+	menu.offset_top = 14
+	menu.offset_bottom = 480
 	menu.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	menu.alignment = BoxContainer.ALIGNMENT_END
+	menu.alignment = BoxContainer.ALIGNMENT_BEGIN
+	menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(menu)
-	for action in [["首页 B", go_home], ["存档 F5", quick_save], ["读档 F9", go_home.bind(true)]]:
-		menu.add_child(_button(action[0], action[1], 15))
-	for item in [["故事 P", "story"], ["地图 N", "map"], ["设置 Y", "settings"], ["帮助 H", "help"]]:
-		menu.add_child(_button(item[0], toggle_panel.bind(item[1]), 15))
+	var toggle := _button("菜单  Tab", toggle_menu, 16)
+	toggle.custom_minimum_size = Vector2(130, 42)
+	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	menu.add_child(toggle)
+	menu_list = VBoxContainer.new()
+	menu_list.add_theme_constant_override("separation", 6)
+	menu_list.visible = false
+	menu.add_child(menu_list)
+	for item in [["故事 P", toggle_panel.bind("story")], ["地图 N", toggle_panel.bind("map")], ["设置 Y", toggle_panel.bind("settings")], ["帮助 H", toggle_panel.bind("help")], ["存档 F5", quick_save], ["读档 F9", go_home.bind(true)], ["回到首页 B", go_home]]:
+		var b := _button(item[0], item[1], 16)
+		b.custom_minimum_size = Vector2(182, 40)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.pressed.connect(func():_set_menu_open(false))
+		menu_list.add_child(b)
+
+func toggle_menu() -> void:
+	_set_menu_open(not _menu_open)
+
+func _set_menu_open(open: bool) -> void:
+	_menu_open = open
+	if is_instance_valid(menu_list):menu_list.visible = open
+	if open:Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 ## Saves the game as it is (the live save) and shows the home page; `slots` opens the
 ## list of saved games right away.
@@ -1752,9 +1777,11 @@ func _process(delta: float) -> void:
 	# the flight and the ending are cinematic: only whispers stay on screen
 	var cinematic: bool = (content.airship != null and content.airship.flying()) or (content.ending != null and content.ending.playing)
 	menu.visible = idle and not finale_open and not cinematic and not world.player.controls_locked and not showing_card() and not title_card.visible and open_panel == ""
-	if OS.has_feature("web") and _web_camera_active != menu.visible:
-		_web_camera_active = menu.visible
-		JavaScriptBridge.eval("window.starworldCameraPlayable?.(" + ("true" if menu.visible else "false") + ")")
+	if not menu.visible and _menu_open:_set_menu_open(false)
+	var playable: bool = menu.visible and not _menu_open
+	if OS.has_feature("web") and _web_camera_active != playable:
+		_web_camera_active = playable
+		JavaScriptBridge.eval("window.starworldCameraPlayable?.(" + ("true" if playable else "false") + ")")
 	if cinematic:chip.visible = false
 	if _toast_time > 0:
 		_toast_time -= delta
@@ -1800,6 +1827,14 @@ func _input(event: InputEvent) -> void:
 	if not mode in ["idle", "content"]:return
 	var key: int = event.physical_keycode
 	if key != KEY_ESCAPE and preload("res://scripts/project_paths.gd").typing(get_viewport()):return
+	if key == KEY_TAB and menu.visible and content.state.data.mode != "":
+		toggle_menu()
+		get_viewport().set_input_as_handled()
+		return
+	if key == KEY_ESCAPE and _menu_open:
+		_set_menu_open(false)
+		get_viewport().set_input_as_handled()
+		return
 	if key in [KEY_B, KEY_F5, KEY_F9] and menu.visible and content.state.data.mode != "":
 		match key:
 			KEY_B:go_home()

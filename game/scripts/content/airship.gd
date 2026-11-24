@@ -110,7 +110,7 @@ func _walk(points: Array, speed := 1.6) -> void:
 		lengths.append((points[i + 1] as Vector3).distance_to(points[i]))
 		total += lengths[i]
 	if total < .05:return
-	var seconds := clampf(total / speed, .8, 3.5)
+	var seconds := clampf(total / speed, .8, 6.0)
 	var t := 0.0
 	while t < seconds:
 		t = minf(t + get_process_delta_time(), seconds)
@@ -139,6 +139,21 @@ func _gangway(deck: Vector3, ground: Vector3) -> Array:
 	var foot := deck + out * (gate_reach + (_keeper_gap() if at == "keeper_isle" else 1.0))
 	foot.y = ground.y
 	return [deck + out * gate_reach, foot]
+
+## v34: the walk from where E was pressed to the deck: along the ground the player can
+## walk on (the pier's boards) to the foot of the gangway, up it, through the gate. A
+## straight line from beside the pier crossed open air.
+func boarding_points(board_from: Vector3) -> Array:
+	var plank := _gangway(deck_point(), board_from)
+	var foot: Vector3 = plank[1]
+	var points: Array = [board_from]
+	var grid = content.grid if content else null
+	if grid and grid.ready and board_from.distance_to(foot) > 1.2:
+		var route: PackedVector3Array = grid.path(board_from, foot)
+		for q in route:
+			if (q as Vector3).distance_to(points[-1]) > .5 and (q as Vector3).distance_to(foot) > .4:points.append(q)
+	points.append_array([foot, plank[0], deck_point()])
+	return points
 
 ## How far the plank must reach past the gate so the hull clears the pier's end.
 func _keeper_gap() -> float:
@@ -430,7 +445,8 @@ func fly(destination: String, on_deck := Callable(), off_deck := Callable()) -> 
 	camera.fov = initial_camera.fov
 	camera.current = true
 	create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).tween_property(camera, "fov", 52.0, .8)
-	await _walk([board_from, plank[1], plank[0], deck_point()])
+	# v31: along the pier to the foot of the gangway first (it used to step onto thin air)
+	await _walk(boarding_points(board_from))
 	if on_deck.is_valid():await on_deck.call(plank)
 	if world.get("audio"):world.audio.play_sfx("door")
 	create_tween().tween_property(gate, "rotation:y", 0.0, .8)

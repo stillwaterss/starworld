@@ -1553,7 +1553,7 @@
     {
       "id": "garden_light",
       "at": "loc:garden",
-      "radius": 3.4,
+      "radius": 4.6,
       "when": {
         "all": [
           {

@@ -6,6 +6,10 @@ const quality = document.getElementById('trailer-quality');
 const sources = {'360':'trailer/starworld_trailer_360.mp4','540':'trailer/starworld_trailer_540.mp4','1080':'trailer/starworld_trailer.mp4'};
 let started = false;
 let switchId = 0;
+// v36 (Claude): a phone on data saver or a slow connection starts with the light version
+const net = navigator.connection || {};
+if (net.saveData || /(^|-)(slow-2g|2g|3g)$/.test(net.effectiveType || '')) quality.value = '360';
+let stalls = [];
 function changeQuality(resume) {
   const id = ++switchId;
   const at = trailer.currentTime || 0;
@@ -36,6 +40,16 @@ trailerStart.addEventListener('click', event => {
 });
 trailer.addEventListener('playing', () => { trailerStatus.textContent = ''; });
 trailer.addEventListener('waiting', () => {
+  // v36: buffering twice within 20 s at 540p/1080p: go on in 360p from the same moment
+  const now = performance.now();
+  stalls = stalls.filter((t) => now - t < 20000).concat(now);
+  if (quality.value !== '360' && stalls.length >= 2 && trailer.currentTime > 0.5) {
+    stalls = [];
+    quality.value = '360';
+    changeQuality(true);
+    trailerStatus.textContent = '网络有点慢，已自动切换到「省流」画质。';
+    return;
+  }
   trailerStatus.textContent = quality.value === '360' ? '正在缓冲…也可以稍等片刻再播放。' : '正在缓冲…网络慢时可切换到「省流」。';
 });
 trailer.addEventListener('error', () => {

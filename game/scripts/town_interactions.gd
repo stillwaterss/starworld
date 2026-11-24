@@ -275,10 +275,17 @@ func _process(_delta: float) -> void:
 		if distance<nearest:
 			nearest=distance
 			active_target=npc.profile_id
+	# v36: the person the story sends you to wins over the telescope (眠眠 stands beside it:
+	# E used to open the scope at c2_deliver, c3_tell...)
+	var content=world.get("content")
+	if content and active_target=="scope":
+		var wanted:=String(content.director.tracked().get("target",""))
+		if wanted.begins_with("npc:"):
+			for npc in npcs:
+				if "npc:"+String(npc.profile_id)==wanted and player.global_position.distance_to(npc.global_position)<3.8:active_target=npc.profile_id
 	# a story moment marked "first" (lighting 芽芽's flowers with her standing right there)
 	# takes E before the person does
-	var content=world.get("content")
-	if active_target!="" and content and content.has_method("priority_examine") and content.priority_examine(player.global_position):active_target=""
+	if active_target!="" and content and content.has_method("priority_examine") and content.priority_examine(player.global_position,active_target):active_target=""
 	prompt.visible=not active_target.is_empty()
 	if active_target=="scope":prompt.text="E  使用望远镜 · 观星"
 	else:

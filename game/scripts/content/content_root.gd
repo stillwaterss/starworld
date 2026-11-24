@@ -229,6 +229,17 @@ func _on_event(id: String, data: Dictionary) -> void:
 func _on_stage_started(_quest: String, stage: Dictionary) -> void:
 	if String(stage.get("whisper", "")) != "":ui.whisper(String(stage.whisper))
 	if String(stage.get("id", "")) == "s_lamp_back":_hand_lamp(true)
+	# v31: the night-flowers step: night comes by itself (no sky button to find)
+	if String(stage.get("id", "")) == "c1_night":_night_falls.call_deferred()
+
+func _night_falls() -> void:
+	await get_tree().create_timer(1.2).timeout
+	if String(director.main_stage().get("id", "")) != "c1_night":return
+	ui.toast("夜光花要等到夜里才开……天慢慢黑了。", 5.0)
+	world.day_cycle.set_time(2, 5.0)
+	await get_tree().create_timer(5.5).timeout
+	events.settled_sky = 2
+	director.evaluate()
 
 # ------------------------------------------------------------------ v25: 老星 and the chair
 var _chair_props: Node3D
@@ -1629,9 +1640,14 @@ func _process(_delta: float) -> void:
 	if not examine_entry.is_empty():examine_target = String(examine_entry.id)
 
 ## True when an examine marked "first" is in reach: it goes before talking to someone.
-func priority_examine(p: Vector3) -> bool:
+## v36: an everyday "first" look (the flowers) never takes E from the person the story is
+## sending you to (c1_report: 芽芽 stands beside her flowers); a story step's own examine does.
+func priority_examine(p: Vector3, npc := "") -> bool:
 	var entry: Dictionary = examines.nearest(p)
-	return not entry.is_empty() and bool(entry.get("first", false))
+	if entry.is_empty():return false
+	var wants_npc: bool = npc != "" and String(director.tracked().get("target", "")) == "npc:" + npc
+	if examines.story_entry(entry):return not wants_npc
+	return bool(entry.get("first", false)) and not wants_npc
 
 ## Uses the examine the player stands at (E or the prompt button).
 func examine(id: String) -> bool:

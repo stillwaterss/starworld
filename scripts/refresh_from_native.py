@@ -77,6 +77,10 @@ path.write_text(text, encoding='utf-8')
 # Preserve the existing browser storage namespace across native version names.
 project=OUT/'project.godot'
 project.write_text(re.sub(r'^config/name=.+$',lambda m:'config/name='+namespace,project.read_text('utf8'),flags=re.M),'utf8')
+# v36: web import defaults (the repository keeps no .import files): WebP textures with
+# mipmaps, no switch to VRAM formats for 3D textures, no separate shadow meshes
+if '[importer_defaults]' not in project.read_text('utf8'):
+    project.write_text(project.read_text('utf8').rstrip()+'\n\n[importer_defaults]\n\ntexture={\n"compress/mode": 1,\n"compress/lossy_quality": 0.85,\n"detect_3d/compress_to": 0,\n"mipmaps/generate": true\n}\nscene={\n"meshes/create_shadow_meshes": false\n}\n','utf8')
 if OUT!=(ROOT/'game').resolve():shutil.copytree(ROOT/'game/tools',OUT/'tools',dirs_exist_ok=True)
 # Regenerate the bundled Chinese subset whenever content changes.
 if not args.code_only:
@@ -87,6 +91,14 @@ if not args.code_only:
     subsetter = subset.Subsetter(options=subset.Options())
     subsetter.populate(text=glyph_text.replace('✦','★').replace('✧','☆') + ''.join(chr(n) for n in list(range(32,127))+list(range(0x3000,0x3100))+list(range(0x4e00,0xa000))) + '★☆')
     subsetter.subset(font)
+    # v36: this complete set is the late fallback (downloaded after the game starts); the
+    # first download gets the game's own text + GB2312 level 1 + punctuation (~1.3 MB)
+    font.save(str(OUT / 'assets/fonts/LXGWWenKai-Full.ttf'))
+    font = subset.load_font(str(OUT / 'assets/fonts/LXGWWenKai-Full.ttf'), subset.Options())
+    level1 = ''.join(bytes([hi, lo]).decode('gb2312', 'ignore') for hi in range(0xB0, 0xD8) for lo in range(0xA1, 0xFF))
+    core = subset.Subsetter(options=subset.Options())
+    core.populate(text=glyph_text.replace('✦','★').replace('✧','☆') + level1 + ''.join(chr(n) for n in list(range(32,127))+list(range(0x3000,0x3100))+list(range(0xFF01,0xFF5F))) + '★☆☰')
+    core.subset(font)
     font.save(str(font_path))
     
 

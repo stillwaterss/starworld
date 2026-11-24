@@ -385,6 +385,50 @@ func _perform_water() -> void:
 	await perf.wait(1.9)
 	await perf.finish()
 
+## v31: new players found three plantings and a watering (each its own scene) too many
+## taps. One tap: the three flowers go in one after another and are watered, seen from
+## the side and above, so the bed (not your back) is what you see.
+func _plant_all() -> void:
+	var fresh: Array=[]
+	while int(progress.flowers)<3:
+		var f:=_flower(int(progress.flowers));progress.flowers+=1
+		fresh.append(f)
+	mark("种下小花");mark("浇水看花开")
+	var center:=Vector3.ZERO
+	for f in flowers:center+=f.global_position
+	center/=maxf(flowers.size(),1)
+	var toward:=(player.global_position-center);toward.y=0
+	toward=toward.normalized() if toward.length()>.1 else Vector3.BACK
+	var side:=toward.cross(Vector3.UP).normalized()
+	var eye:=center+side*3.4+toward*.6+Vector3.UP*3.4
+	var perf=world.performance
+	if _perf_ok() and perf.begin("plant",center,{"distance":3.0,"height":2.0,"look_height":.2,"mix":.6,"eye":eye}):
+		perf.hold_prop(perf.seed_pouch())
+		await perf.approach(center+toward*.95,center)
+		perf.set_pose("kneel",6.0)
+		for f in fresh:
+			_grow(f,1.0)
+			if world.get("audio"):world.audio.play_sfx("plant")
+			await perf.wait(.45)
+		perf.drop_prop()
+		perf.hold_prop(perf.watering_can())
+		perf.set_pose("pour",5.0)
+		var stream:=_pour_stream()
+		await perf.animate_pose("pour",1.2)
+		_bloom()
+		if world.get("audio"):world.audio.play_sfx("bloom")
+		stream.queue_free()
+		perf.drop_prop()
+		perf.set_pose("admire")
+		await perf.wait(1.2)
+		await perf.finish()
+	else:
+		for f in fresh:f.scale=Vector3.ONE
+		_bloom()
+	progress.watered=true
+	content_event.emit("flower_planted",{"count":int(progress.flowers)})
+	content_event.emit("flower_watered",{"count":int(progress.flowers)})
+
 ## Thin falling drops from the can's spout while pouring.
 func _pour_stream() -> Node3D:
 	var root:=Node3D.new();world.add_child(root)
@@ -526,6 +570,10 @@ func plant() -> bool:
 	if not near(GARDEN,4):say("到芽芽的花园里种花。");return false
 	if progress.flowers>=max_flowers():
 		say("三株花都在这里，按 U 给它们浇水。" if max_flowers()==3 else "花圃种满了。按 U 浇水，蹲下来看看它们（E）。");return false
+	# v31: in the story (the first garden visit) one tap plants all three and waters them
+	var content=world.get("content")
+	if content and content.state.data.mode=="story" and String(content.director.main_stage().get("id",""))=="c1_plant":
+		_plant_all();return true
 	var flower:=_flower(int(progress.flowers));progress.flowers+=1
 	progress.watered=false
 	mark("种下小花");say("种下一株小花，U 浇水会让它开花。")

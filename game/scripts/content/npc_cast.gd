@@ -17,7 +17,7 @@ const SLOTS := [
 	{"id": "isle_south_r", "door": "isle_south_r", "name": "芯芯", "height": 1.45, "tint": Color("b8962e")},
 	# 老星, the lighthouse keeper (the old man with the lantern), stands beside his door,
 	# clear of the doorway the player walks through
-	{"id": "keeper", "door": "keeper", "name": "老星", "height": 1.45, "tint": Color("6a5aa8"), "out": .9, "aside": 1.25},
+	{"id": "keeper", "door": "keeper", "name": "老星", "height": 1.45, "tint": Color("6a5aa8"), "out": .9, "aside": -.85},   # v34: the hinge side (the latch side had the tree: he went through it)
 ]
 
 var content
@@ -218,7 +218,7 @@ func _walk(node: Node3D, a: Dictionary, out: bool) -> void:
 		side.y = 0
 		if side.length() > .3:
 			t.tween_property(node, "global_position", threshold, .8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-			t.tween_property(node, "global_position", to, side.length() / 1.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			t.tween_property(node, "global_position", to, side.length() / .7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 			from = to
 	else:
 		_play(body, "walk")

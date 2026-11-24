@@ -46,6 +46,7 @@ func _ready() -> void:
 	var island := ISLAND.instantiate()
 	add_child(island)
 	_cut_out(island)
+	_settle_parts(island)
 	_add_collisions(island)
 	_web_boot_mark("collisions_done")
 	occlusion_materials = preload("res://scripts/scenery_effects.gd").apply(island)
@@ -72,6 +73,14 @@ func _ready() -> void:
 	audio=preload("res://scripts/content/audio_director.gd").new()
 	audio.world=self
 	add_child(audio)
+	# v36 web: the late pack (chapter pictures, the full font) arrives after the game has
+	# started; scripts/web_late.gd mounts it
+	var late_script=preload("res://scripts/web_late.gd")
+	if late_script.wanted():
+		var late=late_script.new()
+		late.name="WebLate"
+		late.world=self
+		add_child(late)
 	activities=preload("res://scripts/cozy_activities.gd").new()
 	activities.world=self
 	add_child(activities)
@@ -254,6 +263,37 @@ func _cut_out(root: Node) -> void:
 			rebuilt.surface_set_material(rebuilt.get_surface_count() - 1, mi.mesh.surface_get_material(surf))
 			overrides.append(mi.get_surface_override_material(surf))
 		if changed:
+			mi.mesh = rebuilt
+			for i in overrides.size():mi.set_surface_override_material(i, overrides[i])
+
+## v33: the ring of little stars on the high platform east of the square (the one with the
+## star-map table) hung about a metre above the grass, with nothing under them: they are set
+## down onto it. [mesh name, ring centre (x, z), inner and outer radius, y from, y to, drop].
+const SETTLE := [["Decor_Details_star", Vector2(13.05, -10.15), 3.0, 5.2, 4.85, 6.2, -.94]]
+
+func _settle_parts(root: Node) -> void:
+	for rule in SETTLE:
+		var mi := root.find_child(String(rule[0]), true, false) as MeshInstance3D
+		if mi == null or mi.mesh == null:continue
+		var to_world := mi.global_transform
+		var down_local: Vector3 = to_world.basis.inverse() * Vector3(0, float(rule[6]), 0)
+		var rebuilt := ArrayMesh.new()
+		var overrides: Array[Material] = []
+		var moved := 0
+		for surf in mi.mesh.get_surface_count():
+			var arrays: Array = mi.mesh.surface_get_arrays(surf)
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			for i in verts.size():
+				var g := to_world * verts[i]
+				var r := Vector2(g.x, g.z).distance_to(rule[1])
+				if r >= float(rule[2]) and r <= float(rule[3]) and g.y >= float(rule[4]) and g.y <= float(rule[5]):
+					verts[i] += down_local
+					moved += 1
+			arrays[Mesh.ARRAY_VERTEX] = verts
+			rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			rebuilt.surface_set_material(rebuilt.get_surface_count() - 1, mi.mesh.surface_get_material(surf))
+			overrides.append(mi.get_surface_override_material(surf))
+		if moved > 0:
 			mi.mesh = rebuilt
 			for i in overrides.size():mi.set_surface_override_material(i, overrides[i])
 

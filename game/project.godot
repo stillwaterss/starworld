@@ -34,3 +34,15 @@ theme/custom_font="res://assets/fonts/LXGWWenKai-Regular.ttf"
 [audio]
 
 general/default_playback_type.web=2
+
+[importer_defaults]
+
+texture={
+"compress/mode": 1,
+"compress/lossy_quality": 0.85,
+"detect_3d/compress_to": 0,
+"mipmaps/generate": true
+}
+scene={
+"meshes/create_shadow_meshes": false
+}

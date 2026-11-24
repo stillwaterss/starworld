@@ -153,6 +153,7 @@ func _physics_process(delta: float) -> void:
 	if global_position.y < FALL_LIMIT:
 		respawn()
 	pivot.rotation = Vector3(cam_pitch, cam_yaw, 0)
+	_hide_when_camera_inside()
 
 
 func _step_up(delta: float) -> void:
@@ -216,3 +217,17 @@ static func _star_mesh(r_out: float, r_in: float, depth: float, points := 5) -> 
 		for v in [af, ab, bb, af, bb, bf]:
 			st.add_vertex(v)
 	return st.commit()
+
+## v34: a rail, the ship's railing or a wall can push the camera right up against the
+## player: then the camera was inside the head (the screen full of the face's inside).
+## While it is that close the model steps out of sight, and comes back once there is room.
+var _hidden_by_camera := false
+func _hide_when_camera_inside() -> void:
+	var cam := arm.get_child(0) as Camera3D
+	var close := cam != null and cam.current and arm.get_hit_length() < .9
+	if close and model.visible:
+		model.visible = false
+		_hidden_by_camera = true
+	elif not close and _hidden_by_camera:
+		model.visible = true
+		_hidden_by_camera = false

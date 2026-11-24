@@ -566,8 +566,26 @@ func _build_finale() -> void:
 	var postscript: String = director.side_state("s_keeper")
 	var has_postscript := postscript in ["available", "active", "paused"]
 	if has_postscript:
-		box.add_child(Cozy.label("后记 · 今晚我来守灯", 21, Cozy.INK))
-		box.add_child(Cozy.label("小光的旅程之后，去灯塔岛陪老星坐一会儿。", 16, Cozy.INK_SOFT, false))
+		# v36: the one thing this card points at, in a warm card above the buttons
+		var card := PanelContainer.new()
+		var glow := StyleBoxFlat.new()
+		glow.bg_color = Color("fbefd6")
+		glow.border_color = Color("e0a64a")
+		glow.set_border_width_all(3)
+		glow.set_corner_radius_all(18)
+		glow.content_margin_left = 18
+		glow.content_margin_right = 18
+		glow.content_margin_top = 8
+		glow.content_margin_bottom = 10
+		card.add_theme_stylebox_override("panel", glow)
+		box.add_child(card)
+		box.move_child(card, row.get_index())
+		var words := VBoxContainer.new()
+		words.add_theme_constant_override("separation", 0)
+		card.add_child(words)
+		words.add_child(Cozy.label("★ 后记故事", 16, Color("b8741c")))
+		words.add_child(Cozy.label("「今晚我来守灯」", 23, Cozy.INK))
+		words.add_child(Cozy.label("小光的旅程之后，去灯塔岛陪老星坐一会儿。", 15, Cozy.INK_SOFT, false))
 	var begin_postscript := func() -> void:
 		if postscript == "active":director.track("s_keeper")
 		else:director.start_side("s_keeper")
@@ -578,6 +596,11 @@ func _build_finale() -> void:
 	if has_postscript:row.add_child(Cozy.button("查看小故事", close.bind(true)))
 	first_button.grab_focus.call_deferred()
 	row.add_child(Cozy.button("继续在岛上走走", close.bind(false)))
+	# v36: back to the title card (退出游戏 used to be the only way out of this page)
+	row.add_child(Cozy.button("回到首页", func():
+		top.queue_free()
+		finale_closed.emit()
+		content.ui.go_home.call_deferred()))
 	row.add_child(Cozy.button("退出游戏", func():preload("res://scripts/web_platform.gd").exit_game(get_tree())))
 
 ## The old tree-house ending is gone (the story ends on the ship); kept so older saves

@@ -30,8 +30,8 @@
         },
         {
           "id": "c1_plant",
-          "title": "种下三株夜光花",
-          "hint": "站在花圃边按 R，一次种一株。",
+          "title": "在花圃种下夜光花",
+          "hint": "走到花圃边，按 R 种花（三株会一起种好、浇好水）。",
           "target": "loc:garden",
           "done": {
             "flowers": 3
@@ -45,7 +45,7 @@
         {
           "id": "c1_water",
           "title": "给花浇水",
-          "hint": "还在花圃边，按 U。",
+          "hint": "种花时已经一起浇好了。",
           "target": "loc:garden",
           "done": {
             "watered": true
@@ -54,7 +54,7 @@
         {
           "id": "c1_night",
           "title": "等到夜里，夜光花才会开",
-          "hint": "按 T 换天色，一直换到夜晚（晴日 → 傍晚 → 夜晚）。",
+          "hint": "天会自己慢慢黑下来，稍等一会儿。",
           "target": "loc:garden",
           "done": {
             "sky": "night"
@@ -64,7 +64,7 @@
         {
           "id": "c1_light",
           "title": "让小光点亮花苞",
-          "hint": "在花圃边按 E，举起双手，让小光飞过去。",
+          "hint": "在花圃边按 E，让小光飞过去点亮花苞。",
           "target": "loc:garden",
           "done": {
             "flag": "lit_garden"

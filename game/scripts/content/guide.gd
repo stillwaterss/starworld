@@ -147,9 +147,11 @@ func _process(delta: float) -> void:
 	var trail: bool = show and bool(content.world.audio.settings.get("breadcrumbs", true)) if content.world.get("audio") else show
 	_draw_dots(trail and not straight)
 	marker.visible = show
+	_early_marks_visible(show and _early())
 	if show:
 		var goal: Vector3 = content.registry.target_position(target)
 		marker.global_position = goal + Vector3(0, 2.55 + sin(_clock * 2) * .08, 0)
+		_early_marks(goal)
 		marker.rotation.y = _clock * 1.2
 		var near: bool = content.world.player.global_position.distance_to(goal) < content.registry.target_radius(target)
 		if near and _arrived_for != target:
@@ -158,6 +160,61 @@ func _process(delta: float) -> void:
 			if content.state.data.guide_target == target:
 				content.state.data.guide_target = ""
 				content.state.save()
+
+## v36: chapters one and two of the story show the way louder: a soft column of light from
+## the star down to the spot and a slow ring on the ground (the phone version has the same;
+## here without seeing through walls). From chapter three on, the quiet star alone.
+var _beam: MeshInstance3D
+var _ring: MeshInstance3D
+
+func _early() -> bool:
+	var data: Dictionary = content.state.data
+	return String(data.get("mode", "")) == "story" and not content.director.main_done() and int(data.main.get("chapter", 0)) < 2
+
+func _early_marks_visible(on: bool) -> void:
+	if on and _beam == null:
+		var soft := StandardMaterial3D.new()
+		soft.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		soft.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		soft.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		soft.cull_mode = BaseMaterial3D.CULL_DISABLED
+		soft.albedo_color = Color(1, .82, .45, .32)
+		soft.disable_fog = true
+		_beam = MeshInstance3D.new()
+		var tube := CylinderMesh.new()
+		tube.top_radius = .05
+		tube.bottom_radius = .32
+		tube.height = 2.4
+		tube.radial_segments = 16
+		tube.cap_top = false
+		tube.cap_bottom = false
+		_beam.mesh = tube
+		_beam.material_override = soft
+		_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		content.world.add_child(_beam)
+		_ring = MeshInstance3D.new()
+		var disc := TorusMesh.new()
+		disc.inner_radius = .55
+		disc.outer_radius = .68
+		disc.rings = 24
+		disc.ring_segments = 6
+		_ring.mesh = disc
+		_ring.material_override = soft.duplicate()
+		_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		content.world.add_child(_ring)
+	if _beam:
+		_beam.visible = on
+		_ring.visible = on
+
+func _early_marks(goal: Vector3) -> void:
+	if _beam == null or not _beam.visible:return
+	_beam.global_position = goal + Vector3(0, 1.3, 0)
+	var pulse := fmod(_clock, 1.8) / 1.8
+	_ring.global_position = goal + Vector3(0, .06, 0)
+	_ring.scale = Vector3.ONE * (.7 + pulse * .9)
+	# close by, the column fades (it would stand in the way of what you came to see)
+	var near_by: float = content.world.player.global_position.distance_to(goal)
+	(_beam.material_override as StandardMaterial3D).albedo_color.a = clampf((near_by - 2.0) / 6.0, 0.08, .32)
 
 func _cinematic() -> bool:
 	var perf = content.world.get("performance")
