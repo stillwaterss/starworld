@@ -31,6 +31,11 @@ const fs=require('node:fs');
   await trailer.locator('#trailer-start').click();
   await trailer.waitForFunction(()=>{const v=document.getElementById('trailer-video');return !v.paused&&v.currentTime>.15;});
   assert.equal(await trailer.locator('#trailer-quality').inputValue(),'540');
+  await game.waitForFunction(()=>{
+   const a=new Float32Array(starworldAudioMeters[0].fftSize);
+   starworldAudioMeters[0].getFloatTimeDomainData(a);
+   return Math.max(...a.map(Math.abs))<.00001;
+  },null,{polling:50,timeout:3000});
   const silence=await game.evaluate(()=>{
    const a=new Float32Array(starworldAudioMeters[0].fftSize);
    starworldAudioMeters[0].getFloatTimeDomainData(a);
