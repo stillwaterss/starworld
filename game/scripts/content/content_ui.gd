@@ -22,7 +22,7 @@ const ABOUT := """[b]关于这个游戏[/b]
 作者 · 游戏设计：密斯特李
 剧本 · 程序 · 音乐：Claude
 场景 · 角色 · 镜头：GPT（Codex）"""
-const HELP := """[b]走一走[/b]
+var HELP := """[b]走一走[/b]
 WASD / 方向键 移动 · 空格 跳 · Shift 跑 · 鼠标转镜头 · Esc 释放鼠标后可拖动
 E 交谈 / 看看 / 推门 / 用望远镜 · Esc 关闭窗口 · 演出中按 E 加快
 
@@ -118,6 +118,25 @@ func _ready() -> void:
 	theme.set_stylebox("disabled", "Button", _box(Color(1, 1, 1, .04), 10, 12, 6))
 	root.theme = theme
 	add_child(root)
+	if OS.has_feature("web") and bool(JavaScriptBridge.eval("window.starworldMobile === true")):
+		HELP = """[b]走一走[/b]
+左侧摇杆移动 · 点“跳跃”跳起 · 点“奔跑”切换跑走 · 右侧滑动转镜头
+点“互动”交谈、看看、推门或用望远镜；演出中点“互动”加快
+
+[b]找方向[/b]
+点“玩法”打开地图、故事本、星图手记、设置和帮助
+地图中点地点会亮起路线
+
+[b]小事[/b]
+换天色、种花、浇水、风铃、愿望灯、打水漂、萤火虫、坐下、手持灯、摄影和音乐都在“玩法”菜单
+快速存档、选择存档和回到首页也在“玩法”菜单
+"""
+		TUTORIAL[0][0] = "左侧摇杆  走一走"
+		TUTORIAL[1][0] = "右侧滑动  转镜头"
+		TUTORIAL[2][0] = "点“奔跑”  跑起来"
+		TUTORIAL[3][0] = "点“跳跃”  跳一下（矮台阶要跳上去）"
+		TUTORIAL[4][0] = "点“互动”  和人说话、看看发光的东西"
+		TUTORIAL[5][0] = "点“玩法”  地图、故事、存档和全部按键都在里面"
 	_build_chip()
 	_build_toast()
 	_build_banner()
@@ -325,7 +344,7 @@ func _fade_page(node: Control, fade: Control = null) -> void:
 ## First steps: the basic controls one at a time in a small card above the bottom edge.
 ## Each waits until the player has tried it (or a few seconds for the ones you only need
 ## to know), ticks, fades, and the next comes. Shown once (flag "tutorial_done").
-const TUTORIAL := [
+var TUTORIAL := [
 	["W A S D 或 方向键  走一走", "move"],
 	["移动鼠标转镜头 · Esc 释放后可拖动 · 滚轮缩放", "look"],
 	["按住 Shift  跑起来", "run"],

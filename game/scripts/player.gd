@@ -19,6 +19,8 @@ var scripted_active := false
 var scripted_direction := Vector3.ZERO
 var scripted_speed := 1.65
 var test_dir := Vector3.ZERO   # 自动测试用, 非零时覆盖键盘输入
+var touch_move := Vector2.ZERO
+var touch_run := false
 var cam_yaw := 0.0
 var cam_pitch := -0.32
 
@@ -131,8 +133,9 @@ func _physics_process(delta: float) -> void:
 		_jump_buf = 0.0
 	elif dir == Vector3.ZERO:
 		var iv := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		iv = (iv + touch_move).limit_length(1.0)
 		dir = Basis(Vector3.UP, cam_yaw) * Vector3(iv.x, 0, iv.y)
-	var speed := RUN_SPEED if Input.is_action_pressed("run") else WALK_SPEED
+	var speed := RUN_SPEED if Input.is_action_pressed("run") or touch_run else WALK_SPEED
 	if scripted_active:speed=scripted_speed
 	var accel := GROUND_ACCEL if on_floor else AIR_ACCEL
 	var hv := Vector2(velocity.x, velocity.z).move_toward(Vector2(dir.x, dir.z) * speed, accel * delta)

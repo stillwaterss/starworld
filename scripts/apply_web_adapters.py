@@ -131,7 +131,9 @@ func _process(delta: float) -> void:
         text = changes.get(key, p.read_text(encoding='utf-8'))
         text = text.replace('SystemFont.new()', 'preload("res://assets/fonts/LXGWWenKai-Regular.ttf")').replace(': SystemFont', ': Font').replace('-> SystemFont', '-> Font')
         text = re.sub(r';\w+\.font_names\s*=.*?(?=\n|$)', '', text)
-        text = re.sub(r'^.*\.(?:font_names|font_weight|fallbacks)\s*=.*\n', '', text, flags=re.M)
+        text = re.sub(r'^.*\.(?:font_names|font_weight)\s*=.*\n', '', text, flags=re.M)
+        if key != 'scripts/web_late.gd':
+            text = re.sub(r'^.*\.fallbacks\s*=.*\n', '', text, flags=re.M)
         text = text.replace('✦', '★').replace('✧', '☆')
         text = text.replace('get_tree().quit()', 'preload("res://scripts/web_platform.gd").exit_game(get_tree())')
         changes[key] = text

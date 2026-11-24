@@ -91,6 +91,9 @@ func _ready() -> void:
 	content=preload("res://scripts/content/content_root.gd").new()
 	content.world=self
 	add_child(content)
+	var touch_controls=preload("res://scripts/touch_controls.gd").new()
+	touch_controls.world=self
+	add_child(touch_controls)
 	_web_stage_geometry()
 	if "--ending-preview" in OS.get_cmdline_user_args():
 		var checkpoint = load("res://scripts/content/ending_checkpoint.gd")

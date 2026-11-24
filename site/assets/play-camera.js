@@ -1,5 +1,9 @@
 "use strict";
 (() => {
+  if (window.starworldMobile) {
+    window.starworldCameraPlayable = () => {};
+    return;
+  }
   const canvas = document.getElementById('canvas');
   const help = document.getElementById('camera-help');
   const copy = document.getElementById('camera-copy');
