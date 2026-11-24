@@ -105,9 +105,12 @@ func _build_ui() -> void:
 	hint=label("")
 	hint.position=Vector2(20,630)
 	ui.add_child(hint)
-	toast=label("按 H 看看今天能做些什么。",19)
+	toast=label(TouchWords.words("按 H 看看今天能做些什么。"),19)
 	toast.position=Vector2(20,588)
 	ui.add_child(toast)
+	if TouchWords.touch():   # phones: the joystick sits in the bottom-left corner, keep these above it
+		toast.position.y=396
+		hint.position.y=432
 	progress_label=label("",15)
 	progress_label.position=Vector2(20,68)
 	ui.add_child(progress_label)
@@ -190,6 +193,7 @@ func _process(delta: float) -> void:
 		elif near(TREE,4):hint.text="X 拨风铃 · L 放一盏愿望灯"
 		elif _story_mode():hint.text=""
 		else:hint.text="H 帮助 · N 地图 · F 小灯 · O 摄影"
+		if TouchWords.touch():hint.text=TouchWords.words(hint.text)
 	else:hint.text=""
 
 ## In the story the quest box says what to do; the corner texts step aside.
@@ -199,7 +203,8 @@ func _story_mode() -> bool:
 
 func near(place: Vector3,distance: float) -> bool:return player.position.distance_to(place)<distance
 
-func say(text: String) -> void:toast.text=text
+func say(text: String) -> void:toast.text=TouchWords.words(text)
+const TouchWords := preload("res://scripts/touch_controls.gd")
 
 func mark(text: String) -> void:
 	if not text in progress.moments:progress.moments.append(text)

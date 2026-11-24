@@ -1,0 +1,4 @@
+# v37: extra download addresses for site/play/parts (one per line). Each must hold the same
+# parts/<version>/ folders and allow CORS. The workflow keeps the branch "web-parts" in sync,
+# so raw.githubusercontent.com is a second host = a second connection for every player.
+https://raw.githubusercontent.com/stillwaterss/starworld/web-parts/

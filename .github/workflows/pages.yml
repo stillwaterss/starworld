@@ -34,6 +34,7 @@ jobs:
           python3 scripts/apply_web_adapters.py
           python3 scripts/check_web_contract.py
           Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import 2>&1 | tee /tmp/before_sky_import.log
+          python3 scripts/web_texture_limits.py
           Godot_v4.7.2-stable_linux.x86_64 --headless --path game --script tools/prepare_web.gd
           Godot_v4.7.2-stable_linux.x86_64 --headless --path game --editor --import 2>&1 | tee /tmp/import.log
           if grep -E 'SCRIPT ERROR|Parse Error' /tmp/import.log; then exit 1; fi
@@ -61,16 +62,56 @@ jobs:
         with:
           name: browser-evidence
           path: browser-evidence
+      - name: Keep the download parts for the mirror branch
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-parts
+          path: |
+            site/play/parts
+            site/play/starworld_manifest.json
+          retention-days: 3
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+  # v37: the same parts on raw.githubusercontent.com (branch web-parts) give every player a
+  # second host, i.e. a second connection (scripts/web_mirrors.txt). Pushed before the site goes
+  # live so the new version's parts are there first. If this fails, the site still deploys and
+  # the loader just uses the site alone.
+  mirror:
+    runs-on: ubuntu-latest
+    needs: build
+    continue-on-error: true
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-parts
+          path: web-parts
+      - name: Push the parts to branch web-parts (one commit, history replaced)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd web-parts
+          test -d parts && test -s starworld_manifest.json
+          git init -q -b web-parts
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Download parts for $(python3 -c 'import json;print(json.load(open("starworld_manifest.json"))["version"])')"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:web-parts
+          V=$(python3 -c 'import json;print(json.load(open("starworld_manifest.json"))["version"])')
+          F=$(ls parts/$V | head -1)
+          for i in 1 2 3 4 5 6; do curl -fsI "https://raw.githubusercontent.com/${{ github.repository }}/web-parts/parts/$V/$F" >/dev/null && { echo "raw mirror serves $V"; exit 0; }; sleep 10; done
+          echo "raw mirror not visible yet (players use the site alone until it is)"
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, mirror]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment

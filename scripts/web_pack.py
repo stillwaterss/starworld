@@ -1,4 +1,4 @@
-"""v36 (Claude): gzip parts + manifest for site/assets/star-loader-v36.js.
+"""v36 (Claude): gzip parts + manifest for site/assets/star-loader-v37.js (v36 format, unchanged).
 Run after the Web export, the WebLate pack export and scripts/fingerprint_pack.py:
     python3 scripts/web_pack.py
   site/play/parts/<version>/index.wasm.gz.000 …, <pack>.gz.000 …, late.pck.gz.000 …

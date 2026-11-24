@@ -24,7 +24,10 @@ body.mobile #cover{padding:16px;align-items:center;justify-content:center}body.m
 </style>
 <div id="camera-help" hidden><span id="camera-copy" role="status"></span><button type="button" id="camera-lock">锁定镜头</button></div>
 <script>
-window.starworldMobile = matchMedia('(pointer:coarse)').matches || new URLSearchParams(location.search).get('device') === 'mobile';
+// the one place that decides phone mode: ?device=mobile / ?device=desktop force it, otherwise a
+// finger as the main pointer (phones, tablets). Touch controls and help text follow this.
+const starworldDevice = new URLSearchParams(location.search).get('device');
+window.starworldMobile = starworldDevice === 'mobile' || (starworldDevice !== 'desktop' && matchMedia('(pointer:coarse)').matches);
 document.body.classList.toggle('mobile', window.starworldMobile);
 if (window.starworldMobile) {
   document.querySelector('.panel small').innerHTML = '左侧摇杆移动 · 右侧滑动转镜头 · 互动与跳跃有独立按钮<br>横屏体验更好；存档保留在当前浏览器，首次打开需要下载资源。';
@@ -38,13 +41,15 @@ addEventListener('keydown',event=>{
  if((event.code==='F5'||event.code==='F9')&&document.body.classList.contains('ready'))event.preventDefault();
 },true);
 </script><script src="../assets/web-audio-v172.js?v=trailer-focus-20261118"></script><script>
-/* v36: extra download addresses (each holds a copy of play/parts and allows CORS); the
- * loader times them and uses the fastest. This site itself is always tried too. */
+/* v37: extra download addresses (each holds a copy of play/parts and allows CORS). The loader
+ * downloads from all of them at once plus this site over two connections; the manifest adds
+ * the ones in scripts/web_mirrors.txt. */
 window.STAR_MIRRORS = [];
-</script><script src="../assets/star-loader-v36.js?v=36"></script><script src="$GODOT_URL" onerror="document.getElementById('message').textContent='启动程序加载失败，请刷新重试。';document.getElementById('start').textContent='重新加载';document.getElementById('start').disabled=false;document.getElementById('start').onclick=()=>location.reload()"></script><script>
+</script><script src="../assets/star-loader-v37.js?v=37"></script><script src="$GODOT_URL" onerror="document.getElementById('message').textContent='启动程序加载失败，请刷新重试。';document.getElementById('start').textContent='重新加载';document.getElementById('start').disabled=false;document.getElementById('start').onclick=()=>location.reload()"></script><script>
 if(typeof Engine === "function"){
 const config=$GODOT_CONFIG;config.mainPack = config.executable + ".pck";config.fileSizes[config.mainPack]=config.fileSizes[config.executable+".pck"];const previewMode=new URLSearchParams(location.search).get("preview"),endingPreview=previewMode==="ending"||previewMode==="flight";if(endingPreview){config.args=["--","--test-session","--visual-review","--no-opening","--show-finale","--ending-preview"];document.querySelector("h1").textContent="小光的归途 · 送别体验";document.querySelector(".panel p").textContent="从飞艇码头直接出发，陪小光回到星空。这是独立体验进度，不会改变你原来的旅程。";}if(previewMode==="flight"){config.args.push("--flight-preview");document.querySelector("h1").textContent="飞艇往返 · 独立测试";}const engine=new Engine(config),start=document.getElementById('start'),progress=document.getElementById('progress'),message=document.getElementById('message');
 const detail = document.getElementById('load-detail');
+window.starworldLoaderNotice = (text) => { message.textContent = text; detail.textContent = ''; };
 // v36: the download starts as the page opens (1 MB parts, kept in the browser cache, resumed
 // after a refresh, fastest mirror); "开始旅行" during it means "go in as soon as it is done"
 let clicked = false, startedEngine = false, downloadDone = false;
@@ -132,6 +137,6 @@ start.onclick = async () => {
     clearInterval(clock);
   }
 };
-start.disabled=false;start.textContent='开始旅行 · 开启声音';if(!StarLoader.active()&&!downloadDone)message.textContent='正在连接…可以先点“开始旅行”，下载完成后会自动进入。建议使用电脑 Chrome / Edge。';
+start.disabled=false;start.textContent='开始旅行 · 开启声音';if(!StarLoader.active()&&!downloadDone)message.textContent='正在连接…可以先点“开始旅行”，下载完成后会自动进入。'+(window.starworldMobile?'建议使用手机 Chrome，横屏游玩。':'建议使用电脑 Chrome / Edge。');
 }
 </script></body></html>

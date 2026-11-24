@@ -16,10 +16,36 @@ var joy_center := Vector2.ZERO
 var run_button: Button
 var _js_clock := 0.0
 
+## Phone wording for texts written with keys in mind ("走近按 E", "X 拨风铃 · L 放愿望灯"):
+## the quest box and the corner hints pass their text through words() before showing it.
+## On a computer it returns the text untouched.
+static var _touch := -1
+static var _key_word: RegEx
+static func touch() -> bool:
+	if _touch < 0:
+		var web := OS.has_feature("web") and bool(JavaScriptBridge.eval("window.starworldMobile === true"))
+		_touch = 1 if web or "--touch-preview" in OS.get_cmdline_user_args() else 0
+	return _touch == 1
+
+static func words(text: String) -> String:
+	if text == "" or not touch():return text
+	for pair in [["按 H 看看今天能做些什么", "点“玩法”看看今天能做些什么"], ["按住 Shift", "点“奔跑”"], ["按空格", "点“跳跃”"], ["按 E", "点“互动”"]]:
+		text = text.replace(pair[0], pair[1])
+	# corner hints like "X 拨风铃 · L 放一盏愿望灯": no letters, and say where the buttons are
+	if _key_word == null:
+		_key_word = RegEx.new()
+		_key_word.compile("(^|· )[A-Z] +")
+	var plain := _key_word.sub(text, "$1", true)
+	if plain != text:plain += "（在“玩法”里）"
+	return plain
+
 func _enabled() -> bool:
 	if "--touch-preview" in OS.get_cmdline_user_args():return true
 	if not OS.has_feature("web"):return false
-	return bool(JavaScriptBridge.eval("(navigator.maxTouchPoints > 0 && innerWidth < 1100) || new URLSearchParams(location.search).get('device') === 'mobile'"))
+	# one decision for the whole page (web_shell.html sets it): touch controls, touch help and
+	# the page's camera helper must never disagree (an iPad in landscape used to get touch
+	# help without the joystick)
+	return bool(JavaScriptBridge.eval("window.starworldMobile === true"))
 
 func _ready() -> void:
 	layer = 8

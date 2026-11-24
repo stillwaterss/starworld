@@ -426,7 +426,7 @@ func _tutorial_process(delta: float) -> void:
 	match kind:
 		"move":done = player.global_position.distance_to(_tutorial_start) > 3.0
 		"look":done = absf(angle_difference(player.cam_yaw, _tutorial_yaw)) > .7 or _tutorial_clock > 14.0
-		"run":done = Input.is_action_pressed("run") and Vector2(player.velocity.x, player.velocity.z).length() > 3.0 or _tutorial_clock > 14.0
+		"run":done = (Input.is_action_pressed("run") or bool(player.get("touch_run"))) and Vector2(player.velocity.x, player.velocity.z).length() > 3.0 or _tutorial_clock > 14.0
 		"jump":done = Input.is_action_pressed("jump") or not player.is_on_floor() or _tutorial_clock > 12.0
 		"wait":done = _tutorial_clock > 6.0
 	if done and not _tutorial_done:
@@ -658,6 +658,9 @@ func _build_menu() -> void:
 	var toggle := _button("菜单  Tab", toggle_menu, 16)
 	toggle.custom_minimum_size = Vector2(130, 42)
 	toggle.size_flags_horizontal = Control.SIZE_SHRINK_END
+	# phones: the touch layer has its own "玩法" button in this corner (menu stays visible: it is
+	# the "playable" signal the touch layer and the page follow)
+	toggle.visible = not _touch_mode()
 	menu.add_child(toggle)
 	menu_list = VBoxContainer.new()
 	menu_list.add_theme_constant_override("separation", 6)
@@ -669,6 +672,10 @@ func _build_menu() -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.pressed.connect(func():_set_menu_open(false))
 		menu_list.add_child(b)
+
+func _touch_mode() -> bool:
+	return TouchWords.touch()
+const TouchWords := preload("res://scripts/touch_controls.gd")
 
 func toggle_menu() -> void:
 	_set_menu_open(not _menu_open)
@@ -1765,6 +1772,7 @@ func _process(delta: float) -> void:
 		var route_text := (("先去码头乘飞艇 · " if content.guide.via != "" else "") + "%d 米" % int(round(content.guide.remaining)) + ("（直线距离）" if content.guide.straight else "")) if has_route else ("路线已关闭 · Q 打开" if target != "" else "")
 		var hop: String = content.guide.hop_ahead() if has_route else ""
 		if hop != "":route_text += " · 前面的矮台阶按空格跳上去" if hop == "up" else " · 前面有矮台阶，可以直接走下去"
+		route_text = TouchWords.words(route_text)
 		if chip_route.text != route_text:chip_route.text = route_text
 		if has_route:chip_arrow.queue_redraw()
 		if not tracked.is_empty() and content.state.data.guide_target == "":
@@ -1774,7 +1782,7 @@ func _process(delta: float) -> void:
 				chip_heading.text = tracked.heading
 		chip_hint.visible = not tracked.is_empty() and content.state.data.guide_target == ""
 		if chip_hint.visible:
-			var shown := keys_bbcode("怎么做：" + content.named(String(tracked.hint)))
+			var shown := keys_bbcode("怎么做：" + TouchWords.words(content.named(String(tracked.hint))))
 			if chip_hint.text != shown:chip_hint.text = shown
 	_hint_time = maxf(0, _hint_time - delta)
 	_tutorial_process(delta)
