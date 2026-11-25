@@ -121,22 +121,22 @@ func _ready() -> void:
 	if OS.has_feature("web") and bool(JavaScriptBridge.eval("window.starworldMobile === true")):
 		HELP = """[b]走一走[/b]
 左侧摇杆移动 · 点“跳跃”跳起 · 点“奔跑”切换跑走 · 右侧滑动转镜头
-点“互动”交谈、看看、推门或用望远镜；演出中点“互动”加快
+点“互动”交谈、看看、推门或用望远镜；演出有跳过按钮时可直接点跳过
 
 [b]找方向[/b]
-点“玩法”打开地图、故事本、星图手记、设置和帮助
+点“菜单”打开地图、故事本、星图手记、设置和帮助
 地图中点地点会亮起路线
 
 [b]小事[/b]
-换天色、种花、浇水、风铃、愿望灯、打水漂、萤火虫、坐下、手持灯、摄影和音乐都在“玩法”菜单
-快速存档、选择存档和回到首页也在“玩法”菜单
+换天色、种花、浇水、风铃、愿望灯、打水漂、萤火虫、坐下、手持灯、摄影和音乐都在“菜单”
+快速存档、载入存档和回到首页也在“菜单”
 """
 		TUTORIAL[0][0] = "左侧摇杆  走一走"
 		TUTORIAL[1][0] = "右侧滑动  转镜头"
 		TUTORIAL[2][0] = "点“奔跑”  跑起来"
 		TUTORIAL[3][0] = "点“跳跃”  跳一下（矮台阶要跳上去）"
 		TUTORIAL[4][0] = "点“互动”  和人说话、看看发光的东西"
-		TUTORIAL[5][0] = "点“玩法”  地图、故事、存档和全部按键都在里面"
+		TUTORIAL[5][0] = "点“菜单”  查看地图、故事和存档"
 	_build_chip()
 	_build_toast()
 	_build_banner()
@@ -282,6 +282,7 @@ func show_chapter_card(index: int, finished := -1) -> void:
 	chapter_card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	chapter_card.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(chapter_card)
+	if index > 0 and OS.has_feature("web") and _touch_mode():JavaScriptBridge.eval("window.starworldRequestLate?.()")
 	var file := "chapter_%02d.jpg" % (index + 1)
 	var art := _art(file)
 	if art:chapter_card.add_child(art)
@@ -1392,6 +1393,7 @@ func _can_open() -> bool:
 	return content.world.interactions.mode in ["idle", "content"]
 
 func toggle_panel(id: String) -> void:
+	if id in ["story", "map"] and OS.has_feature("web") and _touch_mode():JavaScriptBridge.eval("window.starworldRequestLate?.()")
 	if open_panel == id:
 		close_panel()
 		return
@@ -1791,7 +1793,9 @@ func _process(delta: float) -> void:
 		_glow_clock = .5
 		_update_glow()
 	prompt.visible = idle and prompts_on and content.examine_target != ""
-	if prompt.visible:prompt.text = content.examines.prompt(content.examine_entry)
+	if prompt.visible:
+		prompt.text = content.examines.prompt(content.examine_entry)
+		if _touch_mode():prompt.text = prompt.text.trim_prefix("E").strip_edges()
 	_whisper_time = maxf(0, _whisper_time - delta)
 	if _whisper_time <= 0 and not _whispers.is_empty() and not _performing() and content.state.flag("xiaoguang") and not content.state.flag("xiaoguang_home") and open_panel == "":
 		var line := String(_whispers.pop_front())

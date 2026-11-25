@@ -1,6 +1,7 @@
 extends CharacterBody3D
 ## Third-person controller with replaceable visual model and locomotion animation.
 
+const TouchMode := preload("res://scripts/touch_controls.gd")
 const WALK_SPEED := 4.5
 const RUN_SPEED := 8.0
 const JUMP_VELOCITY := 7.5
@@ -82,7 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if controls_locked:
 		return
 	# The web shell owns pointer lock; its state is reflected in Input.mouse_mode.
-	if event is InputEventMouseMotion and (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or (OS.has_feature("web") and (event.button_mask & (MOUSE_BUTTON_MASK_LEFT | MOUSE_BUTTON_MASK_RIGHT)) != 0)):
+	if event is InputEventMouseMotion and (Input.mouse_mode == Input.MOUSE_MODE_CAPTURED or (OS.has_feature("web") and not TouchMode.touch() and (event.button_mask & (MOUSE_BUTTON_MASK_LEFT | MOUSE_BUTTON_MASK_RIGHT)) != 0)):
 		cam_yaw -= event.relative.x * MOUSE_SENS
 		cam_pitch = clampf(cam_pitch - event.relative.y * MOUSE_SENS, -1.25, 0.4)
 	elif event is InputEventMouseButton and event.pressed:

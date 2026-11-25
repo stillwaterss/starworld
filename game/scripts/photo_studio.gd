@@ -4,6 +4,7 @@ extends CanvasLayer
 ## a thumbnail of the saved picture. cozy_activities keeps the photo flag and camera.
 ## Shutter keys: Enter, keypad Enter, Space or left click; on Windows an IME can eat
 ## Enter, so the others always work too.
+const TouchMode := preload("res://scripts/touch_controls.gd")
 const SPOTS := "res://data/content/photo_spots.json"
 const FILTERS := [
 	{"name": "自然", "tint": Color(1, 1, 1, 0), "vignette": .18},
@@ -26,6 +27,7 @@ var thumb_time := 0.0
 var flash_time := 0.0
 var glide: Tween
 var last_saved := ""
+var touch_bar: HBoxContainer
 
 func _ready() -> void:
 	name = "PhotoStudio"
@@ -73,6 +75,23 @@ func _ready() -> void:
 	thumb.offset_bottom = 180
 	thumb.visible = false
 	add_child(thumb)
+	if TouchMode.touch():
+		touch_bar = HBoxContainer.new()
+		touch_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		touch_bar.offset_left = -302
+		touch_bar.offset_right = 302
+		touch_bar.offset_top = -106
+		touch_bar.offset_bottom = -44
+		touch_bar.add_theme_constant_override("separation", 10)
+		for entry in [["退出摄影", func():cozy.toggle_photo()], ["换取景", cycle_framing], ["换滤镜", func():set_filter((filter+1)%FILTERS.size())], ["拍照", func():cozy.save_photo()]]:
+			var button := Button.new()
+			button.text = entry[0]
+			button.custom_minimum_size = Vector2(142, 60)
+			button.add_theme_font_size_override("font_size", 27)
+			button.focus_mode = Control.FOCUS_NONE
+			button.pressed.connect(entry[1])
+			touch_bar.add_child(button)
+		add_child(touch_bar)
 	visible = false
 
 ## Called by cozy when photo mode opens: finds framings for where the player stands.
@@ -143,7 +162,16 @@ func _refresh() -> void:
 	overlay.material.set_shader_parameter("vignette", f.vignette)
 	var name_text: String = framings[framing].name if not framings.is_empty() else ""
 	hud.text = "取景：%s（Tab 换）· 滤镜：%s（1/2/3）· G 三分线 · 方向键微调 · Enter/空格/左键 拍照 · O 返回" % [name_text, f.name]
+	if TouchMode.touch():hud.text = "取景：%s · 滤镜：%s · 滑动微调" % [name_text, f.name]
 	grid.queue_redraw()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or not TouchMode.touch() or not event is InputEventScreenDrag:return
+	if is_instance_valid(touch_bar) and touch_bar.get_global_rect().has_point(event.position):return
+	if glide:glide.kill()
+	cozy.photo_camera.rotation.y -= event.relative.x * .003
+	cozy.photo_camera.rotation.x = clampf(cozy.photo_camera.rotation.x - event.relative.y * .003, -1.2, .6)
+	get_viewport().set_input_as_handled()
 
 func _draw_grid() -> void:
 	if not grid_on:return
@@ -155,6 +183,7 @@ func _draw_grid() -> void:
 ## Takes the picture: hides the hints, saves (not in test sessions), flashes, shows a thumbnail.
 func shoot(write_file: bool) -> String:
 	hud.visible = false
+	if touch_bar:touch_bar.hide()
 	grid.visible = false
 	thumb.visible = false
 	var image: Image
@@ -177,6 +206,7 @@ func shoot(write_file: bool) -> String:
 			image.save_png(path)
 	last_saved = path
 	hud.visible = true
+	if touch_bar:touch_bar.show()
 	grid.visible = true
 	thumb.texture = ImageTexture.create_from_image(image)
 	thumb.visible = true

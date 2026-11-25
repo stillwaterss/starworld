@@ -323,8 +323,21 @@
 		}
 		return out;
 	}
+	function inflateStream(parts) {
+		// Feed parts one at a time. Avoid copying a 40 MB buffer into a Blob or
+		// holding a second uncompressed copy before Godot reads the response.
+		let i = 0;
+		return new ReadableStream({
+			pull(controller) {
+				if (i === parts.length) { controller.close(); return; }
+				const part = parts[i];
+				parts[i++] = null;
+				controller.enqueue(part);
+			}
+		}).pipeThrough(new DecompressionStream('gzip'));
+	}
 	async function gunzip(parts, rawSize) {
-		const stream = new Blob(parts).stream().pipeThrough(new DecompressionStream('gzip'));
+		const stream = inflateStream(parts);
 		const out = new Uint8Array(rawSize);
 		const reader = stream.getReader();
 		let at = 0;
@@ -360,8 +373,12 @@
 			const [wasmParts, pckParts] = await download([m.files.wasm, m.files.pck], () => {});
 			clearInterval(tick);
 			onStatus && onStatus({ loaded: S.total, total: S.total, speed: 0, left: 0, text: '下载完成，正在解压…', detail: '' });
-			const [wasm, pck] = await Promise.all([gunzip(wasmParts, m.files.wasm.raw), gunzip(pckParts, m.files.pck.raw)]);
-			S.bytes = { [m.wasm_name]: wasm, [m.pck_name]: pck };
+			if (window.starworldMobile) {
+				S.bytes = { [m.wasm_name]: wasmParts, [m.pck_name]: pckParts };
+			} else {
+				const [wasm, pck] = await Promise.all([gunzip(wasmParts, m.files.wasm.raw), gunzip(pckParts, m.files.pck.raw)]);
+				S.bytes = { [m.wasm_name]: wasm, [m.pck_name]: pck };
+			}
 			onStatus && onStatus({ loaded: S.total, total: S.total, speed: 0, left: 0, text: '下载完成', detail: '' });
 			readyResolve(true);
 		} catch (e) {
@@ -383,8 +400,12 @@
 			if (served[name]) {
 				const bytes = served[name];
 				delete served[name];
-				const type = name.endsWith('.wasm') ? 'application/wasm' : 'application/octet-stream';
-				return Promise.resolve(new Response(bytes, { headers: { 'Content-Type': type, 'Content-Length': String(bytes.length) } }));
+				const wasm = name.endsWith('.wasm');
+				const type = wasm ? 'application/wasm' : 'application/octet-stream';
+				const streamed = Array.isArray(bytes);
+				const length = streamed ? S.manifest.files[wasm ? 'wasm' : 'pck'].raw : bytes.length;
+				if (!Object.keys(served).length) window.fetch = real;
+				return Promise.resolve(new Response(streamed ? inflateStream(bytes) : bytes, { headers: { 'Content-Type': type, 'Content-Length': String(length) } }));
 			}
 			return real(input, init);
 		};

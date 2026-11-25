@@ -1,4 +1,6 @@
 extends CanvasLayer
+
+const TouchMode := preload("res://scripts/touch_controls.gd")
 signal star_recorded(index: int)
 ## Emitted when a conversation is read to the end (or skipped to the end); Esc does not count.
 signal dialogue_finished(npc_id: String)
@@ -21,6 +23,8 @@ var dialogue_body: RichTextLabel
 var dialogue_next: Button
 var dialogue_skip: Button
 var scope_ui: Control
+var scope_tools: PanelContainer
+var scope_finger := -1
 var scope_title: Label
 var scope_story: Label
 var record_button: Button
@@ -193,6 +197,7 @@ func _build_ui() -> void:
 	chart.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scope_ui.add_child(chart)
 	var panel:=PanelContainer.new()
+	scope_tools=panel
 	panel.position=Vector2(24,90)
 	panel.custom_minimum_size=Vector2(215,0)
 	panel.add_theme_stylebox_override("panel",_panel())
@@ -204,11 +209,16 @@ func _build_ui() -> void:
 	scope_tabs=VBoxContainer.new()
 	scope_tabs.add_theme_constant_override("separation",8)
 	tabs.add_child(scope_tabs)
-	tabs.add_child(_label("拖动转向 · 滚轮变焦",14))
+	tabs.add_child(_label("拖动转向 · 点＋或－变焦" if TouchMode.touch() else "拖动转向 · 滚轮变焦",14))
+	if TouchMode.touch():
+		var zoom := HBoxContainer.new()
+		zoom.add_child(_button("＋",func():scope_camera.fov=maxf(10,scope_camera.fov-2)))
+		zoom.add_child(_button("－",func():scope_camera.fov=minf(44,scope_camera.fov+2)))
+		tabs.add_child(zoom)
 	zoom_label=_label("",15)
 	tabs.add_child(zoom_label)
 	_rebuild_scope_tabs()
-	var close:=_button("退出观星  Esc",close_modal)
+	var close:=_button("退出观星" if TouchMode.touch() else "退出观星  Esc",close_modal)
 	close.position=Vector2(24,24)
 	scope_ui.add_child(close)
 	scope_title=_label("",28)
@@ -236,6 +246,7 @@ func _build_ui() -> void:
 	record_button.offset_top=-76
 	record_button.offset_bottom=-32
 	scope_ui.visible=false
+	scope_finger=-1
 	journal_panel=PanelContainer.new()
 	journal_panel.add_theme_stylebox_override("panel",_panel())
 	root_ui.add_child(journal_panel)
@@ -287,10 +298,10 @@ func _process(_delta: float) -> void:
 	# takes E before the person does
 	if active_target!="" and content and content.has_method("priority_examine") and content.priority_examine(player.global_position,active_target):active_target=""
 	prompt.visible=not active_target.is_empty()
-	if active_target=="scope":prompt.text="E  使用望远镜 · 观星"
+	if active_target=="scope":prompt.text="使用望远镜 · 观星" if TouchMode.touch() else "E  使用望远镜 · 观星"
 	else:
 		for npc in npcs:
-			if npc.profile_id==active_target:prompt.text="E  交谈 · "+npc.display_name
+			if npc.profile_id==active_target:prompt.text=("交谈 · " if TouchMode.touch() else "E  交谈 · ")+npc.display_name
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and preload("res://scripts/project_paths.gd").typing(get_viewport()):return
@@ -308,7 +319,7 @@ func _input(event: InputEvent) -> void:
 		elif mode=="idle":_interact_nearest()
 		get_viewport().set_input_as_handled()
 	elif mode=="scope":
-		if event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT and event.position.x>250 and event.position.y>75 and event.position.y<get_viewport().get_visible_rect().size.y-140:
+		if not TouchMode.touch() and event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT and event.position.x>250 and event.position.y>75 and event.position.y<get_viewport().get_visible_rect().size.y-140:
 			if scope_tween:scope_tween.kill()
 			scope_yaw-=event.relative.x*.0025*scope_camera.fov/26
 			scope_pitch=clampf(scope_pitch-event.relative.y*.0025*scope_camera.fov/26,.12,1.40)
@@ -316,6 +327,22 @@ func _input(event: InputEvent) -> void:
 		elif event is InputEventMouseButton and event.pressed:
 			if event.button_index==MOUSE_BUTTON_WHEEL_UP:scope_camera.fov=maxf(10,scope_camera.fov-2)
 			elif event.button_index==MOUSE_BUTTON_WHEEL_DOWN:scope_camera.fov=minf(44,scope_camera.fov+2)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if mode != "scope" or not TouchMode.touch():return
+	if event is InputEventScreenTouch:
+		if event.pressed and scope_finger < 0 and event.position.y > 80 and event.position.y < get_viewport().get_visible_rect().size.y - 125 and not scope_tools.get_global_rect().has_point(event.position):
+			scope_finger = event.index
+			get_viewport().set_input_as_handled()
+		elif not event.pressed and event.index == scope_finger:
+			scope_finger = -1
+			get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag and event.index == scope_finger:
+		if scope_tween:scope_tween.kill()
+		scope_yaw -= event.relative.x * .0025 * scope_camera.fov / 26
+		scope_pitch = clampf(scope_pitch - event.relative.y * .0025 * scope_camera.fov / 26, .12, 1.40)
+		_update_scope_rotation()
+		get_viewport().set_input_as_handled()
 
 func _interact_nearest() -> void:
 	interact_with(active_target)
@@ -522,6 +549,7 @@ func close_modal() -> void:
 	if is_instance_valid(current_npc):current_npc.talking=false
 	dialogue_panel.visible=false
 	scope_ui.visible=false
+	scope_finger=-1
 	journal_panel.visible=false
 	mode="idle"
 	if _talking:

@@ -57,6 +57,7 @@ jobs:
           python3 -m http.server 8765 --directory site >/tmp/http.log 2>&1 &
           node scripts/browser_trailer_audio_focus.cjs
           node scripts/browser_v17_smoke.cjs
+          STARWORLD_URL=http://127.0.0.1:8765/play/ node scripts/browser_mobile_smoke.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

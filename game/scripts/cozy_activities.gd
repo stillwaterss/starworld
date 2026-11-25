@@ -105,7 +105,7 @@ func _build_ui() -> void:
 	hint=label("")
 	hint.position=Vector2(20,630)
 	ui.add_child(hint)
-	toast=label(TouchWords.words("按 H 看看今天能做些什么。"),19)
+	toast=label("想逛哪里？在菜单里打开地图。" if TouchWords.touch() else "按 H 看看今天能做些什么。",19)
 	toast.position=Vector2(20,588)
 	ui.add_child(toast)
 	if TouchWords.touch():   # phones: the joystick sits in the bottom-left corner, keep these above it
@@ -223,7 +223,7 @@ func ready_action(id: String,seconds: float) -> bool:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and preload("res://scripts/project_paths.gd").typing(get_viewport()):return
-	if photo and event is InputEventMouseButton and event.pressed:
+	if photo and event is InputEventMouseButton and event.pressed and not TouchWords.touch():
 		if event.button_index==MOUSE_BUTTON_WHEEL_UP:photo_camera.fov=maxf(25,photo_camera.fov-3)
 		elif event.button_index==MOUSE_BUTTON_WHEEL_DOWN:photo_camera.fov=minf(85,photo_camera.fov+3)
 		elif event.button_index==MOUSE_BUTTON_LEFT:save_photo()

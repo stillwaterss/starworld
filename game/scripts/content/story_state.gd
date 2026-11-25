@@ -102,7 +102,9 @@ func save() -> void:
 	if not file:return
 	file.store_string(JSON.stringify(data, "  "))
 	file.close()
-	DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path))
+	var result := DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path))
+	if result == OK and OS.has_feature("web") and JavaScriptBridge.eval("window.starworldMobile === true"):
+		JavaScriptBridge.force_fs_sync()
 
 func flag(name: String) -> bool:return bool(data.flags.get(name, false))
 func set_flag(name: String) -> void:data.flags[name] = true

@@ -105,7 +105,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	fps_label.text = "FPS %d" % Engine.get_frames_per_second()
+	if fps_label.visible:fps_label.text = "FPS %d" % Engine.get_frames_per_second()
 	for material in occlusion_materials:
 		material.set_shader_parameter("player_position", player.global_position + Vector3.UP*.95)
 
@@ -143,6 +143,9 @@ func _setup_input() -> void:
 
 
 # ------------------------------------------------------------------ 环境与灯光
+func _mobile_web() -> bool:
+	return OS.has_feature("web") and preload("res://scripts/touch_controls.gd").touch()
+
 func _setup_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
@@ -157,11 +160,11 @@ func _setup_environment() -> void:
 	env.ambient_light_color = Color(0.66, 0.72, 0.91)
 	env.ambient_light_energy = 0.34
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
-	env.glow_enabled = true
+	env.glow_enabled = not _mobile_web()
 	env.glow_intensity = 0.55
 	env.glow_bloom = 0.015
 	env.glow_hdr_threshold = 1.35
-	env.ssao_enabled = true
+	env.ssao_enabled = not _mobile_web()
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.44, 0.38, 0.65)
 	env.fog_density = 0.0018
@@ -175,7 +178,8 @@ func _setup_lights() -> void:
 	var moon := DirectionalLight3D.new()
 	moon.light_color = Color(0.78, 0.84, 1.0)
 	moon.light_energy = 0.95
-	moon.shadow_enabled = true
+	moon.shadow_enabled = not _mobile_web()
+	if _mobile_web():Engine.max_fps = 30
 	moon.directional_shadow_max_distance = 90.0
 	add_child(moon)
 	moon.look_at_from_position(Vector3(-30, 50, -40), Vector3.ZERO)
@@ -194,8 +198,8 @@ func _setup_lights() -> void:
 		omni.light_energy = clampf(l[3] / 160.0, 0.4, 5.0)
 		omni.omni_range = 2.7 + sqrt(l[3]) / 5.0
 		omni.distance_fade_enabled = true
-		omni.distance_fade_begin = 85.0
-		omni.distance_fade_length = 30.0
+		omni.distance_fade_begin = 42.0 if _mobile_web() else 85.0
+		omni.distance_fade_length = 18.0 if _mobile_web() else 30.0
 		omni.light_color = Color(l[4], l[5], l[6])
 		# the story dims these until 小光 has lit the island again (content/island_lights.gd)
 		omni.set_meta("base_energy", omni.light_energy)
@@ -322,7 +326,7 @@ func _setup_hud() -> void:
 	add_child(layer)
 	layer.visible = not "--clean-shots" in OS.get_cmdline_user_args()
 	var help := Label.new()
-	help.text = "WASD 移动 · E 交谈 · N 地图 · P 故事 · H 帮助"
+	help.text = "左侧摇杆移动 · 滑动右侧转镜头" if _mobile_web() else "WASD 移动 · E 交谈 · N 地图 · P 故事 · H 帮助"
 	var font := preload("res://assets/fonts/LXGWWenKai-Regular.ttf")
 	help.add_theme_font_override("font",font)
 	help.position = Vector2(16, 12)
@@ -334,6 +338,7 @@ func _setup_hud() -> void:
 	fade.tween_interval(25.0)
 	fade.tween_property(help, "modulate:a", 0.0, 2.0)
 	fps_label = Label.new()
+	fps_label.visible = not _mobile_web()
 	fps_label.position = Vector2(16, 40)
 	fps_label.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
 	layer.add_child(fps_label)
