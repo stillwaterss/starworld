@@ -168,7 +168,7 @@ start.onclick = async () => {
     }
     document.body.classList.add('ready');
     if (window.starworldMobile) {
-      // Download optional art/font during a quiet title screen, or on demand from the story.
+      // Only story and map UI request optional art/font on mobile.
       let lateStarted = false;
       const late = () => {
         if (lateStarted) return;
@@ -176,7 +176,6 @@ start.onclick = async () => {
         StarLoader.late(engine);
       };
       window.starworldRequestLate = late;
-      setTimeout(() => { if (document.visibilityState === 'visible' && window.starworldUi?.title && !window.starworldUi.opening) late(); }, 25000);
     } else StarLoader.late(engine);
     window.starworldStartAudio();
     document.getElementById('canvas').focus();
