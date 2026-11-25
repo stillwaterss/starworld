@@ -329,7 +329,7 @@ func _process(delta: float) -> void:
 			if control.is_visible_in_tree():
 				var center: Vector2 = control.get_global_rect().get_center()
 				buttons[control.text] = [center.x, center.y]
-		JavaScriptBridge.eval("window.starworldTouch = " + JSON.stringify({"controlsVisible": controls.visible, "menuOpen": menu_panel.visible, "move": [world.player.touch_move.x, world.player.touch_move.y], "yaw": world.player.cam_yaw, "joystick": [joy_center.x, joy_center.y], "buttons": buttons, "fps": Engine.get_frames_per_second()}))
+		JavaScriptBridge.eval("window.starworldTouch = " + JSON.stringify({"controlsVisible": controls.visible, "menuOpen": menu_panel.visible, "move": [world.player.touch_move.x, world.player.touch_move.y], "yaw": world.player.cam_yaw, "grounded": world.player.is_on_floor(), "jumps": world.player.jumps_completed, "joystick": [joy_center.x, joy_center.y], "buttons": buttons, "fps": Engine.get_frames_per_second()}))
 
 func _input(event: InputEvent) -> void:
 	if not is_instance_valid(controls) or not controls.is_visible_in_tree():return

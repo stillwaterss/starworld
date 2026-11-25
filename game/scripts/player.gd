@@ -21,6 +21,7 @@ var scripted_direction := Vector3.ZERO
 var scripted_speed := 1.65
 var test_dir := Vector3.ZERO   # 自动测试用, 非零时覆盖键盘输入
 var touch_move := Vector2.ZERO
+var jumps_completed := 0
 var touch_run := false
 var cam_yaw := 0.0
 var cam_pitch := -0.32
@@ -124,6 +125,7 @@ func _physics_process(delta: float) -> void:
 		jump()
 	if _jump_buf > 0.0 and _coyote > 0.0:
 		velocity.y = JUMP_VELOCITY
+		jumps_completed += 1
 		_jump_buf = 0.0
 		_coyote = 0.0
 		if model.using_fallback: model.scale = Vector3(0.8, 1.25, 0.8)
