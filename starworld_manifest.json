@@ -1,0 +1,277 @@
+{
+ "version": "7d5bc3159420",
+ "wasm_name": "index.wasm",
+ "pck_name": "index.a7ec2558b796d3ac.pck",
+ "mirrors": [
+  "https://raw.githubusercontent.com/stillwaterss/starworld/web-parts/"
+ ],
+ "files": {
+  "wasm": {
+   "raw": 39514754,
+   "parts": [
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.000",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.001",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.002",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.003",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.004",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.005",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.006",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.007",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.008",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.wasm.gz.009",
+     "size": 617574
+    }
+   ]
+  },
+  "pck": {
+   "raw": 42852528,
+   "parts": [
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.000",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.001",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.002",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.003",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.004",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.005",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.006",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.007",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.008",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.009",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.010",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.011",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.012",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.013",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.014",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.015",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.016",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.017",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.018",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.019",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.020",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.021",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.022",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.023",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.024",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.025",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.026",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.027",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.028",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.029",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.030",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.031",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.032",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.033",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.034",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.035",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.036",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.037",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.038",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.039",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/index.a7ec2558b796d3ac.pck.gz.040",
+     "size": 20019
+    }
+   ]
+  },
+  "late": {
+   "raw": 12125744,
+   "parts": [
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.000",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.001",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.002",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.003",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.004",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.005",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.006",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.007",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.008",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.009",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.010",
+     "size": 1048576
+    },
+    {
+     "name": "parts/7d5bc3159420/late.pck.gz.011",
+     "size": 585381
+    }
+   ]
+  }
+ }
+}
